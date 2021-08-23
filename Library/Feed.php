@@ -151,6 +151,7 @@ class Feed
                     'http' => [
                         'method' => 'GET',
                         'header' => 'Authorization: Basic ' . base64_encode($user . ':' . $pass) . "\r\n",
+                        'user_agent' => Ini::get('user_agent'),
                     ],
                 ];
                 $context = stream_context_create($options);
