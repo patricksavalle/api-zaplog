@@ -1,0 +1,38 @@
+{
+  "name": "patricksavalle/zaplogv2",
+  "description": "Social bookmarking and blogging",
+  "version": "v0.1",
+  "type": "library",
+  "keywords": [
+    "news",
+    "social blogging",
+    "weblog",
+    "social bookmarking",
+    "linkdump"
+  ],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Patrick Savalle",
+      "email": "patrick@patricksavalle.com",
+      "homepage": "http://patricksavalle.com",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "slim/slim": "^3.0",
+    "patricksavalle/slim-rest-api": "*",
+    "patricksavalle/slim-request-params": "*",
+    "palanik/corsslim": "dev-slim3",
+    "pavlakis/slim-cli": "*",
+    "ext-json": "*",
+    "ext-libxml": "*",
+    "ext-dom": "*",
+    "ext-simplexml": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "SlimRequestParams\\": "."
+    }
+  }
+}
