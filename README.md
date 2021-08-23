@@ -1,47 +1,47 @@
 # ZAPLOG REST-API PROTOTYPE
 
-Dit is een prototype voor het ZapLog nieuwscommunity platform. 
+Dit is een prototype voor het ZapLog nieuwscommunity platform.
 
-Crowd-sourced link-dump met algoritmische voorpagina. 
+Crowd-sourced link-dump met algoritmische voorpagina.
 
 - POC
-  - n.v.t. 
+    - n.v.t.
 
 
 - Prototype
     - 2FA email login
-    - links plaatsen 
-    - links taggen 
-    - links voten 
+    - links plaatsen
+    - links taggen
+    - links voten
     - activity stream
-    - linkscores 
+    - linkscores
     - algoritmische voorpagina
     - gemeenschappelijk archief (channel)
     - persoonlijk archief (channel)
     - trefwoorden index (tags)
-    - ‘now online' 
+    - ‘now online'
 
 
-- MVP 
+- MVP
     - SLIM 3.x -> SLIM 4.x
     - PHP 7.x -> PHP 8.x
     - links commenten
     - blogging
-    - network of zaplogs (remove single point of censorship) 
+    - network of zaplogs (remove single point of censorship)
     - gebruikersprofielen
     - gebruikersreputatie
     - automatische content actualisatie / crawling
 
-  
+
 - COULD HAVE:
     - comments voten
-    - RSS feeds plaatsen 
+    - RSS feeds plaatsen
     - RSS feeds voting
     - RSS feeds reader
 
 
 - WON'T HAVE
-  - images in user-content (copyright gevoelig)
+    - images in user-content (copyright gevoelig)
 
 ## Technologie
 
@@ -57,7 +57,7 @@ Deze REST-API is gebaseerd op het SLIM 3 Framework en custom plugins
 - SMTP server
 - optioneel Memcache
 
-## Bouwen en deployen 
+## Bouwen en deployen
 
 Het resolven / ophalen van alle libraries gebeurt met composer:
 
@@ -66,7 +66,7 @@ Het resolven / ophalen van alle libraries gebeurt met composer:
 Deze server is geschreven in PHP 7.4 op MariaDB en kan worden gestart met de ingebouwde PHP interpreter:
 
     PHP -S localhost:8080
-    
+
 Het adres voor de API is:
 
     /api.php
@@ -79,8 +79,8 @@ De configuratie kan worden aangepast in:
 
     /slim-rest-api.ini 
 
-De server maakt gebruik van de zgn. event-scheduler van de database engine. 
-Deze moet in de meeste installaties expliciet woden aangezet. 
+De server maakt gebruik van de zgn. event-scheduler van de database engine.
+Deze moet in de meeste installaties expliciet woden aangezet.
 
 De server maakt gebruik van een externe SMTP server. Deze kan in de bovenstaande .ini worden geconfigureerd.
 
@@ -90,5 +90,5 @@ Het front-end heeft een apart project op:
 
     https://github.com/patricksavalle/web.zaplog
 
-Beiden tegelijk gebruiken kan kan alleen via NGINX of APACHE omdat het front-end 
+Beiden tegelijk gebruiken kan kan alleen via NGINX of APACHE omdat het front-end
 het back-end aanroept en de interne PHP-server dan blokkeert.
