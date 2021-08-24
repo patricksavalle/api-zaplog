@@ -106,7 +106,7 @@ CREATE TABLE links
     createdatetime TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     crawldatetime  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     channelid      INT           NOT NULL,
-    urlhash        BINARY(16) GENERATED ALWAYS AS (BINARY(MD5(url))),
+    urlhash        CHAR(32) GENERATED ALWAYS AS (MD5(url)),
     url            VARCHAR(1024) NOT NULL,
     title          VARCHAR(128)  NOT NULL,
     description    TEXT                   DEFAULT NULL,
