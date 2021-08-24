@@ -10,11 +10,12 @@ namespace Zaplog {
 
     define("BASE_PATH", dirname(__FILE__));
 
-    require BASE_PATH . '/vendor/autoload.php';
-    require BASE_PATH . '/Middleware/Authentication.php';
-    require BASE_PATH . '/Library/HtmlMetadata.php';
-    require BASE_PATH . '/Library/Feed.php';
-    require BASE_PATH . '/Exception/ResourceNotFoundException.php';
+    require_once BASE_PATH . '/vendor/autoload.php';
+    require_once BASE_PATH . '/Middleware/Authentication.php';
+    require_once BASE_PATH . '/Library/HtmlMetadata.php';
+    require_once BASE_PATH . '/Library/Feed.php';
+    require_once BASE_PATH . '/Library/TwoFactorAuth.php';
+    require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
 
     use stdClass;
     use Exception;
@@ -70,14 +71,15 @@ namespace Zaplog {
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
+                $email = urldecode($args->emailencoded);
                 (new TwoFactorAuth)
+                    ->addParams(["receiver" => $email])
                     ->addParams($args)
-                    ->addTrigger('API.php', ['\Zaplog\Middleware\Authentication', 'createSession'], [$args->email])
+                    ->addTrigger('API.php', ['\Zaplog\Middleware\Authentication', 'createSession'], [$email])
                     ->send();
                 return $response;
             })
                 ->add(new BodyParameters([
-                    '{receiver:\email}',
                     '{subject:.{1,128}},Your single-use login link',
                     '{button:.{1,30}},Login',
                     '{button_url:\url},null',

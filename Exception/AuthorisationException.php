@@ -12,14 +12,14 @@
 
 declare(strict_types = 1);
 
-namespace Zaplog\Exception;
+namespace Zaplog\Exception {
 
-require_once 'Exception.php';
-
-class AuthorisationException extends Exception
-{
-    public function __construct(string $message = "", int $httpcode = 403)
+    class AuthorisationException extends \Exception
     {
-        parent::__construct($message, $httpcode);
+        public function __construct(string $message = "", int $httpcode = 403)
+        {
+            parent::__construct($message, $httpcode);
+        }
     }
+
 }

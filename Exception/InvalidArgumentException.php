@@ -12,14 +12,14 @@
 
 declare(strict_types = 1);
 
-namespace Zaplog\Exception;
+namespace Zaplog\Exception {
 
-require_once 'Exception.php';
-
-class InvalidArgumentException extends Exception
-{
-    public function __construct(string $message = "", int $httpcode = 400)
+    class InvalidArgumentException extends \Exception
     {
-        parent::__construct($message, $httpcode);
+        public function __construct(string $message = "", int $httpcode = 400)
+        {
+            parent::__construct($message, $httpcode);
+        }
     }
+
 }

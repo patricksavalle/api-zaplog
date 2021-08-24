@@ -6,6 +6,7 @@ namespace Zaplog\Library;
 
 use SlimRestApi\Infra\Ini;
 use SlimRestApi\Infra\Singleton;
+use PHPMailer\PHPMailer\PHPMailer;
 
 /**
  *  SMTP, instantiates a SMTP object and delegates all calls to this object.
@@ -51,7 +52,7 @@ final class Mail extends Singleton
 
     static protected function instance()
     {
-        $mail = new \PHPMailer();
+        $mail = new PHPMailer();
         $mail->isSMTP();
         $mail->Host = Ini::get('smtp_host');
         $mail->SMTPAuth = true;

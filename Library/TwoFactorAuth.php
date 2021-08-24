@@ -70,8 +70,9 @@ class TwoFactorAuth extends stdClass
 
         // Get the email template from the client
         $body = file_get_contents($this->template_url);
+        echo $this->template_url;
         if ($body === false) {
-            throw new ResourceNotFoundException('Cannot open location: ' . $this->template_url);
+            throw new Exception('Cannot open location: ' . $this->template_url);
         }
 
         // Store $this in database, add token to '$this' so it will be used in rendering below

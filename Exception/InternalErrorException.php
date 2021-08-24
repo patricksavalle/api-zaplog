@@ -12,14 +12,14 @@
 
 declare(strict_types = 1);
 
-namespace Zaplog\Exception;
+namespace Zaplog\Exception {
 
-require_once 'Exception.php';
-
-class InternalErrorException extends Exception
-{
-    public function __construct(string $message = "", int $httpcode = 500)
+    class InternalErrorException extends \Exception
     {
-        parent::__construct($message, $httpcode);
+        public function __construct(string $message = "", int $httpcode = 500)
+        {
+            parent::__construct($message, $httpcode);
+        }
     }
+
 }
