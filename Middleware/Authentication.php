@@ -30,13 +30,14 @@ class Authentication
     static public function createSession( string $email )
     {
         assert(filter_var($email, FILTER_VALIDATE_EMAIL) !== false);
-        Db::execute("INSERT IGNORE channels(email)VALUES(:email)", [':email' => $email]);
-        $channelid = Db::lastInsertId();
+        // make sure a channel exists
+        Db::execute("INSERT IGNORE channels(email) VALUES (:email)", [':email' => $email]);
         $token = Password::randomMD5();
-        if (Db::execute("INSERT INTO sessions(token,channelid) VALUES(:token,:channelid)",
+        if (Db::execute("INSERT INTO sessions(token,channelid) 
+                SELECT :token, id FROM channels WHERE email=:email",
                 [
                     ":token" => $token,
-                    ":channelid" => $channelid,
+                    ":email" => $email,
                 ])->rowCount() == 0
         ) {
             throw new Exception;

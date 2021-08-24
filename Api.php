@@ -16,6 +16,7 @@ namespace Zaplog {
     require_once BASE_PATH . '/Library/Feed.php';
     require_once BASE_PATH . '/Library/TwoFactorAuth.php';
     require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
+    require_once BASE_PATH . '/Exception/EmailException.php';
 
     use stdClass;
     use Exception;
@@ -26,6 +27,7 @@ namespace Zaplog {
     use Psr\Http\Message\ResponseInterface;
     use Psr\Http\Message\ServerRequestInterface;
     use SlimRestApi\Infra\Db;
+    use Zaplog\Exception\EmailException;
     use Zaplog\Exception\ResourceNotFoundException;
     use Zaplog\Library\HtmlMetadata;
     use Zaplog\Library\TwoFactorAuth;
@@ -88,7 +90,7 @@ namespace Zaplog {
                         ->createToken()
                         ->sendToken($args);
                     return $response;
-                } catch ( Exception $e) {
+                } catch ( EmailException $e) {
                     // TODO remove in production
                     return $response->withJson( "/Api.php/2factor/".$Auth->utoken );
                 }

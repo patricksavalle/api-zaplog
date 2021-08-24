@@ -13,7 +13,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use SlimRestApi\Infra\Ini;
 use stdClass;
-use Zaplog\Exception\ResourceNotFoundException;
+use Zaplog\Exception\EmailException;
 
 /**
  * Generic mechanism for authorising actions through an email link.
@@ -36,6 +36,7 @@ class TwoFactorAuth extends stdClass
 {
     // MUST BE PUBLIC, otherwise it will not be enumerated into the Locker
     public $triggers = [];
+    public $utoken = null;
 
     public function addParams($iterable): TwoFactorAuth
     {
@@ -64,12 +65,15 @@ class TwoFactorAuth extends stdClass
 
     /**
      * Send the authorisation request to the user
-     * @throws ResourceNotFoundException
+     * @throws EmailException
      * @throws Exception
      */
     public function sendToken(stdClass $args): TwoFactorAuth
     {
-        // set some defaults and dynamics
+        // In $args are the template variables for the email template
+
+        // set some defaults
+        $args->utoken = $this->utoken;
         $args->template_url = $args->template_url ?? Ini::get('email_action_template');
         $args->sender = $args->sender ?? Ini::get('email_default_sender');
         $args->sendername = $args->sendername ?? Ini::get('email_default_sendername');
@@ -94,7 +98,7 @@ class TwoFactorAuth extends stdClass
         Mail::isHTML(true);
         Mail::setBody($body);
         if (Mail::send() != true) {
-            throw new Exception(Mail::getErrorInfo(), 500);
+            throw new EmailException(Mail::getErrorInfo(), 500);
         }
         return $this;
     }
