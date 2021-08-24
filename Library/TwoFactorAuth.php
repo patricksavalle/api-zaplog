@@ -107,7 +107,7 @@ class TwoFactorAuth extends stdClass
     public function __invoke(ServerRequestInterface $request, ResponseInterface $response, stdClass $args): ResponseInterface
     {
         // Restore $this to state with which the 2FA request was made
-        $this->addParams(Locker::unstash($args->utoken));
+        Locker::unstash($args->utoken);
 
         // Execute all requested actions in order, remember last result
         $result = null;

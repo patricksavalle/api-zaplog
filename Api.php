@@ -45,7 +45,7 @@ namespace Zaplog {
                 echo "<strong>Object oriented coded on PHP 7.3.9 / Relational datamodelling in MARIADB 10.4.6 by patrick@patricksavalle.com</strong>";
                 echo "<ul>";
                 echo "<li>Installing memcache will improve performance</li>";
-                echo "<li>Needs MariaDB event scheduler </li>";
+                echo "<li>Needs the MariaDB event scheduler </li>";
                 echo "<li>Needs SMTP server for </li>";
                 echo "<li>Consider using an API gateway like WSO2</li>";
                 echo "</ul>";
@@ -80,7 +80,7 @@ namespace Zaplog {
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
                 $email = urldecode($args->emailencoded);
-                $args->email = $email;
+                $args->receiver = $email;
                 $Auth = new TwoFactorAuth;
                 try {
                     $Auth
@@ -142,19 +142,20 @@ namespace Zaplog {
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
+                Db::execute("UPDATE links SET viewscount = viewscount + 1");
                 $link = Db::execute("SELECT * FROM links WHERE id=:id", [":id" => $args->id])->fetch();
                 if (!$link) throw new ResourceNotFoundException;
                 $tags = Db::execute("SELECT * FROM tags WHERE linkid=:id", [":id" => $args->id])->fetchAll();
-                //TODO $related = Db::execute("", ["" => null])->fetchAll();
+                // TODO below is just a dummy response
+                $related = Db::execute("SELECT * FROM links LIMIT 5", [])->fetchAll();
                 return $response->withJson(
                     [
                         "link" => $link,
                         "tags" => $tags,
-                        // TODO "related" => $related,
+                        "related" => $related,
                     ]
                 );
-            })
-                ->add(new ReadOnly);
+            });
 
             // -----------------------------------------------------
             // Returns the currently select frontpage links
