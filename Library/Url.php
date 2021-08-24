@@ -24,8 +24,12 @@ namespace Zaplog\Library {
                 // Strip scheme default ports
                 if (isset($defaultSchemes[$url['scheme']]) && isset($url['port']) && $defaultSchemes[$url['scheme']] == $url['port'])
                     unset($url['port']);
-                $newUrl .= "{$url['scheme']}://";
+                $newUrl .= $url['scheme']."://";
+            } else {
+                $newUrl .= "https://";
             }
+
+            echo $newUrl;
 
             if (isset($url['host'])) {
                 $url['host'] = strtolower($url['host']);
@@ -44,10 +48,12 @@ namespace Zaplog\Library {
 
             if (isset($url['path'])) {
                 // Case normalization
-                // original line: $url['path'] = preg_replace('/(%([0-9abcdef][0-9abcdef]))/ex', "'%'.strtoupper('\\2')", $url['path']);
-                $url['path'] = preg_replace_callback('/(%([0-9abcdef][0-9abcdef]))/x', function ($matches) {
-                    return '%' . strtoupper($matches[1]);
-                }, $url['path']);
+                $url['path'] = preg_replace_callback(
+                    '/(%([0-9abcdef][0-9abcdef]))/x',
+                    function ($matches) {
+                        return '%' . strtoupper($matches[1]);
+                    },
+                    $url['path']);
                 //Strip duplicate slashes
                 while (preg_match("/^(?!https?:)\/\//", $url['path']))
                     $url['path'] = preg_replace("/^(?!https?:)\/\//", "/", $url['path']);
@@ -139,12 +145,11 @@ namespace Zaplog\Library {
             // return if already absolute URL
             // -------------------------------
 
-            if (strpos($this->url, "//") == 0) {
-                return $this->url;
-            }
             $scheme = parse_url($this->url, PHP_URL_SCHEME);
             if (!empty($scheme)) {
                 return $this->url;
+            } elseif (strpos($this->url, "//") == 0) {
+                return "https:" . $this->url;
             }
 
             // ---------------------
