@@ -256,7 +256,7 @@ namespace Zaplog {
                     throw new Exception;
                 }
                 // TODO could add the tags from the metadata
-                return $response;
+                return $response->withJson($metadata);
             })
                 ->add(new Authentication);
 
@@ -366,8 +366,8 @@ namespace Zaplog {
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
                 return $response->withJson((new HtmlMetadata)(urldecode($args->urlencoded)));
-            })
-                ->add(new Authentication);
+            });
+//                ->add(new Authentication);
 
             $this->get("/feed/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
                 ServerRequestInterface $request,
@@ -382,5 +382,5 @@ namespace Zaplog {
         }
     }
 
-    (new api)->run();
+    (new Api)->run();
 }

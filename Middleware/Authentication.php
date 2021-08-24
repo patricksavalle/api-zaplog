@@ -13,6 +13,8 @@ use SlimRestApi\Infra\Db;
 use SlimRestApi\Infra\Password;
 use stdClass;
 
+// TODO change to HTTP Bearer authentication
+
 class Authentication
 {
     static protected $session_token = null;
