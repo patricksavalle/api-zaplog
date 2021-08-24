@@ -54,45 +54,49 @@ class TwoFactorAuth extends stdClass
         return $this;
     }
 
+    public function createToken(): TwoFactorAuth
+    {
+        // Create a token for '$this', to execute to token, use the __invoke methode
+        $this->utoken = Locker::stash($this, 60 * 60 * 24);
+        unset($this->callables);
+        return $this;
+    }
+
     /**
      * Send the authorisation request to the user
      * @throws ResourceNotFoundException
      * @throws Exception
      */
-    public function send()
+    public function sendToken(stdClass $args): TwoFactorAuth
     {
         // set some defaults and dynamics
-        $this->template_url = $this->template_url ?? Ini::get('email_action_template');
-        $this->sender = $this->sender ?? Ini::get('email_default_sender');
-        $this->sendername = $this->sendername ?? Ini::get('email_default_sendername');
-        $this->subject = $this->subject ?? Ini::get('email_default_subject');
-        $this->ttl = 60 * 60 * 24 /* token expires in 24hrs */;
+        $args->template_url = $args->template_url ?? Ini::get('email_action_template');
+        $args->sender = $args->sender ?? Ini::get('email_default_sender');
+        $args->sendername = $args->sendername ?? Ini::get('email_default_sendername');
+        $args->subject = $args->subject ?? Ini::get('email_default_subject');
 
         // Get the email template from the client
-        $body = file_get_contents($this->template_url);
+        $body = file_get_contents($args->template_url);
         if ($body === false) {
-            throw new Exception('Cannot open location: ' . $this->template_url);
+            throw new Exception('Cannot open location: ' . $args->template_url);
         }
-
-        // Store $this in database, add token to '$this' so it will be used in rendering below
-        $this->utoken = Locker::stash($this, $this->ttl);
 
         // Very simple template rendering, just iterate all object members and replace name with value
         // Most object members are set from the POST body. Client can POST data that will be put into his template.
-        unset($this->callables);
-        foreach ($this as $member => $value) {
+        foreach ($args as $member => $value) {
             $body = str_replace("{{{$member}}}", filter_var($value, FILTER_SANITIZE_SPECIAL_CHARS), $body);
         }
 
         // Mail the secret to the recipient
-        Mail::setSubject($this->subject);
-        Mail::addAddress($this->receiver);
-        Mail::setFrom($this->sender, $this->sendername);
+        Mail::setSubject($args->subject);
+        Mail::addAddress($args->receiver);
+        Mail::setFrom($args->sender, $args->sendername);
         Mail::isHTML(true);
         Mail::setBody($body);
         if (Mail::send() != true) {
             throw new Exception(Mail::getErrorInfo(), 500);
         }
+        return $this;
     }
 
     // ---------------------------------------------------------------------------------

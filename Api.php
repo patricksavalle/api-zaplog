@@ -68,7 +68,7 @@ namespace Zaplog {
             // the triggers associated with the token
             // -----------------------------------------------------
 
-            $this->get("/2factor/{utoken:[[:alnum:]]{32}}", /*invoke*/ new TwoFactorAuth);
+            $this->get("/2factor/{utoken:[[:alnum:]]{32}}", new TwoFactorAuth);
 
             // -----------------------------------------------------
             // send a single-use auto-expiring log-in link to email
@@ -80,13 +80,13 @@ namespace Zaplog {
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
                 $email = urldecode($args->emailencoded);
+                $args->email = $email;
                 $Auth = new TwoFactorAuth;
                 try {
                     $Auth
-                        ->addParams(["receiver" => $email])
-                        ->addParams($args)
                         ->addTrigger('API.php', ['\Zaplog\Middleware\Authentication', 'createSession'], [$email])
-                        ->send();
+                        ->createToken()
+                        ->sendToken($args);
                     return $response;
                 } catch ( Exception $e) {
                     // TODO remove in production
