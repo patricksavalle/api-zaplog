@@ -84,13 +84,13 @@ namespace Zaplog {
                 $Auth = new TwoFactorAuth;
                 try {
                     $Auth
-                        ->addTrigger('API.php', ['\Zaplog\Middleware\Authentication', 'createSession'], [$email])
+                        ->addTrigger('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'createSession'], [$email])
                         ->createToken()
                         ->sendToken($args);
                     return $response;
                 } catch ( Exception $e) {
                     // TODO remove in production
-                    return $response->withJson( "/2factor/".$Auth->utoken );
+                    return $response->withJson( "/Api.php/2factor/".$Auth->utoken );
                 }
             })
                 ->add(new BodyParameters([

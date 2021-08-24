@@ -35,7 +35,7 @@ use Zaplog\Exception\ResourceNotFoundException;
 class TwoFactorAuth extends stdClass
 {
     // MUST BE PUBLIC, otherwise it will not be enumerated into the Locker
-    public $callables = [];
+    public $triggers = [];
 
     public function addParams($iterable): TwoFactorAuth
     {
@@ -50,15 +50,15 @@ class TwoFactorAuth extends stdClass
 
     public function addTrigger($phpfile, callable $callable, array $arguments): TwoFactorAuth
     {
-        $this->callables[] = [$phpfile, $callable, $arguments];
+        $this->triggers[] = [$phpfile, $callable, $arguments];
         return $this;
     }
 
     public function createToken(): TwoFactorAuth
     {
         // Create a token for '$this', to execute to token, use the __invoke methode
-        $this->utoken = Locker::stash($this, 60 * 60 * 24);
-        unset($this->callables);
+        $this->utoken = Locker::stash($this->triggers, 60 * 60 * 24);
+        unset($this->triggers);
         return $this;
     }
 
@@ -106,16 +106,12 @@ class TwoFactorAuth extends stdClass
 
     public function __invoke(ServerRequestInterface $request, ResponseInterface $response, stdClass $args): ResponseInterface
     {
-        // Restore $this to state with which the 2FA request was made
-        Locker::unstash($args->utoken);
-
         // Execute all requested actions in order, remember last result
         $result = null;
-        foreach ($this->callables as list($phpfile, $callable, $arguments)) {
+        foreach (Locker::unstash($args->utoken) as list($phpfile, $callable, $arguments)) {
             require_once $phpfile;
             $result = call_user_func_array($callable, $arguments);
         }
-
         return isset($result) ? $response->withJson($result) : $response;
     }
 }

@@ -53,7 +53,7 @@ class Locker
         return $hash;
     }
 
-    static public function unstash(string $hash): stdClass
+    static public function unstash(string $hash): array
     {
         // try to get the token from the database
         $row = Db::execute("SELECT json FROM tokens WHERE hash = :hash AND NOW() < expirationdatetime", [":hash" => $hash])->fetch();
