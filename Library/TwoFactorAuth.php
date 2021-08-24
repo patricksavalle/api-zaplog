@@ -70,7 +70,6 @@ class TwoFactorAuth extends stdClass
 
         // Get the email template from the client
         $body = file_get_contents($this->template_url);
-        echo $this->template_url;
         if ($body === false) {
             throw new Exception('Cannot open location: ' . $this->template_url);
         }
@@ -95,6 +94,11 @@ class TwoFactorAuth extends stdClass
             throw new Exception(Mail::getErrorInfo(), 500);
         }
     }
+
+    // ---------------------------------------------------------------------------------
+    // This is the 2 factor callback. It executes the triggers associated with the token
+    // SLIM format
+    // ---------------------------------------------------------------------------------
 
     public function __invoke(ServerRequestInterface $request, ResponseInterface $response, stdClass $args): ResponseInterface
     {

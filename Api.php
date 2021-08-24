@@ -62,6 +62,14 @@ namespace Zaplog {
                 return $rsp;
             });
 
+
+            // -----------------------------------------------------
+            // The 2FA hook, if you have a token, you can execute
+            // the triggers associated with the token
+            // -----------------------------------------------------
+
+            $this->get("/2factor/{utoken:[[:alnum:]]{32}}", /*invoke*/ new TwoFactorAuth);
+
             // -----------------------------------------------------
             // send a single-use auto-expiring log-in link to email
             // uses an email template /login.html
@@ -72,12 +80,18 @@ namespace Zaplog {
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
                 $email = urldecode($args->emailencoded);
-                (new TwoFactorAuth)
-                    ->addParams(["receiver" => $email])
-                    ->addParams($args)
-                    ->addTrigger('API.php', ['\Zaplog\Middleware\Authentication', 'createSession'], [$email])
-                    ->send();
-                return $response;
+                $Auth = new TwoFactorAuth;
+                try {
+                    $Auth
+                        ->addParams(["receiver" => $email])
+                        ->addParams($args)
+                        ->addTrigger('API.php', ['\Zaplog\Middleware\Authentication', 'createSession'], [$email])
+                        ->send();
+                    return $response;
+                } catch ( Exception $e) {
+                    // TODO remove in production
+                    return $response->withJson( "/2factor/".$Auth->utoken );
+                }
             })
                 ->add(new BodyParameters([
                     '{subject:.{1,128}},Your single-use login link',
