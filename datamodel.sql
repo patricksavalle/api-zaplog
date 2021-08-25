@@ -50,7 +50,7 @@ CREATE TABLE activities
     id        INT         NOT NULL AUTO_INCREMENT,
     channelid INT                DEFAULT NULL,
     linkid    INT                DEFAULT NULL,
-    activity  ENUM ('post', 'vote', 'bookmark', 'tag', 'share'),
+    activity  ENUM ('post', 'vote', 'bookmark', 'tag', 'share', 'untag', 'unbookmark'),
     datetime  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     content   VARCHAR(255)       DEFAULT NULL,
     PRIMARY KEY (id),
@@ -229,6 +229,17 @@ BEGIN
 END//
 DELIMITER ;
 
+DELIMITER //
+CREATE TRIGGER on_delete_tag
+    AFTER DELETE
+    ON tags
+    FOR EACH ROW
+BEGIN
+    UPDATE links SET links.tagscount = links.tagscount - 1 WHERE links.id = NEW.linkid;
+    INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.linkid, 'untag');
+END//
+DELIMITER ;
+
 -- --------------------------------------------------
 --
 -- --------------------------------------------------
@@ -292,6 +303,17 @@ CREATE TRIGGER on_insert_bookmark
 BEGIN
     UPDATE links SET links.bookmarkscount = links.bookmarkscount + 1 WHERE Links.id = NEW.linkid;
     INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.linkid, 'bookmark');
+END//
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER on_delete_bookmark
+    AFTER DELETE
+    ON bookmarks
+    FOR EACH ROW
+BEGIN
+    UPDATE links SET links.bookmarkscount = links.bookmarkscount - 1 WHERE links.id = NEW.linkid;
+    INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.linkid, 'unbookmark');
 END//
 DELIMITER ;
 

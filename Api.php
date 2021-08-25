@@ -285,7 +285,10 @@ namespace Zaplog {
             })
                 ->add(new Authentication);
 
-            // vote a link
+            // ------------------------------------------------
+            // up vote a link
+            // ------------------------------------------------
+
             $this->post("/votes/{id:\d{1,10}}", function (
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
@@ -302,7 +305,11 @@ namespace Zaplog {
             })
                 ->add(new Authentication);
 
-            $this->post("/tags/{id:\d{1,10}}/{tag:\w{3,50}}", function (
+            // ------------------------------------------------
+            // post a single tag POST /tags/{id}/{tag}
+            // ------------------------------------------------
+
+            $this->post("/tags/{id:\d{1,10}}/{tag:[\w-]{3,50}}", function (
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
@@ -319,15 +326,17 @@ namespace Zaplog {
             })
                 ->add(new Authentication);
 
-            $this->delete("/tags/{id:\d{1,10}}/{tag:\w{3,50}}", function (
+            // ------------------------------------------------
+            // delete a tag, only delete your own tags
+            // ------------------------------------------------
+
+            $this->delete("/tags/{id:\d{1,10}}", function (
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                if (Db::execute("DELETE tags FROM tags 
-                    WHERE tag=:tag and linkid=:id and channelid=:channelid",
+                if (Db::execute("DELETE tags FROM tags WHERE id=:id and channelid=:channelid",
                         [
                             ":id" => $args->id,
-                            ":tag" => $args->tag,
                             ":channelid" => Authentication::token()->channelid,
                         ])->rowCount() == 0
                 ) {
@@ -337,27 +346,26 @@ namespace Zaplog {
             })
                 ->add(new Authentication);
 
+            // ------------------------------------------------
+            // delete a tag, only delete your own tags
+            // ------------------------------------------------
+
             $this->get("/tags/index", function (
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                $tags = Db::execute("SELECT * FROM tags 
+                $tags = Db::execute("SELECT *, COUNT(tag) as count FROM tags 
                     WHERE (:channel1 IS NULL OR channelid=:channel2)
-                    ORDER BY tag LIMIT :offset,:count",
+                    GROUP BY tag ORDER BY tag",
                     [
                         ":channel1" => $args->channel,
                         ":channel2" => $args->channel,
-                        ":offset" => $args->offset,
-                        ":count" => $args->count,
                     ])->fetchAll();
                 return $response->withJson($tags);
             })
                 ->add(new ReadOnly)
                 ->add(new QueryParameters([
-                    '{startswith:\w+},null',
                     '{channel:\int},null',
-                    '{offset:\int},0',
-                    '{count:\int},100',
                 ]));
 
             $this->get("/tags/trending", function (

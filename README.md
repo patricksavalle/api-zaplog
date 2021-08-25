@@ -12,7 +12,7 @@ Crowd-sourced link-dump met algoritmische voorpagina.
     - 2FA email login
     - links plaatsen
     - links taggen
-    - links voten
+    - links up voten
     - activity stream
     - linkscores
     - algoritmische voorpagina
@@ -30,11 +30,12 @@ Crowd-sourced link-dump met algoritmische voorpagina.
     - network of zaplogs (remove single point of censorship)
     - gebruikersprofielen
     - gebruikersreputatie
-    - weighted votes, gebaseerd op gebruikersreputatie
     - automatische content actualisatie / crawling
 
 
 - COULD HAVE:
+    - weighted votes, gebaseerd op gebruikersreputatie
+    - up en down voting
     - comments voten
     - RSS feeds plaatsen
     - RSS feeds voting
@@ -47,7 +48,7 @@ Crowd-sourced link-dump met algoritmische voorpagina.
 ## Technologie
 
 Er zal een eenvoudig maatwerk systeem worden gebouwd in moderne en courante web technologie.
-De back-end zal een PHP REST-API worden. Het frontend een PHP/CSS3 Website.
+De back-end zal een PHP REST-API worden. Het frontend een Node.js/CSS3 Website.
 
 Bestaande blogsystemen zoals Wordpress en Expression Engine zijn te complex en zijn niet goed geschikt voor de gevraagd efunctionaliteit.
 
