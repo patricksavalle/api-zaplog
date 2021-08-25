@@ -41,29 +41,22 @@ namespace Zaplog {
         {
             parent::__construct();
 
+            // -----------------------------------------
             // show the API homepage
-            $this->get("/", function ($rq, $rsp, $args) {
-                echo "<h1>SOCIAL BOOKMARKING AND BLOGGING REST-API V01</h1>";
-                echo "<strong>Object oriented coded on PHP 7.3.9 / Relational datamodelling in MARIADB 10.4.6 by patrick@patricksavalle.com</strong>";
-                echo "<ul>";
-                echo "<li>Installing memcache will improve performance</li>";
-                echo "<li>Needs the MariaDB event scheduler </li>";
-                echo "<li>Needs SMTP server for </li>";
-                echo "<li>Consider using an API gateway like WSO2</li>";
-                echo "</ul>";
-                echo "<h2>Generated quick reference: endpoints</h2>";
+            // -----------------------------------------
+
+            $this->get("/", function ($rq, $rsp, $args) : ResponseInterface {
+                echo "<h1>ZAPLOG REST-API</h1>";
+                echo "<p>See: <a href='https://github.com/zaplogv2/api.zaplog'>Github repository</a></p>";
                 echo "<table>";
                 foreach ($this->router->getRoutes() as $route) {
-                    echo "<tr>";
                     foreach ($route->getMethods() as $method) {
-                        echo "<td>$method</td><td>{$route->getPattern()}</td>";
+                        echo "<tr><td>$method</td><td>{$route->getPattern()}</td></tr>";
                     }
-                    echo "</tr>";
                 }
                 echo "</table>";
                 return $rsp;
             });
-
 
             // -----------------------------------------------------
             // The 2FA hook, if you have a token, you can execute
@@ -129,8 +122,7 @@ namespace Zaplog {
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                return $response->withJson(Db::execute("SELECT * FROM whosonline")->fetchAll()
-                );
+                return $response->withJson(Db::execute("SELECT * FROM whosonline")->fetchAll());
             })
                 ->add(new ReadOnly);
 
@@ -159,17 +151,14 @@ namespace Zaplog {
 
             // -----------------------------------------------------
             // Returns the currently select frontpage links
+            // Always exactly 20 items
             // -----------------------------------------------------
 
             $this->get("/links/frontpage", function (
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                return $response->withJson(
-                    Db::execute("SELECT links.* FROM frontpagelinks 
-                        JOIN links ON frontpagelinks.linkid=links.id 
-                        ORDER BY frontpagelinks.score DESC")->fetchAll()
-                );
+                return $response->withJson(Db::execute("SELECT * FROM frontpage")->fetchAll());
             })
                 ->add(new ReadOnly);
 
@@ -348,7 +337,7 @@ namespace Zaplog {
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                $tags = Db::execute("SELECT *, COUNT(tag) as count FROM tags 
+                $tags = Db::execute("SELECT tag, COUNT(tag) as linkscount FROM tags 
                     WHERE (:channel1 IS NULL OR channelid=:channel2)
                     GROUP BY tag ORDER BY tag",
                     [
@@ -366,7 +355,7 @@ namespace Zaplog {
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                return $response;
+                return $response->withJson(Db::execute("SELECT * FROM trendingtopics")->fetchAll());
             })
                 ->add(new ReadOnly);
 
@@ -374,8 +363,7 @@ namespace Zaplog {
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                $activities = Db::execute("SELECT * FROM activitystream
-                    ORDER BY id DESC LIMIT :offset,:count",
+                $activities = Db::execute("SELECT * FROM activitystream ORDER BY id DESC LIMIT :offset,:count",
                     [
                         ":offset" => $args->offset,
                         ":count" => $args->count,
@@ -418,6 +406,10 @@ namespace Zaplog {
 
         }
     }
+
+    // -------------------------------------------------
+    // Execute the server
+    // -------------------------------------------------
 
     (new Api)->run();
 }

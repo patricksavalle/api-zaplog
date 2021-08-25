@@ -106,6 +106,7 @@ CREATE TABLE links
     createdatetime TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     crawldatetime  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     channelid      INT           NOT NULL,
+    -- TODO can be optimized to BINARY(16)
     urlhash        CHAR(32) GENERATED ALWAYS AS (MD5(url)),
     url            VARCHAR(1024) NOT NULL,
     title          VARCHAR(128)  NOT NULL,
@@ -119,11 +120,10 @@ CREATE TABLE links
     viewscount     INT                    DEFAULT 0,
     votescount     INT                    DEFAULT 0,
     tagscount      INT                    DEFAULT 0,
-    score          INT GENERATED ALWAYS AS ( votescount * 10 + bookmarkscount * 15),
+    score          INT GENERATED ALWAYS AS (votescount * 5 + bookmarkscount * 10 + FLOOR(SQRT(tagscount)) + FLOOR(LOG(viewscount))),
 
     PRIMARY KEY (id),
     INDEX (channelid),
-    INDEX (crawldatetime),
     UNIQUE INDEX (urlhash),
     INDEX (score),
     FOREIGN KEY (channelid) REFERENCES channels (id)
@@ -145,25 +145,28 @@ DELIMITER ;
 -- Frontpage selection
 -- -----------------------------------------------------
 
+CREATE TABLE frontpagelinks
+(
+    linkid         INT NOT NULL,
+    bookmarkscount INT DEFAULT 0,
+    viewscount     INT DEFAULT 0,
+    votescount     INT DEFAULT 0,
+    tagscount      INT DEFAULT 0,
+    score          INT NOT NULL DEFAULT 0,
+    PRIMARY KEY (linkid),
+    INDEX(score)
+) ENGINE=MEMORY;
+
 DELIMITER //
 CREATE EVENT select_frontpage
     ON SCHEDULE EVERY 3 HOUR
     DO
     BEGIN
-        DROP TABLE IF EXISTS frontpagelinks;
-        CREATE TABLE frontpagelinks
-        (
-            linkid         INT NOT NULL,
-            bookmarkscount INT DEFAULT 0,
-            viewscount     INT DEFAULT 0,
-            votescount     INT DEFAULT 0,
-            tagscount      INT DEFAULT 0,
-            score          INT NOT NULL
-        ) ENGINE=MEMORY;
+        CREATE TABLE newfrontpagelinks LIKE frontpagelinks;
 
-        -- prepare new frontpage selection -> all links that had activity
-        INSERT INTO frontpagelinks(linkid,score)
-        SELECT id, 0 FROM links LEFT JOIN activities ON activities.linkid = links.id;
+        -- prepare new frontpage selection -> all existing links that had activity
+        INSERT INTO frontpagelinks(linkid)
+        SELECT id FROM links LEFT JOIN activities ON activities.linkid = links.id;
 
         -- calculate scores for frontpage
         UPDATE frontpagelinks LEFT JOIN activities ON activities.linkid = frontpagelinks.linkid
@@ -177,6 +180,12 @@ CREATE EVENT select_frontpage
 
         -- clean the old activity (older than 1 + 3 hours)
         DELETE FROM activities WHERE activity.datetime < SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 HOUR);
+
+        START TRANSACTION;
+        DROP TABLE frontpagelinks;
+        RENAME TABLE newfrontpagelinks TO frontpagelinks;
+        COMMIT;
+
     END//
 DELIMITER ;
 
@@ -352,3 +361,20 @@ SELECT
     (SELECT COUNT(*) FROM channels WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 MONTH)) AS newchannels1m,
     (SELECT COUNT(*) FROM tags) AS numtags,
     (SELECT COUNT(*) FROM sessions) AS numonline;
+
+-- -----------------------------------------------------
+-- Most popular links
+-- -----------------------------------------------------
+
+-- TODO temporary, for development
+CREATE VIEW frontpage AS SELECT * FROM LINKS ORDER BY score DESC LIMIT 20;
+
+-- -----------------------------------------------------
+-- Most popular tags
+-- -----------------------------------------------------
+
+CREATE VIEW trendingtopics AS
+    SELECT tag, SUM(frontpage.score) AS score FROM tags
+    JOIN frontpage ON tags.linkid=frontpage.id
+    GROUP BY tags.tag
+    ORDER BY SUM(frontpage.score) DESC;
