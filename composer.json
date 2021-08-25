@@ -30,7 +30,8 @@
     "ext-dom": "*",
     "ext-simplexml": "*",
     "phpmailer/phpmailer": "^6.5",
-    "ext-pdo": "*"
+    "ext-pdo": "*",
+    "ext-curl": "*"
   },
   "autoload": {
     "psr-4": {

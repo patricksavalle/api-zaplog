@@ -13,12 +13,13 @@ namespace Zaplog {
     require_once BASE_PATH . '/vendor/autoload.php';
     require_once BASE_PATH . '/Middleware/Authentication.php';
     require_once BASE_PATH . '/Library/HtmlMetadata.php';
-    require_once BASE_PATH . '/Library/Feed.php';
+    require_once BASE_PATH . '/Library/FeedReader.php';
     require_once BASE_PATH . '/Library/TwoFactorAuth.php';
     require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
     require_once BASE_PATH . '/Exception/EmailException.php';
 
     use SlimRestApi\Infra\Memcache;
+//    use SlimRestApi\Middleware\CliRequest;
     use SlimRestApi\Middleware\Memcaching;
     use stdClass;
     use Exception;
@@ -31,10 +32,10 @@ namespace Zaplog {
     use SlimRestApi\Infra\Db;
     use Zaplog\Exception\EmailException;
     use Zaplog\Exception\ResourceNotFoundException;
+    use Zaplog\Library\FeedReader;
     use Zaplog\Library\HtmlMetadata;
     use Zaplog\Library\TwoFactorAuth;
     use Zaplog\Middleware\Authentication;
-    use Zaplog\Library\Feed;
 
     class Api extends SlimRestApi
     {
@@ -47,7 +48,7 @@ namespace Zaplog {
             // show the API homepage
             // -----------------------------------------
 
-            $this->get("/", function ($rq, $rsp, $args): ResponseInterface {
+            $this->get("/", function ($rq, $rp, $args): ResponseInterface {
                 echo "<h1>ZAPLOG REST-API</h1>";
                 echo "<p>See: <a href='https://github.com/zaplogv2/api.zaplog'>Github repository</a></p>";
                 echo "<table>";
@@ -57,10 +58,8 @@ namespace Zaplog {
                     }
                 }
                 echo "</table>";
-
                 echo "<p>Active memcache servers: ". sizeof(Memcache::getServersList()) . "</p>";
-
-                return $rsp;
+                return $rp;
             });
 
             // -----------------------------------------------------
@@ -150,7 +149,7 @@ namespace Zaplog {
             });
 
             // -----------------------------------------------------
-            // Returns the currently select frontpage links
+            // Returns the currently selected frontpage links
             // Always exactly 20 items
             // -----------------------------------------------------
 
@@ -160,7 +159,7 @@ namespace Zaplog {
                 stdClass               $args): ResponseInterface {
                 return $response->withJson(Db::execute("SELECT * FROM frontpage")->fetchAll());
             })
-                ->add(new Memcaching(60 /*sec*/))
+                ->add(new Memcaching(60/*sec*/))
                 ->add(new ReadOnly);
 
             // -----------------------------------------------------
@@ -172,8 +171,10 @@ namespace Zaplog {
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
                 $links = Db::execute("SELECT link.* FROM tags
-                    LEFT JOIN links ON tags.linkid=links.id WHERE tags.tag=:tag
-                    GROUP BY links.id ORDER BY links.score DESC 
+                    LEFT JOIN links ON tags.linkid=links.id 
+                    WHERE tags.tag=:tag
+                    GROUP BY links.id 
+                    ORDER BY links.score DESC 
                     LIMIT :offset,:count",
                     [
                         ":tag" => $args->tag,
@@ -182,7 +183,7 @@ namespace Zaplog {
                     ])->fetchAll();
                 return $response->withJson($links);
             })
-                ->add(new Memcaching(60 /*sec*/))
+                ->add(new Memcaching(60/*sec*/))
                 ->add(new ReadOnly)
                 ->add(new QueryParameters([
                     '{tag:[\w-]+}',
@@ -220,6 +221,18 @@ namespace Zaplog {
                 ]));
 
             // ----------------------------------------------------
+            // return the metadata of a HTML page
+            // ----------------------------------------------------
+
+            $this->get("/link/metadata/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
+                ServerRequestInterface $request,
+                ResponseInterface      $response,
+                stdClass               $args): ResponseInterface {
+                return $response->withJson((new HtmlMetadata)(urldecode($args->urlencoded)));
+            })
+                ->add(new Authentication);
+
+            // ----------------------------------------------------
             // add a link, retrieve its metadata
             // ----------------------------------------------------
 
@@ -228,16 +241,14 @@ namespace Zaplog {
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
                 $metadata = (new HtmlMetadata)(urldecode($args->urlencoded));
-                if (Db::execute("INSERT INTO links(url,channelid,title,description,image,domain,site)
-                VALUES (:url, :channelid, :title, :description, :image, :domain, :site)",
+                if (Db::execute("INSERT INTO links(url,channelid,title,description,image)
+                VALUES (:url, :channelid, :title, :description, :image)",
                         [
                             ":url" => $metadata["link_url"],
                             ":channelid" => Authentication::token()->channelid,
                             ":title" => $metadata["link_title"],
                             ":description" => $metadata["link_description"],
                             ":image" => $metadata["link_image"],
-                            ":domain" => $metadata["link_domain"],
-                            ":site" => $metadata["link_site_name"],
                         ])->rowCount() == 0
                 ) {
                     throw new Exception;
@@ -348,11 +359,15 @@ namespace Zaplog {
                     ])->fetchAll();
                 return $response->withJson($tags);
             })
-                ->add(new Memcaching(10 /*sec*/))
+                ->add(new Memcaching(10/*sec*/))
                 ->add(new ReadOnly)
                 ->add(new QueryParameters([
                     '{channel:\int},null',
                 ]));
+
+            // ------------------------------------------------
+            // get the top trending tags
+            // ------------------------------------------------
 
             $this->get("/tags/trending", function (
                 ServerRequestInterface $request,
@@ -360,8 +375,12 @@ namespace Zaplog {
                 stdClass               $args): ResponseInterface {
                 return $response->withJson(Db::execute("SELECT * FROM trendingtopics")->fetchAll());
             })
-                ->add(new Memcaching(10 /*sec*/))
+                ->add(new Memcaching(10/*sec*/))
                 ->add(new ReadOnly);
+
+            // ------------------------------------------------
+            // get the activity stream
+            // ------------------------------------------------
 
             $this->get("/activities", function (
                 ServerRequestInterface $request,
@@ -374,7 +393,7 @@ namespace Zaplog {
                     ])->fetchAll();
                 return $response->withJson($activities);
             })
-                ->add(new Memcaching(10 /*sec*/))
+                ->add(new Memcaching(10/*sec*/))
                 ->add(new ReadOnly)
                 ->add(new QueryParameters([
                     '{channel:[\w-]{3,54}},null',
@@ -383,32 +402,50 @@ namespace Zaplog {
                     '{count:\int},100',
                 ]));
 
+            // ------------------------------------------------
+            // get some basic statistics
+            // ------------------------------------------------
+
             $this->get("/statistics", function (
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
                 return $response->withJson(Db::execute("SELECT * FROM statistics")->fetch());
             })
-                ->add(new Memcaching(10 /*sec*/))
+                ->add(new Memcaching(10/*sec*/))
                 ->add(new ReadOnly);
 
-            $this->get("/metadata/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
-                ServerRequestInterface $request,
-                ResponseInterface      $response,
-                stdClass               $args): ResponseInterface {
-                return $response->withJson((new HtmlMetadata)(urldecode($args->urlencoded)));
-            })
-                ->add(new Authentication);
+            // ------------------------------------------------
+            // generic cronjob interfaces, not public
+            // ------------------------------------------------
 
-            $this->get("/feed/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
+            $this->get("/cronjobhour", function (
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                $feed = (new Feed)(urldecode($args->urlencoded));
-                $array = $feed->toArray();
-                return $response->withJson(json_encode($array, JSON_UNESCAPED_SLASHES));
-            })
-                ->add(new Authentication);
+                set_time_limit(300/*5min*/);
+                (new FeedReader)();
+                return $response;
+            });
+//                ->add(new CliRequest);
+
+            $this->get("/cronjobday", function (
+                ServerRequestInterface $request,
+                ResponseInterface      $response,
+                stdClass               $args): ResponseInterface {
+                set_time_limit(300/*5min*/);
+                return $response;
+            });
+//                ->add(new CliRequest);
+
+            $this->get("/cronjobmonth", function (
+                ServerRequestInterface $request,
+                ResponseInterface      $response,
+                stdClass               $args): ResponseInterface {
+                set_time_limit(300/*5min*/);
+                return $response;
+            });
+//                ->add(new CliRequest);
 
         }
     }

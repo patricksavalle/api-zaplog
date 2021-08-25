@@ -60,7 +60,7 @@ CREATE TABLE activities
 CREATE TABLE channels
 (
     id             INT         NOT NULL AUTO_INCREMENT,
-    email          VARCHAR(55) NOT NULL,
+    email          VARCHAR(55)          DEFAULT NULL,
     name           VARCHAR(55)          DEFAULT NULL,
     createdatetime TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
     avatar         VARCHAR(55)          DEFAULT NULL,
@@ -69,6 +69,12 @@ CREATE TABLE channels
     INDEX (createdatetime),
     UNIQUE INDEX (name)
 );
+
+-- -----------------------------------------------------
+-- used for RSS-reader and such
+-- -----------------------------------------------------
+
+INSERT INTO channels(name) VALUES ("system");
 
 -- -----------------------------------------------------
 -- Authenticated tokens / sessions
@@ -104,11 +110,9 @@ CREATE TABLE links
     -- TODO can be optimized to BINARY(16)
     urlhash        CHAR(32) GENERATED ALWAYS AS (MD5(url)),
     url            VARCHAR(1024) NOT NULL,
-    title          VARCHAR(128)  NOT NULL,
+    title          VARCHAR(256)  NOT NULL,
     description    TEXT                   DEFAULT NULL,
     image          VARCHAR(256)           DEFAULT NULL,
-    domain         VARCHAR(50)            DEFAULT NULL,
-    site           VARCHAR(50)            DEFAULT NULL,
     -- because this system is very read intensive we will keep totals in this table
     -- instead of counting/joining the respective tables
     bookmarkscount INT                    DEFAULT 0,
@@ -376,8 +380,10 @@ CREATE VIEW trendingtopics AS
     LIMIT 25;
 
 -- -----------------------------------------------------
--- Most popular tags
+-- Links related by tag
 -- -----------------------------------------------------
 
 -- TODO temporary, for development
 CREATE VIEW relatedlinks AS SELECT * FROM links;
+
+

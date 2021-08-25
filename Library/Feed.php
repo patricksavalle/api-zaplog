@@ -1,134 +1,117 @@
 <?php
 
-namespace Zaplog\Library;
+declare(strict_types=1);
 
-use Exception;
-use SimpleXMLElement;
-use SlimRestApi\Infra\Ini;
+namespace Zaplog\Library {
 
-class Feed
-{
-    public static $cacheExpire = '1 day';
-    public static $cacheDir;
-    protected $xml;
+    use Exception;
+    use SimpleXMLElement;
+    use SlimRestApi\Infra\Ini;
+    use Zaplog\Exception\CurlException;
 
-    public function __invoke($url, $user = null, $pass = null): Feed
+    class Feed
     {
-        $xml = self::loadXml($url, $user, $pass);
-        if ($xml->channel) {
-            return self::fromRss($xml);
-        } else {
-            return self::fromAtom($xml);
-        }
-    }
+        protected $xml;
 
-    public static function loadRss($url, $user = null, $pass = null): Feed
-    {
-        return self::fromRss(self::loadXml($url, $user, $pass));
-    }
-
-    public static function loadAtom($url, $user = null, $pass = null): Feed
-    {
-        return self::fromAtom(self::loadXml($url, $user, $pass));
-    }
-
-    private static function fromRss(SimpleXMLElement $xml): Feed
-    {
-        if (!$xml->channel) {
-            throw new Exception('Invalid feed.');
+        public function __invoke(string $url, string $user = "", string $pass = ""): array
+        {
+            $xml = self::loadXml($url, $user, $pass);
+            if ($xml->channel) {
+                return self::fromRss($xml)->toArray();
+            } else {
+                return self::fromAtom($xml)->toArray();
+            }
         }
 
-        self::adjustNamespaces($xml);
+        public static function loadRss(string $url, string $user = "", string $pass = ""): Feed
+        {
+            return self::fromRss(self::loadXml($url, $user, $pass));
+        }
 
-        foreach ($xml->channel->item as $item) {
-            // converts namespaces to dotted tags
-            self::adjustNamespaces($item);
+        public static function loadAtom(string $url, string $user = "", string $pass = ""): Feed
+        {
+            return self::fromAtom(self::loadXml($url, $user, $pass));
+        }
+
+        private static function fromRss(SimpleXMLElement $xml): Feed
+        {
+            if (!$xml->channel) {
+                throw new Exception('Invalid feed.');
+            }
+
+            self::adjustNamespaces($xml);
+
+            foreach ($xml->channel->item as $item) {
+                // converts namespaces to dotted tags
+                self::adjustNamespaces($item);
+
+                // generate 'timestamp' tag
+                if (isset($item->{'dc:date'})) {
+                    $item->timestamp = strtotime((string)$item->{'dc:date'});
+                } elseif (isset($item->pubDate)) {
+                    $item->timestamp = strtotime((string)$item->pubDate);
+                }
+            }
+            $feed = new self;
+            $feed->xml = $xml->channel;
+            return $feed;
+        }
+
+        private static function fromAtom(SimpleXMLElement $xml): Feed
+        {
+            if (!in_array('http://www.w3.org/2005/Atom', $xml->getDocNamespaces(), true)
+                && !in_array('http://purl.org/atom/ns#', $xml->getDocNamespaces(), true)
+            ) {
+                throw new Exception('Invalid feed.');
+            }
 
             // generate 'timestamp' tag
-            if (isset($item->{'dc:date'})) {
-                $item->timestamp = strtotime($item->{'dc:date'});
-            } elseif (isset($item->pubDate)) {
-                $item->timestamp = strtotime($item->pubDate);
+            foreach ($xml->entry as $entry) {
+                $entry->timestamp = strtotime((string)$entry->updated);
             }
-        }
-        $feed = new self;
-        $feed->xml = $xml->channel;
-        return $feed;
-    }
-
-    private static function fromAtom(SimpleXMLElement $xml): Feed
-    {
-        if (!in_array('http://www.w3.org/2005/Atom', $xml->getDocNamespaces(), true)
-            && !in_array('http://purl.org/atom/ns#', $xml->getDocNamespaces(), true)
-        ) {
-            throw new Exception('Invalid feed.');
+            $feed = new self;
+            $feed->xml = $xml;
+            return $feed;
         }
 
-        // generate 'timestamp' tag
-        foreach ($xml->entry as $entry) {
-            $entry->timestamp = strtotime($entry->updated);
-        }
-        $feed = new self;
-        $feed->xml = $xml;
-        return $feed;
-    }
-
-    public function __get($name)
-    {
-        return $this->xml->{$name};
-    }
-
-    public function toArray(SimpleXMLElement $xml = null)
-    {
-        if ($xml === null) {
-            $xml = $this->xml;
+        public function __get($name)
+        {
+            return $this->xml->{$name};
         }
 
-        if (!$xml->children()) {
-            return (string)$xml;
-        }
-
-        $arr = [];
-        foreach ($xml->children() as $tag => $child) {
-            if (count($xml->$tag) === 1) {
-                $arr[$tag] = $this->toArray($child);
-            } else {
-                $arr[$tag][] = $this->toArray($child);
+        public function toArray(SimpleXMLElement $xml = null)
+        {
+            if ($xml === null) {
+                $xml = $this->xml;
             }
-        }
 
-        return $arr;
-    }
-
-    private static function loadXml($url, $user, $pass): SimpleXMLElement
-    {
-        $e = self::$cacheExpire;
-        $cacheFile = self::$cacheDir . '/feed.' . md5(serialize(func_get_args())) . '.xml';
-
-        if (self::$cacheDir
-            && (time() - @filemtime($cacheFile) <= (is_string($e) ? strtotime($e) - time() : $e))
-            && $data = @file_get_contents($cacheFile)
-        ) {
-            // ok
-        } elseif ($data = trim(self::httpRequest($url, $user, $pass))) {
-            if (self::$cacheDir) {
-                file_put_contents($cacheFile, $data);
+            if (!$xml->children()) {
+                return (string)$xml;
             }
-        } elseif (self::$cacheDir && $data = @file_get_contents($cacheFile)) {
-            // ok
-        } else {
-            throw new Exception('Cannot load feed.');
+
+            $arr = [];
+            foreach ($xml->children() as $tag => $child) {
+                if (count($xml->$tag) === 1) {
+                    $arr[$tag] = $this->toArray($child);
+                } else {
+                    $arr[$tag][] = $this->toArray($child);
+                }
+            }
+
+            return $arr;
         }
 
-        return new SimpleXMLElement($data, LIBXML_NOWARNING | LIBXML_NOERROR | LIBXML_NOCDATA);
-    }
+        private static function loadXml(string $url, string $user, string $pass): SimpleXMLElement
+        {
+            $data = trim(self::httpRequest($url, $user, $pass));
+            return new SimpleXMLElement($data, LIBXML_NOWARNING | LIBXML_NOERROR | LIBXML_NOCDATA);
+        }
 
-    private static function httpRequest($url, $user, $pass): string
-    {
-        if (extension_loaded('curl')) {
+        private static function httpRequest(string $url, string $user, string $pass): string
+        {
             $curl = curl_init();
             curl_setopt($curl, CURLOPT_URL, $url);
-            if ($user !== null || $pass !== null) {
+            if (!empty($user) or !empty($pass)) {
                 curl_setopt($curl, CURLOPT_USERPWD, "$user:$pass");
             }
             curl_setopt($curl, CURLOPT_USERAGENT, Ini::get('user_agent')); // some feeds require a user agent
@@ -140,35 +123,19 @@ class Feed
                 curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true); // sometime is useful :)
             }
             $result = curl_exec($curl);
-            return curl_errno($curl) === 0 && curl_getinfo($curl, CURLINFO_HTTP_CODE) === 200
-                ? $result
-                : false;
-
-        } else {
-            $context = null;
-            if ($user !== null && $pass !== null) {
-                $options = [
-                    'http' => [
-                        'method' => 'GET',
-                        'header' => 'Authorization: Basic ' . base64_encode($user . ':' . $pass) . "\r\n",
-                        'user_agent' => Ini::get('user_agent'),
-                    ],
-                ];
-                $context = stream_context_create($options);
-            }
-
-            return file_get_contents($url, false, $context);
+            if (curl_errno($curl) !== 0)
+                throw new CurlException($url);
+            return $result;
         }
-    }
 
-    private static function adjustNamespaces($el)
-    {
-        foreach ($el->getNamespaces(true) as $prefix => $ns) {
-            $children = $el->children($ns);
-            foreach ($children as $tag => $content) {
-                $el->{$prefix . ':' . $tag} = $content;
+        private static function adjustNamespaces(SimpleXMLElement $el)
+        {
+            foreach ($el->getNamespaces(true) as $prefix => $ns) {
+                $children = $el->children($ns);
+                foreach ($children as $tag => $content) {
+                    $el->{$prefix . ':' . $tag} = $content;
+                }
             }
         }
     }
 }
-

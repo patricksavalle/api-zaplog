@@ -10,9 +10,28 @@ namespace Zaplog\Library {
     use DOMXPath;
     use Exception;
     use SlimRestApi\Infra\Ini;
+    use Zaplog\Exception\CurlException;
 
     class HtmlMetadata
     {
+        private static function httpRequest(string $url): string
+        {
+            $curl = curl_init();
+            curl_setopt($curl, CURLOPT_URL, $url);
+            curl_setopt($curl, CURLOPT_USERAGENT, Ini::get('user_agent')); // some feeds require a user agent
+            curl_setopt($curl, CURLOPT_HEADER, false);
+            curl_setopt($curl, CURLOPT_TIMEOUT, 20);
+            curl_setopt($curl, CURLOPT_ENCODING, '');
+            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true); // no echo, just return result
+            if (!ini_get('open_basedir')) {
+                curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true); // sometime is useful :)
+            }
+            $result = curl_exec($curl);
+            if (curl_errno($curl) !== 0)
+                throw new CurlException($url);
+            return $result;
+        }
+
         function __invoke(string $url)
 
         {
@@ -20,13 +39,7 @@ namespace Zaplog\Library {
             $metadata = [];
             // read the file with our own user-agent, restore after
             // many webservers block the default PHP user-agent
-            $user_agent = ini_get('user_agent');
-            ini_set('user_agent', Ini::get('user_agent'));
-            $html = file_get_contents($url);
-            ini_set('user_agent', $user_agent);
-            if (empty($html)) {
-                throw new Exception;
-            }
+            $html = self::httpRequest($url);
             libxml_use_internal_errors(true);
             $doc = new DomDocument();
             $doc->loadHTML($html);
