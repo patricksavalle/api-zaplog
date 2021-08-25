@@ -18,6 +18,7 @@ namespace Zaplog {
     require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
     require_once BASE_PATH . '/Exception/EmailException.php';
 
+    use SlimRestApi\Middleware\Memcaching;
     use stdClass;
     use Exception;
     use SlimRequestParams\BodyParameters;
@@ -370,6 +371,7 @@ namespace Zaplog {
                     ])->fetchAll();
                 return $response->withJson($activities);
             })
+                ->add(new Memcaching(10 /*sec*/))
                 ->add(new ReadOnly)
                 ->add(new QueryParameters([
                     '{channel:[\w-]{3,54}},null',
@@ -378,19 +380,20 @@ namespace Zaplog {
                     '{count:\int},100',
                 ]));
 
-            $this->get("/metadata/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
-                ServerRequestInterface $request,
-                ResponseInterface      $response,
-                stdClass               $args): ResponseInterface {
-                return $response->withJson((new HtmlMetadata)(urldecode($args->urlencoded)));
-            })
-                ->add(new Authentication);
-
             $this->get("/statistics", function (
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
                 return $response->withJson(Db::execute("SELECT * FROM statistics")->fetch());
+            })
+                ->add(new Memcaching(10 /*sec*/))
+                ->add(new ReadOnly);
+
+            $this->get("/metadata/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
+                ServerRequestInterface $request,
+                ResponseInterface      $response,
+                stdClass               $args): ResponseInterface {
+                return $response->withJson((new HtmlMetadata)(urldecode($args->urlencoded)));
             })
                 ->add(new Authentication);
 
