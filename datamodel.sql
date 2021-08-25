@@ -374,3 +374,10 @@ CREATE VIEW trendingtopics AS
     GROUP BY tags.tag
     ORDER BY SUM(frontpage.score) DESC
     LIMIT 25;
+
+-- -----------------------------------------------------
+-- Most popular tags
+-- -----------------------------------------------------
+
+-- TODO temporary, for development
+CREATE VIEW relatedlinks AS SELECT * FROM links;

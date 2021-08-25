@@ -18,6 +18,7 @@ namespace Zaplog {
     require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
     require_once BASE_PATH . '/Exception/EmailException.php';
 
+    use SlimRestApi\Infra\Memcache;
     use SlimRestApi\Middleware\Memcaching;
     use stdClass;
     use Exception;
@@ -46,7 +47,7 @@ namespace Zaplog {
             // show the API homepage
             // -----------------------------------------
 
-            $this->get("/", function ($rq, $rsp, $args) : ResponseInterface {
+            $this->get("/", function ($rq, $rsp, $args): ResponseInterface {
                 echo "<h1>ZAPLOG REST-API</h1>";
                 echo "<p>See: <a href='https://github.com/zaplogv2/api.zaplog'>Github repository</a></p>";
                 echo "<table>";
@@ -56,6 +57,9 @@ namespace Zaplog {
                     }
                 }
                 echo "</table>";
+
+                echo "<p>Active memcache servers: ". sizeof(Memcache::getServersList()) . "</p>";
+
                 return $rsp;
             });
 
@@ -105,12 +109,7 @@ namespace Zaplog {
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                if (Db::execute("DELETE FROM sessions WHERE token=:token",
-                        [":token" => Authentication::token()])
-                        ->rowCount() == 0
-                ) {
-                    throw new Exception;
-                }
+                Db::execute("DELETE FROM sessions WHERE token=:token", [":token" => Authentication::token()]);
                 return $response->withJson(null);
             })
                 ->add(new Authentication);
@@ -135,17 +134,17 @@ namespace Zaplog {
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                Db::execute("UPDATE links SET viewscount = viewscount + 1");
-                $link = Db::execute("SELECT * FROM links WHERE id=:id", [":id" => $args->id])->fetch();
+                $params = [":id" => $args->id];
+                $link = Db::execute("SELECT * FROM links WHERE id=:id", $params)->fetch();
                 if (!$link) throw new ResourceNotFoundException;
-                $tags = Db::execute("SELECT * FROM tags WHERE linkid=:id", [":id" => $args->id])->fetchAll();
-                // TODO below is just a dummy response
-                $related = Db::execute("SELECT * FROM links LIMIT 5", [])->fetchAll();
+                $tags = Db::execute("SELECT * FROM tags WHERE linkid=:id", $params)->fetchAll();
+                $rels = Db::execute("SELECT * FROM relatedlinks WHERE id=:id LIMIT 5", $params)->fetchAll();
+                Db::execute("UPDATE links SET viewscount = viewscount + 1 WHERE id=:id", $params);
                 return $response->withJson(
                     [
                         "link" => $link,
                         "tags" => $tags,
-                        "related" => $related,
+                        "related" => $rels,
                     ]
                 );
             });
@@ -161,6 +160,7 @@ namespace Zaplog {
                 stdClass               $args): ResponseInterface {
                 return $response->withJson(Db::execute("SELECT * FROM frontpage")->fetchAll());
             })
+                ->add(new Memcaching(60 /*sec*/))
                 ->add(new ReadOnly);
 
             // -----------------------------------------------------
@@ -182,6 +182,7 @@ namespace Zaplog {
                     ])->fetchAll();
                 return $response->withJson($links);
             })
+                ->add(new Memcaching(60 /*sec*/))
                 ->add(new ReadOnly)
                 ->add(new QueryParameters([
                     '{tag:[\w-]+}',
@@ -347,6 +348,7 @@ namespace Zaplog {
                     ])->fetchAll();
                 return $response->withJson($tags);
             })
+                ->add(new Memcaching(10 /*sec*/))
                 ->add(new ReadOnly)
                 ->add(new QueryParameters([
                     '{channel:\int},null',
@@ -358,6 +360,7 @@ namespace Zaplog {
                 stdClass               $args): ResponseInterface {
                 return $response->withJson(Db::execute("SELECT * FROM trendingtopics")->fetchAll());
             })
+                ->add(new Memcaching(10 /*sec*/))
                 ->add(new ReadOnly);
 
             $this->get("/activities", function (
