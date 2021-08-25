@@ -55,7 +55,7 @@ CREATE TABLE activities
     PRIMARY KEY (id),
     INDEX (linkid),
     INDEX (datetime)
-) ENGINE = MYISAM;
+);
 
 -- -----------------------------------------------------
 -- Channels are collections of links, a single email
@@ -64,13 +64,14 @@ CREATE TABLE activities
 
 CREATE TABLE channels
 (
-    id         INT         NOT NULL AUTO_INCREMENT,
-    email      VARCHAR(55) NOT NULL,
-    name       VARCHAR(55) DEFAULT NULL,
-    avatar     VARCHAR(55) DEFAULT NULL,
-    score      INT         DEFAULT 0,
+    id             INT         NOT NULL AUTO_INCREMENT,
+    email          VARCHAR(55) NOT NULL,
+    name           VARCHAR(55)          DEFAULT NULL,
+    createdatetime TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    avatar         VARCHAR(55)          DEFAULT NULL,
+    score          INT                  DEFAULT 0,
     PRIMARY KEY (id),
-    UNIQUE INDEX (email),
+    INDEX (createdatetime),
     UNIQUE INDEX (name)
 );
 
@@ -234,8 +235,8 @@ CREATE TRIGGER on_delete_tag
     ON tags
     FOR EACH ROW
 BEGIN
-    UPDATE links SET links.tagscount = links.tagscount - 1 WHERE links.id = NEW.linkid;
-    INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.linkid, 'untag');
+    UPDATE links SET links.tagscount = links.tagscount - 1 WHERE links.id = OLD.linkid;
+    INSERT INTO activities(channelid, linkid, activity) VALUES (OLD.channelid, OLD.linkid, 'untag');
 END//
 DELIMITER ;
 
@@ -311,8 +312,43 @@ CREATE TRIGGER on_delete_bookmark
     ON bookmarks
     FOR EACH ROW
 BEGIN
-    UPDATE links SET links.bookmarkscount = links.bookmarkscount - 1 WHERE links.id = NEW.linkid;
-    INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.linkid, 'unbookmark');
+    UPDATE links SET links.bookmarkscount = links.bookmarkscount - 1 WHERE links.id = OLD.linkid;
+    INSERT INTO activities(channelid, linkid, activity) VALUES (OLD.channelid, OLD.linkid, 'unbookmark');
 END//
 DELIMITER ;
 
+-- -----------------------------------------------------
+-- enriched activity stream
+-- -----------------------------------------------------
+
+CREATE VIEW activitystream AS
+    SELECT
+        activities.*,
+        channels.name as channelname,
+        links.title as linktitle,
+        links.url as linkurl,
+        links.image as linkimage
+    FROM activities
+    LEFT JOIN channels ON activities.channelid=channels.id
+    LEFT JOIN links ON activities.linkid=links.id AND activity IN ('post', 'tag', 'vote', 'bookmark');
+
+-- -----------------------------------------------------
+-- Channels that are currently logged in
+-- -----------------------------------------------------
+
+CREATE VIEW whosonline AS
+    SELECT name, avatar, score, lastupdate FROM sessions
+    LEFT JOIN channels ON sessions.channelid=channels.id;
+
+-- -----------------------------------------------------
+-- 24h Statistics
+-- -----------------------------------------------------
+
+CREATE VIEW statistics AS
+SELECT
+    (SELECT COUNT(*) FROM links WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 DAY)) AS numposts24h,
+    (SELECT COUNT(*) FROM links WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 MONTH)) AS numposts1m,
+    (SELECT COUNT(*) FROM channels) AS numchannels,
+    (SELECT COUNT(*) FROM channels WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 MONTH)) AS newchannels1m,
+    (SELECT COUNT(*) FROM tags) AS numtags,
+    (SELECT COUNT(*) FROM sessions) AS numonline;

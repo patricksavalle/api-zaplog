@@ -129,9 +129,7 @@ namespace Zaplog {
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                return $response->withJson(
-                    Db::execute("SELECT name, avatar, score, lastactivity FROM sessions 
-                        LEFT JOIN channels ON sessions.channelid=channels.id")->fetchAll()
+                return $response->withJson(Db::execute("SELECT * FROM whosonline")->fetchAll()
                 );
             })
                 ->add(new ReadOnly);
@@ -184,10 +182,8 @@ namespace Zaplog {
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
                 $links = Db::execute("SELECT link.* FROM tags
-                    LEFT JOIN links ON tags.linkid=links.id
-                    WHERE tags.tag=:tag
-                    GROUP BY links.id
-                    ORDER BY links.score DESC 
+                    LEFT JOIN links ON tags.linkid=links.id WHERE tags.tag=:tag
+                    GROUP BY links.id ORDER BY links.score DESC 
                     LIMIT :offset,:count",
                     [
                         ":tag" => $args->tag,
@@ -241,32 +237,30 @@ namespace Zaplog {
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
                 $metadata = (new HtmlMetadata)(urldecode($args->urlencoded));
-                Db::transaction(function () use ($metadata) {
-                    if (Db::execute("INSERT INTO links(url,channelid,title,description,image,domain,site)
-                    VALUES (:url, :channelid, :title, :description, :image, :domain, :site)",
+                if (Db::execute("INSERT INTO links(url,channelid,title,description,image,domain,site)
+                VALUES (:url, :channelid, :title, :description, :image, :domain, :site)",
+                        [
+                            ":url" => $metadata["link_url"],
+                            ":channelid" => Authentication::token()->channelid,
+                            ":title" => $metadata["link_title"],
+                            ":description" => $metadata["link_description"],
+                            ":image" => $metadata["link_image"],
+                            ":domain" => $metadata["link_domain"],
+                            ":site" => $metadata["link_site_name"],
+                        ])->rowCount() == 0
+                ) {
+                    throw new Exception;
+                }
+                $linkid = Db::lastInsertId();
+                if (isset($metadata['link_keywords']))
+                    foreach (explode(",", $metadata['link_keywords']) as $tag) {
+                        // these metadata tags are not assigned to a channel (so they can be filtered)
+                        Db::execute("INSERT INTO tags(linkid, channelid, tag) VALUES (:linkid, NULL, :tag)",
                             [
-                                ":url" => $metadata["link_url"],
-                                ":channelid" => Authentication::token()->channelid,
-                                ":title" => $metadata["link_title"],
-                                ":description" => $metadata["link_description"],
-                                ":image" => $metadata["link_image"],
-                                ":domain" => $metadata["link_domain"],
-                                ":site" => $metadata["link_site_name"],
-                            ])->rowCount() == 0
-                    ) {
-                        throw new Exception;
+                                ":linkid" => $linkid,
+                                ":tag" => trim($tag),
+                            ]);
                     }
-                    $linkid = Db::lastInsertId();
-                    if (isset($metadata['link_keywords']))
-                        foreach (explode(",", $metadata['link_keywords']) as $tag) {
-                            // the metadata tags are not assigned to a channel (so they can be filtered)
-                            Db::execute("INSERT INTO tags(linkid, channelid, tag) VALUES (:linkid, NULL, :tag)",
-                                [
-                                    ":linkid" => $linkid,
-                                    ":tag" => trim($tag),
-                                ]);
-                        }
-                });
                 return $response->withJson($metadata);
             })
                 ->add(new Authentication);
@@ -380,17 +374,8 @@ namespace Zaplog {
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                $activities = Db::execute("SELECT 
-                        activities.*,
-                        channels.name as channelname, 
-                        links.title as linktitle, 
-                        links.url as linkurl, 
-                        links.description as linkdescription, 
-                        links.image as linkimage 
-                    FROM activities 
-                    LEFT JOIN channels ON activities.channelid=channels.id  
-                    LEFT JOIN links ON activities.linkid=links.id AND activity IN ('post', 'tag', 'vote', 'bookmark') 
-                    ORDER BY activities.id DESC LIMIT :offset,:count",
+                $activities = Db::execute("SELECT * FROM activitystream
+                    ORDER BY id DESC LIMIT :offset,:count",
                     [
                         ":offset" => $args->offset,
                         ":count" => $args->count,
@@ -410,8 +395,16 @@ namespace Zaplog {
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
                 return $response->withJson((new HtmlMetadata)(urldecode($args->urlencoded)));
-            });
-//                ->add(new Authentication);
+            })
+                ->add(new Authentication);
+
+            $this->get("/statistics", function (
+                ServerRequestInterface $request,
+                ResponseInterface      $response,
+                stdClass               $args): ResponseInterface {
+                return $response->withJson(Db::execute("SELECT * FROM statistics")->fetch());
+            })
+                ->add(new Authentication);
 
             $this->get("/feed/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
                 ServerRequestInterface $request,

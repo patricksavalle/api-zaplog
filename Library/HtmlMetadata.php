@@ -102,7 +102,8 @@ namespace Zaplog\Library {
             if (isset($metadata['link_rss'])) $metadata['link_rss'] = (new Url($metadata['link_rss']))->absolutized($metadata['link_url']);
             if (isset($metadata['link_atom'])) $metadata['link_atom'] = (new Url($metadata['link_atom']))->absolutized($metadata['link_url']);
 
-            // TODO remove HLTm entities and other garbage from descriptions etc.
+            // TODO remove HTML entities and other garbage from descriptions etc.
+            $metadata['link_description'] = preg_replace('/[[:^print:]]/', '', $metadata['link_description']);
 
             return $metadata;
         }
