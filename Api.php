@@ -82,7 +82,7 @@ namespace Zaplog {
                         ->addTrigger('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'createSession'], [$email])
                         ->createToken()
                         ->sendToken($args);
-                    return $response;
+                    return $response->withJson(null);
                 } catch (EmailException $e) {
                     // TODO remove in production
                     return $response->withJson("/Api.php/2factor/" . $Auth->utoken);
@@ -110,7 +110,7 @@ namespace Zaplog {
                 ) {
                     throw new Exception;
                 }
-                return $response;
+                return $response->withJson(null);
             })
                 ->add(new Authentication);
 
@@ -264,7 +264,7 @@ namespace Zaplog {
                 stdClass               $args): ResponseInterface {
                 if (Db::execute("DELETE FROM links WHERE id =:id", [":id" => $args->id])->rowCount() == 0)
                     throw new ResourceNotFoundException;
-                return $response;
+                return $response->withJson(null);
             })
                 ->add(new Authentication);
 
@@ -284,7 +284,7 @@ namespace Zaplog {
                 ) {
                     throw new Exception;
                 }
-                return $response;
+                return $response->withJson(Db::lastInsertId());
             })
                 ->add(new Authentication);
 
@@ -305,7 +305,7 @@ namespace Zaplog {
                 ) {
                     throw new Exception;
                 }
-                return $response;
+                return $response->withJson(Db::lastInsertId());
             })
                 ->add(new Authentication);
 
@@ -325,7 +325,7 @@ namespace Zaplog {
                 ) {
                     throw new Exception;
                 }
-                return $response;
+                return $response->withJson(null);
             })
                 ->add(new Authentication);
 
