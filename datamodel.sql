@@ -52,10 +52,9 @@ CREATE TABLE activities
     linkid    INT                DEFAULT NULL,
     activity  ENUM ('post', 'vote', 'bookmark', 'tag', 'share', 'untag', 'unbookmark'),
     datetime  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    content   VARCHAR(255)       DEFAULT NULL,
     PRIMARY KEY (id),
     INDEX (linkid),
-    INDEX(datetime)
+    INDEX (datetime)
 ) ENGINE = MYISAM;
 
 -- -----------------------------------------------------

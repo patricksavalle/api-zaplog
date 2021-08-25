@@ -179,7 +179,7 @@ namespace Zaplog {
             // Returns the top scoring links for a given tag
             // -----------------------------------------------------
 
-            $this->get("/links/tag/{tag:\w{3,55}}", function (
+            $this->get("/links/tag/{tag:[\w-]{3,55}}", function (
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
@@ -198,7 +198,7 @@ namespace Zaplog {
             })
                 ->add(new ReadOnly)
                 ->add(new QueryParameters([
-                    '{tag:\w+}',
+                    '{tag:[\w-]+}',
                     '{offset:\int},0',
                     '{count:\int},100',
                 ]));
@@ -225,7 +225,7 @@ namespace Zaplog {
             })
                 ->add(new ReadOnly)
                 ->add(new QueryParameters([
-                    '{search:\w+},null',
+                    '{search:.+},null',
                     '{channel:\int},null',
                     '{offset:\int},0',
                     '{count:\int},100',
@@ -380,7 +380,17 @@ namespace Zaplog {
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                $activities = Db::execute("SELECT * FROM activities ORDER BY datetime DESC LIMIT :offset,:count",
+                $activities = Db::execute("SELECT 
+                        activities.*,
+                        channels.name as channelname, 
+                        links.title as linktitle, 
+                        links.url as linkurl, 
+                        links.description as linkdescription, 
+                        links.image as linkimage 
+                    FROM activities 
+                    LEFT JOIN channels ON activities.channelid=channels.id  
+                    LEFT JOIN links ON activities.linkid=links.id AND activity IN ('post', 'tag', 'vote', 'bookmark') 
+                    ORDER BY activities.id DESC LIMIT :offset,:count",
                     [
                         ":offset" => $args->offset,
                         ":count" => $args->count,
@@ -389,7 +399,7 @@ namespace Zaplog {
             })
                 ->add(new ReadOnly)
                 ->add(new QueryParameters([
-                    '{channel:\w{3,54}},null',
+                    '{channel:[\w-]{3,54}},null',
                     '{link:,\d{1,10}},null',
                     '{offset:\int},0',
                     '{count:\int},100',
