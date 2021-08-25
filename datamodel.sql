@@ -331,23 +331,23 @@ DELIMITER ;
 -- -----------------------------------------------------
 
 CREATE VIEW activitystream AS
-SELECT
-    activities.*,
-    channels.name as channelname,
-    links.title as linktitle,
-    links.url as linkurl,
-    links.image as linkimage
-FROM activities
-         LEFT JOIN channels ON activities.channelid=channels.id
-         LEFT JOIN links ON activities.linkid=links.id AND activity IN ('post', 'tag', 'vote', 'bookmark');
+    SELECT
+        activities.*,
+        channels.name as channelname,
+        links.title as linktitle,
+        links.url as linkurl,
+        links.image as linkimage
+    FROM activities
+    LEFT JOIN channels ON activities.channelid=channels.id
+    LEFT JOIN links ON activities.linkid=links.id AND activity IN ('post', 'tag', 'vote', 'bookmark');
 
 -- -----------------------------------------------------
 -- Channels that are currently logged in
 -- -----------------------------------------------------
 
 CREATE VIEW whosonline AS
-SELECT name, avatar, score, lastupdate FROM sessions
-                                                LEFT JOIN channels ON sessions.channelid=channels.id;
+    SELECT name, avatar, score, lastupdate FROM sessions
+    LEFT JOIN channels ON sessions.channelid=channels.id;
 
 -- -----------------------------------------------------
 -- 24h Statistics
@@ -374,8 +374,8 @@ CREATE VIEW frontpage AS SELECT * FROM links ORDER BY score DESC LIMIT 20;
 -- -----------------------------------------------------
 
 CREATE VIEW trendingtopics AS
-SELECT tag, SUM(frontpage.score) AS score FROM tags
-                                                   JOIN frontpage ON tags.linkid=frontpage.id
-GROUP BY tags.tag
-ORDER BY SUM(frontpage.score) DESC
-LIMIT 25;
+    SELECT tag, SUM(frontpage.score) AS score FROM tags
+    JOIN frontpage ON tags.linkid=frontpage.id
+    GROUP BY tags.tag
+    ORDER BY SUM(frontpage.score) DESC
+    LIMIT 25;
