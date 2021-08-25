@@ -29,8 +29,6 @@ namespace Zaplog\Library {
                 $newUrl .= "https://";
             }
 
-            echo $newUrl;
-
             if (isset($url['host'])) {
                 $url['host'] = strtolower($url['host']);
                 // Seems like a valid domain, properly validation should be made in higher layers.

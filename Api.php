@@ -90,9 +90,9 @@ namespace Zaplog {
                         ->createToken()
                         ->sendToken($args);
                     return $response;
-                } catch ( EmailException $e) {
+                } catch (EmailException $e) {
                     // TODO remove in production
-                    return $response->withJson( "/Api.php/2factor/".$Auth->utoken );
+                    return $response->withJson("/Api.php/2factor/" . $Auth->utoken);
                 }
             })
                 ->add(new BodyParameters([
@@ -241,21 +241,32 @@ namespace Zaplog {
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
                 $metadata = (new HtmlMetadata)(urldecode($args->urlencoded));
-                if (Db::execute("INSERT INTO links(url,channelid,title,description,image,domain,site)
+                Db::transaction(function () use ($metadata) {
+                    if (Db::execute("INSERT INTO links(url,channelid,title,description,image,domain,site)
                     VALUES (:url, :channelid, :title, :description, :image, :domain, :site)",
-                        [
-                            ":url" => $metadata["link_url"],
-                            ":channelid" => Authentication::token()->channelid,
-                            ":title" => $metadata["link_title"],
-                            ":description" => $metadata["link_description"],
-                            ":image" => $metadata["link_image"],
-                            ":domain" => $metadata["link_domain"],
-                            ":site" => $metadata["link_site_name"],
-                        ])->rowCount() == 0
-                ) {
-                    throw new Exception;
-                }
-                // TODO could add the tags from the metadata
+                            [
+                                ":url" => $metadata["link_url"],
+                                ":channelid" => Authentication::token()->channelid,
+                                ":title" => $metadata["link_title"],
+                                ":description" => $metadata["link_description"],
+                                ":image" => $metadata["link_image"],
+                                ":domain" => $metadata["link_domain"],
+                                ":site" => $metadata["link_site_name"],
+                            ])->rowCount() == 0
+                    ) {
+                        throw new Exception;
+                    }
+                    $linkid = Db::lastInsertId();
+                    if (isset($metadata['link_keywords']))
+                        foreach (explode(",", $metadata['link_keywords']) as $tag) {
+                            // the metadata tags are not assigned to a channel (so they can be filtered)
+                            Db::execute("INSERT INTO tags(linkid, channelid, tag) VALUES (:linkid, NULL, :tag)",
+                                [
+                                    ":linkid" => $linkid,
+                                    ":tag" => trim($tag),
+                                ]);
+                        }
+                });
                 return $response->withJson($metadata);
             })
                 ->add(new Authentication);
@@ -268,7 +279,7 @@ namespace Zaplog {
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                if (Db::execute("DELETE FROM links WHERE id=:id", [":id" => $args->id])->rowCount() == 0)
+                if (Db::execute("DELETE FROM links WHERE id =:id", [":id" => $args->id])->rowCount() == 0)
                     throw new ResourceNotFoundException;
                 return $response;
             })
@@ -279,7 +290,7 @@ namespace Zaplog {
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                if (Db::execute("INSERT INTO votes(linkid,channelid) VALUES (:id, :channelid)",
+                if (Db::execute("INSERT INTO votes(linkid, channelid) VALUES(:id, :channelid)",
                         [
                             ":id" => $args->id,
                             ":channelid" => Authentication::token()->channelid,
@@ -295,7 +306,7 @@ namespace Zaplog {
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                if (Db::execute("INSERT INTO tags(linkid,channelid,tag) VALUES (:id, :channelid, :tag)",
+                if (Db::execute("INSERT INTO tags(linkid, channelid, tag) VALUES(:id, :channelid, :tag)",
                         [
                             ":id" => $args->id,
                             ":tag" => $args->tag,
@@ -313,7 +324,7 @@ namespace Zaplog {
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
                 if (Db::execute("DELETE tags FROM tags 
-                    WHERE tag=:tag AND linkid=:id AND channelid=:channelid",
+                    WHERE tag=:tag and linkid=:id and channelid=:channelid",
                         [
                             ":id" => $args->id,
                             ":tag" => $args->tag,
@@ -330,9 +341,24 @@ namespace Zaplog {
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                return $response;
+                $tags = Db::execute("SELECT * FROM tags 
+                    WHERE (:channel1 IS NULL OR channelid=:channel2)
+                    ORDER BY tag LIMIT :offset,:count",
+                    [
+                        ":channel1" => $args->channel,
+                        ":channel2" => $args->channel,
+                        ":offset" => $args->offset,
+                        ":count" => $args->count,
+                    ])->fetchAll();
+                return $response->withJson($tags);
             })
-                ->add(new ReadOnly);
+                ->add(new ReadOnly)
+                ->add(new QueryParameters([
+                    '{startswith:\w+},null',
+                    '{channel:\int},null',
+                    '{offset:\int},0',
+                    '{count:\int},100',
+                ]));
 
             $this->get("/tags/trending", function (
                 ServerRequestInterface $request,

@@ -78,10 +78,6 @@ namespace Zaplog\Library {
                 $metadata['link_image'] = @$xpath->query('/*/head/link[@rel="apple-touch-icon"]/@href')->item(0)->nodeValue;
             }
 
-            // some URL magic
-            $metadata['link_url'] = (new Url($metadata['link_url']))->normalized();
-            $metadata['link_image'] = (new Url($metadata['link_image']))->absolutized($metadata['link_url']);
-
             // @Todo use Google JSON-LD data
 
             // get RSS and Atom feeds
@@ -99,6 +95,15 @@ namespace Zaplog\Library {
             $metadata['link_keywords'] = @$xpath->query('/*/head/meta[@name="keywords"]/@content')->item(0)->nodeValue;
             $metadata['link_author'] = @$xpath->query('/*/head/meta[@name="author"]/@content')->item(0)->nodeValue;
             $metadata['link_copyright'] = @$xpath->query('/*/head/meta[@name="copyright"]/@content')->item(0)->nodeValue;
+
+            // some URL magic
+            $metadata['link_url'] = (new Url($metadata['link_url']))->normalized();
+            if (isset($metadata['link_image'])) $metadata['link_image'] = (new Url($metadata['link_image']))->absolutized($metadata['link_url']);
+            if (isset($metadata['link_rss'])) $metadata['link_rss'] = (new Url($metadata['link_rss']))->absolutized($metadata['link_url']);
+            if (isset($metadata['link_atom'])) $metadata['link_atom'] = (new Url($metadata['link_atom']))->absolutized($metadata['link_url']);
+
+            // TODO remove HLTm entities and other garbage from descriptions etc.
+
             return $metadata;
         }
     }

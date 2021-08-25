@@ -30,6 +30,7 @@ Crowd-sourced link-dump met algoritmische voorpagina.
     - network of zaplogs (remove single point of censorship)
     - gebruikersprofielen
     - gebruikersreputatie
+    - weighted votes, gebaseerd op gebruikersreputatie
     - automatische content actualisatie / crawling
 
 
