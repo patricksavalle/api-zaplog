@@ -1,12 +1,7 @@
 /**
  * zaplog V2
- *
- * @link:
- * @copyright:
  * @author:     patrick@patricksavalle.com
  */
-
--- ------------------------------------------------------
 
 DROP SCHEMA IF EXISTS zaplog;
 CREATE SCHEMA zaplog
@@ -36,7 +31,7 @@ CREATE TABLE tokens
 DELIMITER //
 CREATE EVENT expire_tokens
     ON SCHEDULE EVERY 1 HOUR
-    DO DELETE FROM tokens WHERE tokens.expirationdatetime < CURRENT_TIMESTAMP//
+    DO DELETE FROM tokens WHERE expirationdatetime < CURRENT_TIMESTAMP//
 DELIMITER ;
 
 -- -----------------------------------------------------
@@ -92,7 +87,7 @@ DELIMITER //
 
 CREATE EVENT expire_sessions
     ON SCHEDULE EVERY 1 HOUR
-    DO DELETE FROM sessions WHERE sessions.lastupdate < SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 HOUR)//
+    DO DELETE FROM sessions WHERE lastupdate < SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 HOUR)//
 
 DELIMITER ;
 
@@ -120,7 +115,7 @@ CREATE TABLE links
     viewscount     INT                    DEFAULT 0,
     votescount     INT                    DEFAULT 0,
     tagscount      INT                    DEFAULT 0,
-    score          INT GENERATED ALWAYS AS (votescount * 5 + bookmarkscount * 10 + FLOOR(SQRT(tagscount)) + FLOOR(LOG(viewscount))),
+    score          INT GENERATED ALWAYS AS (votescount * 5 + bookmarkscount * 10 + FLOOR(SQRT(tagscount)) + FLOOR(LOG(viewscount+1))),
 
     PRIMARY KEY (id),
     INDEX (channelid),
@@ -233,7 +228,7 @@ CREATE TRIGGER on_insert_tag
     ON tags
     FOR EACH ROW
 BEGIN
-    UPDATE links SET links.tagscount = links.tagscount + 1 WHERE links.id = NEW.linkid;
+    UPDATE links SET tagscount = tagscount + 1 WHERE id = NEW.linkid;
     INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.linkid, 'tag');
 END//
 DELIMITER ;
@@ -244,7 +239,7 @@ CREATE TRIGGER on_delete_tag
     ON tags
     FOR EACH ROW
 BEGIN
-    UPDATE links SET links.tagscount = links.tagscount - 1 WHERE links.id = OLD.linkid;
+    UPDATE links SET tagscount = tagscount - 1 WHERE id = OLD.linkid;
     INSERT INTO activities(channelid, linkid, activity) VALUES (OLD.channelid, OLD.linkid, 'untag');
 END//
 DELIMITER ;
@@ -277,7 +272,7 @@ CREATE TRIGGER on_insert_vote
     ON votes
     FOR EACH ROW
 BEGIN
-    UPDATE links SET links.votescount = links.votescount + 1 WHERE links.id = NEW.linkid;
+    UPDATE links SET votescount = votescount + 1 WHERE id = NEW.linkid;
     INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.linkid, 'vote');
 END//
 DELIMITER ;
@@ -310,7 +305,7 @@ CREATE TRIGGER on_insert_bookmark
     ON bookmarks
     FOR EACH ROW
 BEGIN
-    UPDATE links SET links.bookmarkscount = links.bookmarkscount + 1 WHERE Links.id = NEW.linkid;
+    UPDATE links SET bookmarkscount = bookmarkscount + 1 WHERE id = NEW.linkid;
     INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.linkid, 'bookmark');
 END//
 DELIMITER ;
@@ -321,7 +316,7 @@ CREATE TRIGGER on_delete_bookmark
     ON bookmarks
     FOR EACH ROW
 BEGIN
-    UPDATE links SET links.bookmarkscount = links.bookmarkscount - 1 WHERE links.id = OLD.linkid;
+    UPDATE links SET bookmarkscount = bookmarkscount - 1 WHERE id = OLD.linkid;
     INSERT INTO activities(channelid, linkid, activity) VALUES (OLD.channelid, OLD.linkid, 'unbookmark');
 END//
 DELIMITER ;
