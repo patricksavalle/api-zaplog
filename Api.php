@@ -223,7 +223,7 @@ namespace Zaplog {
             // return the metadata of a HTML page
             // ----------------------------------------------------
 
-            $this->get("/link/metadata/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
+            $this->get("/links/metadata/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
@@ -257,7 +257,7 @@ namespace Zaplog {
                     $tag = trim($tag);
                     if (preg_match("([\w-]{3,55})", $tag) > 0) {
                         // these metadata tags are not assigned to a channel
-                        Db::execute("INSERT INTO tags(linkid, channelid, tag) VALUES (:linkid, NULL, :tag)",
+                        Db::execute("INSERT IGNORE INTO tags(linkid, channelid, tag) VALUES (:linkid, NULL, :tag)",
                             [
                                 ":linkid" => $linkid,
                                 ":tag" => $tag,
