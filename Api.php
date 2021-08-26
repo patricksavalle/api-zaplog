@@ -254,12 +254,13 @@ namespace Zaplog {
                 }
                 $linkid = Db::lastInsertId();
                 foreach (explode(",", $metadata['link_keywords'] ?? "") as $tag) {
-                    if (preg_match("([^\s][\w-]{3,55}[^\s])", $tag, $matches) > 0) {
-                        // these metadata tags are not assigned to a channel (so they can be filtered)
+                    $tag = trim($tag);
+                    if (preg_match("([\w-]{3,55})", $tag) > 0) {
+                        // these metadata tags are not assigned to a channel
                         Db::execute("INSERT INTO tags(linkid, channelid, tag) VALUES (:linkid, NULL, :tag)",
                             [
                                 ":linkid" => $linkid,
-                                ":tag" => $matches[0],
+                                ":tag" => $tag,
                             ]);
                     }
                 }

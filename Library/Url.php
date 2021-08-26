@@ -24,7 +24,7 @@ namespace Zaplog\Library {
                 // Strip scheme default ports
                 if (isset($defaultSchemes[$url['scheme']]) && isset($url['port']) && $defaultSchemes[$url['scheme']] == $url['port'])
                     unset($url['port']);
-                $newUrl .= $url['scheme']."://";
+                $newUrl .= $url['scheme'] . "://";
             } else {
                 $newUrl .= "https://";
             }
@@ -113,23 +113,29 @@ namespace Zaplog\Library {
                         }
                     }
                 }
-                $newUrl .= $new_path;
+                $newUrl .= rtrim($new_path, '/');
             }
 
             if (isset($url['fragment']))
                 unset($url['fragment']);
 
-            // Sort GET params alphabetically, not because the RFC requires it but because it's cool!
+            // Sort GET params alphabetically
             if (isset($url['query'])) {
                 if (preg_match("/&/", $url['query'])) {
                     $s = explode("&", $url['query']);
-                    $url['query'] = "";
-                    sort($s);
-                    foreach ($s as $z)
-                        $url['query'] .= "$z&";
-                    $url['query'] = preg_replace("/&\Z/", "", $url['query']);
+                    // remove the campaign arguments ?utm_campaign=RSS&utm_medium=rss&utm_source=rss
+                    foreach ($s as $i => $z) {
+                        if (strpos($z, "utm_") === 0) unset($s[$i]);
+                    }
+                    if (!empty($s)) {
+                        $url['query'] = "";
+                        sort($s);
+                        foreach ($s as $z)
+                            $url['query'] .= "$z&";
+                        $url['query'] = preg_replace("/&\Z/", "", $url['query']);
+                        $newUrl .= "?{$url['query']}";
+                    }
                 }
-                $newUrl .= "?{$url['query']}";
             }
 
             return $newUrl;

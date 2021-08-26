@@ -45,7 +45,7 @@ CREATE TABLE activities
     id        INT         NOT NULL AUTO_INCREMENT,
     channelid INT                DEFAULT NULL,
     linkid    INT                DEFAULT NULL,
-    activity  ENUM ('post', 'vote', 'bookmark', 'tag', 'share', 'untag', 'unbookmark'),
+    activity  ENUM ('post', 'autopost', 'vote', 'bookmark', 'tag', 'share', 'untag', 'unbookmark'),
     datetime  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     INDEX (linkid),
@@ -74,7 +74,8 @@ CREATE TABLE channels
 -- used for RSS-reader and such
 -- -----------------------------------------------------
 
-INSERT INTO channels(name) VALUES ("system");
+INSERT INTO channels(name) VALUES ("feedreader");
+SET @RSSCHANNEL:=LAST_INSERT_ID();
 
 -- -----------------------------------------------------
 -- Authenticated tokens / sessions
@@ -136,7 +137,11 @@ CREATE TRIGGER on_insert_link
     ON links
     FOR EACH ROW
 BEGIN
-    INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.id, 'post');
+    IF (NEW.channelid=@RSSCHANNEL) THEN
+        INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.id, 'autopost');
+    ELSE
+        INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.id, 'post');
+    END IF;
 END//
 DELIMITER ;
 
