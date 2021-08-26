@@ -54,6 +54,7 @@ namespace Zaplog\Library {
             $metadata['link_site_name'] = @$xpath->query('/*/head/meta[@property="og:site_name"]/@content')->item(0)->nodeValue;
 
             // than try twitter:
+            // TODO upgrade to PHP 7.4 ??= operator
             if (empty($metadata['link_url'])) {
                 $metadata['link_url'] = @$xpath->query('/*/head/meta[@name="twitter:url"]/@content')->item(0)->nodeValue;
             }
@@ -74,9 +75,6 @@ namespace Zaplog\Library {
             // than be opportunistic, try other tags
             if (empty($metadata['link_description'])) {
                 $metadata['link_description'] = @$xpath->query('/*/head/meta[@name="description"]/@content')->item(0)->nodeValue;
-            }
-            if (empty($metadata['link_description'])) {
-                $metadata['link_description'] = @$xpath->query('/*/head/meta[@name="keywords"]/@content')->item(0)->nodeValue;
             }
             if (empty($metadata['link_title'])) {
                 $metadata['link_title'] = @$xpath->query('/*/head/title')->item(0)->nodeValue;
@@ -105,7 +103,9 @@ namespace Zaplog\Library {
             }
 
             // keywords, author, copyright
-            $metadata['link_keywords'] = @$xpath->query('/*/head/meta[@name="keywords"]/@content')->item(0)->nodeValue;
+            $metadata['link_keywords']
+                =  @$xpath->query('/*/head/meta[@name="keywords"]/@content')->item(0)->nodeValue
+                ?? @$xpath->query('/*/head/meta[@name="news_keywords"]/@content')->item(0)->nodeValue;
             $metadata['link_author'] = @$xpath->query('/*/head/meta[@name="author"]/@content')->item(0)->nodeValue;
             $metadata['link_copyright'] = @$xpath->query('/*/head/meta[@name="copyright"]/@content')->item(0)->nodeValue;
 
