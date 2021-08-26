@@ -9,6 +9,7 @@ namespace Zaplog\Library {
     use DOMDocument;
     use DOMXPath;
     use Exception;
+    use SlimRestApi\Infra\Db;
     use SlimRestApi\Infra\Ini;
     use Zaplog\Exception\CurlException;
 
@@ -117,6 +118,15 @@ namespace Zaplog\Library {
 
             // TODO remove HTML entities and other garbage from descriptions etc.
             $metadata['link_description'] = preg_replace('/[[:^print:]]/', '', $metadata['link_description']);
+
+            $keywords = [];
+            foreach (explode(",", $metadata['link_keywords'] ?? "") as $keyword) {
+                $keyword = trim($keyword);
+                if (!empty($keyword)) {
+                    $keywords[] = (new NormalizedText($keyword))->convertNonAscii()->convertNonPath()();
+                }
+            }
+            $metadata['link_keywords'] = $keywords;
 
             return $metadata;
         }

@@ -253,16 +253,13 @@ namespace Zaplog {
                     throw new Exception;
                 }
                 $linkid = Db::lastInsertId();
-                foreach (explode(",", $metadata['link_keywords'] ?? "") as $tag) {
-                    $tag = trim($tag);
-                    if (!empty($tag)) {
-                        // these metadata tags are not assigned to a channel
-                        Db::execute("INSERT IGNORE INTO tags(linkid, channelid, tag) VALUES (:linkid, NULL, :tag)",
-                            [
-                                ":linkid" => $linkid,
-                                ":tag" => $tag,
-                            ]);
-                    }
+                foreach ($metadata['link_keywords'] as $tag) {
+                    // these metadata tags are not assigned to a channel
+                    Db::execute("INSERT IGNORE INTO tags(linkid, channelid, tag) VALUES (:linkid, NULL, :tag)",
+                        [
+                            ":linkid" => $linkid,
+                            ":tag" => $tag,
+                        ]);
                 }
                 return $response->withJson($metadata);
             })

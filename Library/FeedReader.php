@@ -60,17 +60,14 @@ namespace Zaplog\Library {
 
                             /** @noinspection PhpUndefinedMethodInspection */
                             $linkid = Db::lastInsertId();
-                            foreach (explode(",", $metadata['link_keywords'] ?? "") as $tag) {
-                                $tag = trim($tag);
-                                if (!empty($tag)) {
-                                    // these metadata tags are not assigned to a channel (so they can be filtered)
-                                    Db::execute("INSERT IGNORE INTO tags(linkid, channelid, tag) VALUES (:linkid, :channelid, :tag)",
-                                        [
-                                            ":linkid" => $linkid,
-                                            ":channelid" => self::SYSTEMCHANNEL,
-                                            ":tag" => $tag,
-                                        ]);
-                                }
+                            foreach ($metadata['link_keywords'] as $tag) {
+                                // these metadata tags are not assigned to a channel (so they can be filtered)
+                                Db::execute("INSERT IGNORE INTO tags(linkid, channelid, tag) VALUES (:linkid, :channelid, :tag)",
+                                    [
+                                        ":linkid" => $linkid,
+                                        ":channelid" => self::SYSTEMCHANNEL,
+                                        ":tag" => $tag,
+                                    ]);
                             }
                         } else {
                             error_log("skipping " . $link);
