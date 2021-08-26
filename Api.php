@@ -19,6 +19,7 @@ namespace Zaplog {
     require_once BASE_PATH . '/Exception/EmailException.php';
 
     use SlimRestApi\Infra\Memcache;
+
 //    use SlimRestApi\Middleware\CliRequest;
     use SlimRestApi\Middleware\Memcaching;
     use stdClass;
@@ -58,7 +59,6 @@ namespace Zaplog {
                     }
                 }
                 echo "</table>";
-                echo "<p>Active memcache servers: ". sizeof(Memcache::getServersList()) . "</p>";
                 return $rp;
             });
 
@@ -170,7 +170,7 @@ namespace Zaplog {
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                $links = Db::execute("SELECT link.* FROM tags
+                $links = Db::execute("SELECT links.* FROM tags
                     LEFT JOIN links ON tags.linkid=links.id 
                     WHERE tags.tag=:tag
                     GROUP BY links.id 
@@ -186,7 +186,6 @@ namespace Zaplog {
                 ->add(new Memcaching(60/*sec*/))
                 ->add(new ReadOnly)
                 ->add(new QueryParameters([
-                    '{tag:[\w-]+}',
                     '{offset:\int},0',
                     '{count:\int},100',
                 ]));
@@ -254,15 +253,16 @@ namespace Zaplog {
                     throw new Exception;
                 }
                 $linkid = Db::lastInsertId();
-                if (isset($metadata['link_keywords']))
-                    foreach (explode(",", $metadata['link_keywords']) as $tag) {
+                foreach (explode(",", $metadata['link_keywords'] ?? "") as $tag) {
+                    if (preg_match("([^\s][\w-]{3,55}[^\s])", $tag, $matches) > 0) {
                         // these metadata tags are not assigned to a channel (so they can be filtered)
                         Db::execute("INSERT INTO tags(linkid, channelid, tag) VALUES (:linkid, NULL, :tag)",
                             [
                                 ":linkid" => $linkid,
-                                ":tag" => trim($tag),
+                                ":tag" => $matches[0],
                             ]);
                     }
+                }
                 return $response->withJson($metadata);
             })
                 ->add(new Authentication);
