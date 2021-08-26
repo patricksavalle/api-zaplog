@@ -255,7 +255,7 @@ namespace Zaplog {
                 $linkid = Db::lastInsertId();
                 foreach (explode(",", $metadata['link_keywords'] ?? "") as $tag) {
                     $tag = trim($tag);
-                    if (preg_match("([\w-]{3,55})", $tag) > 0) {
+                    if (!empty($tag)) {
                         // these metadata tags are not assigned to a channel
                         Db::execute("INSERT IGNORE INTO tags(linkid, channelid, tag) VALUES (:linkid, NULL, :tag)",
                             [
