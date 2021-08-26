@@ -26,7 +26,7 @@ namespace Zaplog\Library {
                 curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true); // sometime is useful :)
             }
             $result = curl_exec($curl);
-            if ($result === false)
+            if ($result === false or curl_getinfo($curl, CURLINFO_HTTP_CODE) !== 200)
                 throw new CurlException($url);
             return $result;
         }
@@ -36,75 +36,74 @@ namespace Zaplog\Library {
             assert(filter_var($url, FILTER_VALIDATE_URL) !== false);
             $metadata = [];
             libxml_use_internal_errors(true);
-            $doc = new DomDocument();
+            $doc = new DomDocument;
             $doc->loadHTML(self::httpRequest($url));
             $xpath = new DOMXPath($doc);
 
-            $xfunc = function ($x) use ($xpath)
-            {
+            $xfunc = function (string $x) use ($xpath) {
                 return @$xpath->query($x)->item(0)->nodeValue;
             };
 
-            $metadata['link_url']
-                =  $xfunc('/*/head/meta[@property="og:url"]/@content')
+            $metadata['url']
+                = $xfunc('/*/head/meta[@property="og:url"]/@content')
                 ?? $xfunc('/*/head/meta[@name="twitter:url"]/@content')
                 ?? $xfunc('/*/head/link[@rel="canonical"]/@href')
                 ?? $url;
 
-            $metadata['link_title']
-                =  $xfunc('/*/head/meta[@property="og:title"]/@content')
+            $metadata['title']
+                = $xfunc('/*/head/meta[@property="og:title"]/@content')
                 ?? $xfunc('/*/head/meta[@name="twitter:title"]/@content')
                 ?? $xfunc('/*/head/title');
 
-            $metadata['link_description']
-                =  $xfunc('/*/head/meta[@property="og:description"]/@content')
+            $metadata['description']
+                = $xfunc('/*/head/meta[@property="og:description"]/@content')
                 ?? $xfunc('/*/head/meta[@name="twitter:description"]/@content')
                 ?? $xfunc('/*/head/meta[@name="description"]/@content');
 
             // TODO can be multiple images
-            $metadata['link_image']
-                =  $xfunc('//meta[@property="og:image"]/@content')
+            $metadata['image']
+                = $xfunc('//meta[@property="og:image"]/@content')
                 ?? $xfunc('/*/head/meta[@name="twitter:image"]/@content')
                 ?? $xfunc('/*/head/link[@rel="apple-touch-icon"]/@href');
 
-            $metadata['link_site_name']
+            $metadata['site_name']
                 = $xfunc('/*/head/meta[@property="og:site_name"]/@content')
-                 ?? $xfunc('/*/head/meta[@name="twitter:site"]/@content');
+                ?? $xfunc('/*/head/meta[@name="twitter:site"]/@content');
 
-            // @Todo use Google JSON-LD data
+            // TODO use JSON-LD data
+            // https://jsonld.com/news-article/
+            // https://jsonld.com/blog-post/
 
             // get RSS and Atom feeds
             // TODO can be multiple feeds, for now return first
-            $metadata['link_rss'] = $xfunc('/*/head/link[@rel="alternate"][@type="application/rss+xml"]/@href');
-            $metadata['link_atom'] = $xfunc('/*/head/link[@rel="alternate"][@type="application/atom+xml"]/@href');
-
-            $metadata['link_domain'] = parse_url($metadata['link_url'], PHP_URL_HOST);
+            $metadata['rss'] = $xfunc('/*/head/link[@rel="alternate"][@type="application/rss+xml"]/@href');
+            $metadata['atom'] = $xfunc('/*/head/link[@rel="alternate"][@type="application/atom+xml"]/@href');
 
             // keywords, author, copyright
-            $metadata['link_keywords']
-                =  $xfunc('/*/head/meta[@name="keywords"]/@content')
+            $metadata['keywords']
+                = $xfunc('/*/head/meta[@name="keywords"]/@content')
                 ?? $xfunc('/*/head/meta[@name="news_keywords"]/@content');
-            $metadata['link_author'] = $xfunc('/*/head/meta[@name="author"]/@content');
-            $metadata['link_copyright'] = $xfunc('/*/head/meta[@name="copyright"]/@content');
+            $metadata['author'] = $xfunc('/*/head/meta[@name="author"]/@content');
+            $metadata['copyright'] = $xfunc('/*/head/meta[@name="copyright"]/@content');
 
             // some URL magic
-            $metadata['link_url'] = (new Url($metadata['link_url']))->normalized();
-            if (isset($metadata['link_image'])) $metadata['link_image'] = (new Url($metadata['link_image']))->absolutized($metadata['link_url']);
-            if (isset($metadata['link_rss'])) $metadata['link_rss'] = (new Url($metadata['link_rss']))->absolutized($metadata['link_url']);
-            if (isset($metadata['link_atom'])) $metadata['link_atom'] = (new Url($metadata['link_atom']))->absolutized($metadata['link_url']);
+            $metadata['url'] = (new Url($metadata['url']))->normalized();
+            if (isset($metadata['image'])) $metadata['image'] = (new Url($metadata['image']))->absolutized($metadata['url']);
+            if (isset($metadata['rss'])) $metadata['rss'] = (new Url($metadata['rss']))->absolutized($metadata['url']);
+            if (isset($metadata['atom'])) $metadata['atom'] = (new Url($metadata['atom']))->absolutized($metadata['url']);
 
             // TODO remove HTML entities and other garbage from descriptions etc.
-            $metadata['link_description'] = preg_replace('/[[:^print:]]/', '', $metadata['link_description']);
+            $metadata['description'] = preg_replace('/[[:^print:]]/', '', $metadata['description']);
 
             // normalize keywords and return as array
             $keywords = [];
-            foreach (explode(",", $metadata['link_keywords'] ?? "") as $keyword) {
+            foreach (explode(",", $metadata['keywords'] ?? "") as $keyword) {
                 $keyword = trim($keyword);
                 if (!empty($keyword)) {
                     $keywords[] = (new NormalizedText($keyword))->convertNonAscii()->convertNonPath()();
                 }
             }
-            $metadata['link_keywords'] = array_unique($keywords);
+            $metadata['keywords'] = array_unique($keywords);
 
             return $metadata;
         }

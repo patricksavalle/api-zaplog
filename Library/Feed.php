@@ -123,7 +123,7 @@ namespace Zaplog\Library {
                 curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true); // sometime is useful :)
             }
             $result = curl_exec($curl);
-            if (curl_errno($curl) !== 0)
+            if ($result === false or curl_getinfo($curl, CURLINFO_HTTP_CODE) !== 200)
                 throw new CurlException($url);
             return $result;
         }

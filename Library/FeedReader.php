@@ -21,7 +21,6 @@ namespace Zaplog\Library {
             "https://www.xandernieuws.net/feed/",
             "https://www.cnet.com/rss/all/",
             "https://gizmodo.com/rss",
-
         ];
 
         public function __invoke()
@@ -30,10 +29,10 @@ namespace Zaplog\Library {
 
                 try {
 
-                    foreach ((new Feed)($feed)["item"] as $item) {
+                    $content = (new Feed)($feed);
+                    foreach ($content["item"] as $item) {
 
                         $link = (new Url($item["link"]))->normalized();
-
                         if (DB::execute("SELECT * FROM links WHERE urlhash=MD5(:url)", [":url" => $link])->rowCount() === 0) {
 
                             // --------------------------------------------------------------------------
@@ -46,11 +45,11 @@ namespace Zaplog\Library {
                             if (Db::execute("INSERT IGNORE INTO links(url,channelid,title,description,image)
                             VALUES (:url, :channel, :title, :description, :image)",
                                     [
-                                        ":url" => $metadata["link_url"],
+                                        ":url" => $metadata["url"],
                                         ":channel" => self::SYSTEMCHANNEL,
-                                        ":title" => $metadata["link_title"],
-                                        ":description" => $metadata["link_description"],
-                                        ":image" => $metadata["link_image"],
+                                        ":title" => $metadata["title"],
+                                        ":description" => $metadata["description"],
+                                        ":image" => $metadata["image"] ?? $content["ímage"]["url"] ?? null,
                                     ])->rowCount() == 0
                             ) {
                                 continue;
@@ -58,7 +57,7 @@ namespace Zaplog\Library {
 
                             /** @noinspection PhpUndefinedMethodInspection */
                             $linkid = Db::lastInsertId();
-                            foreach ($metadata['link_keywords'] as $tag) {
+                            foreach ($metadata['keywords'] as $tag) {
                                 // these metadata tags are not assigned to a channel (so they can be filtered)
                                 Db::execute("INSERT INTO tags(linkid, channelid, tag) VALUES (:linkid, :channelid, :tag)",
                                     [
