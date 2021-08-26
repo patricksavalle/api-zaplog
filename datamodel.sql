@@ -45,7 +45,7 @@ CREATE TABLE activities
     id        INT         NOT NULL AUTO_INCREMENT,
     channelid INT                DEFAULT NULL,
     linkid    INT                DEFAULT NULL,
-    activity  ENUM ('post', 'autopost', 'vote', 'bookmark', 'tag', 'share', 'untag', 'unbookmark'),
+    activity  ENUM ('post', 'autopost', 'vote', 'bookmark', 'tag', 'autotag', 'share', 'untag', 'unbookmark'),
     datetime  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     INDEX (linkid),
@@ -75,7 +75,6 @@ CREATE TABLE channels
 -- -----------------------------------------------------
 
 INSERT INTO channels(name) VALUES ("feedreader");
-SET @RSSCHANNEL:=LAST_INSERT_ID();
 
 -- -----------------------------------------------------
 -- Authenticated tokens / sessions
@@ -137,11 +136,7 @@ CREATE TRIGGER on_insert_link
     ON links
     FOR EACH ROW
 BEGIN
-    IF (NEW.channelid=@RSSCHANNEL) THEN
-        INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.id, 'autopost');
-    ELSE
-        INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.id, 'post');
-    END IF;
+    INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.id, IF(NEW.channelid=1, 'autopost', 'post'));
 END//
 DELIMITER ;
 
@@ -238,7 +233,7 @@ CREATE TRIGGER on_insert_tag
     FOR EACH ROW
 BEGIN
     UPDATE links SET tagscount = tagscount + 1 WHERE id = NEW.linkid;
-    INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.linkid, 'tag');
+    INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.linkid, if(NEW.channelid=1,'autotag','tag'));
 END//
 DELIMITER ;
 
@@ -383,12 +378,4 @@ CREATE VIEW trendingtopics AS
     GROUP BY tags.tag
     ORDER BY SUM(frontpage.score) DESC
     LIMIT 25;
-
--- -----------------------------------------------------
--- Links related by tag
--- -----------------------------------------------------
-
--- TODO temporary, for development
-CREATE VIEW relatedlinks AS SELECT * FROM links;
-
 

@@ -41,35 +41,37 @@ namespace Zaplog\Library {
                             // bypasses Feedburner links (we need the original links)
                             // --------------------------------------------------------------------------
 
-                            $metadata = (new HtmlMetadata)($link);
-                            if (Db::execute("INSERT IGNORE INTO links(url,channelid,title,description,image)
-                            VALUES (:url, :channel, :title, :description, :image)",
-                                    [
-                                        ":url" => $metadata["url"],
-                                        ":channel" => self::SYSTEMCHANNEL,
-                                        ":title" => $metadata["title"],
-                                        ":description" => $metadata["description"],
-                                        ":image" => $metadata["image"] ?? $content["ímage"]["url"] ?? null,
-                                    ])->rowCount() == 0
-                            ) {
-                                continue;
-                            }
-
-                            /** @noinspection PhpUndefinedMethodInspection */
-                            $linkid = Db::lastInsertId();
-                            foreach ($metadata['keywords'] as $tag) {
-                                // these metadata tags are not assigned to a channel (so they can be filtered)
-                                Db::execute("INSERT INTO tags(linkid, channelid, tag) VALUES (:linkid, :channelid, :tag)",
-                                    [
-                                        ":linkid" => $linkid,
-                                        ":channelid" => self::SYSTEMCHANNEL,
-                                        ":tag" => $tag,
-                                    ]);
+                            try {
+                                $metadata = (new HtmlMetadata)($link);
+                                if (Db::execute("INSERT IGNORE INTO links(url,channelid,title,description,image)
+                                        VALUES (:url, :channel, :title, :description, :image)",
+                                        [
+                                            ":url" => $metadata["url"],
+                                            ":channel" => self::SYSTEMCHANNEL,
+                                            ":title" => $metadata["title"],
+                                            ":description" => $metadata["description"],
+                                            ":image" => $metadata["image"] ?? $content["ímage"]["url"] ?? null,
+                                        ])->rowCount() == 0
+                                ) {
+                                    continue;
+                                }
+                                /** @noinspection PhpUndefinedMethodInspection */
+                                $linkid = Db::lastInsertId();
+                                foreach ($metadata['keywords'] as $tag) {
+                                    // these metadata tags are not assigned to a channel (so they can be filtered)
+                                    Db::execute("INSERT INTO tags(linkid, tag) VALUES (:linkid, :tag)",
+                                        [
+                                            ":linkid" => $linkid,
+                                            ":tag" => $tag,
+                                        ]);
+                                }
+                            } catch (Exception $e) {
+                                error_log($e->getMessage() . "@ " . __FILE__ . "(" . __LINE__ . ")");
                             }
                         }
                     }
                 } catch (Exception $e) {
-                    error_log($e->getMessage());
+                    error_log($e->getMessage() . "@ " . __FILE__ . "(" . __LINE__ . ")");
                 }
             }
         }

@@ -135,7 +135,21 @@ namespace Zaplog {
                 $link = Db::execute("SELECT * FROM links WHERE id=:id", $params)->fetch();
                 if (!$link) throw new ResourceNotFoundException;
                 $tags = Db::execute("SELECT * FROM tags WHERE linkid=:id", $params)->fetchAll();
-                $rels = Db::execute("SELECT * FROM relatedlinks WHERE id=:id LIMIT 5", $params)->fetchAll();
+                $rels = Db::execute("SELECT links.*, GROUP_CONCAT(tags.tag SEPARATOR ',') AS tags 
+                    FROM links JOIN tags 
+                        ON tags.linkid=links.id 
+                        AND links.id<>:id1
+                        AND tag IN 
+                            (
+                                SELECT tags.tag FROM links LEFT JOIN tags on tags.linkid=links.id WHERE links.id=:id2 
+                            )
+                        GROUP BY links.id
+                        ORDER BY COUNT(links.id) DESC
+                        LIMIT 5",
+                    [
+                        ":id1" => $args->id,
+                        ":id2" => $args->id,
+                    ])->fetchAll();
                 Db::execute("UPDATE links SET viewscount = viewscount + 1 WHERE id=:id", $params);
                 return $response->withJson(
                     [
@@ -339,27 +353,19 @@ namespace Zaplog {
                 ->add(new Authentication);
 
             // ------------------------------------------------
-            // delete a tag, only delete your own tags
+            // return all tags unique sorted
             // ------------------------------------------------
 
             $this->get("/tags/index", function (
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                $tags = Db::execute("SELECT tag, COUNT(tag) as linkscount FROM tags 
-                    WHERE (:channel1 IS NULL OR channelid=:channel2)
-                    GROUP BY tag ORDER BY tag",
-                    [
-                        ":channel1" => $args->channel,
-                        ":channel2" => $args->channel,
-                    ])->fetchAll();
-                return $response->withJson($tags);
+                return $response->withJson(
+                    Db::execute("SELECT tag, COUNT(tag) as linkscount FROM tags GROUP BY tag ORDER BY tag",[])->fetchAll()
+                );
             })
                 ->add(new Memcaching(10/*sec*/))
-                ->add(new ReadOnly)
-                ->add(new QueryParameters([
-                    '{channel:\int},null',
-                ]));
+                ->add(new ReadOnly);
 
             // ------------------------------------------------
             // get the top trending tags
