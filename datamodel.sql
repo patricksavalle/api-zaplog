@@ -66,7 +66,7 @@ CREATE TABLE channels
     avatar         VARCHAR(55)          DEFAULT NULL,
     score          INT                  DEFAULT 0,
     PRIMARY KEY (id),
-    INDEX (createdatetime),
+    UNIQUE INDEX (email),
     UNIQUE INDEX (name)
 );
 

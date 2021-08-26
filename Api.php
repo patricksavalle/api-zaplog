@@ -255,7 +255,7 @@ namespace Zaplog {
                 $linkid = Db::lastInsertId();
                 foreach ($metadata['link_keywords'] as $tag) {
                     // these metadata tags are not assigned to a channel
-                    Db::execute("INSERT IGNORE INTO tags(linkid, channelid, tag) VALUES (:linkid, NULL, :tag)",
+                    Db::execute("INSERT INTO tags(linkid, tag) VALUES (:linkid, :tag)",
                         [
                             ":linkid" => $linkid,
                             ":tag" => $tag,

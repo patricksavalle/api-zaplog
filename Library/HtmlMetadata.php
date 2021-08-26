@@ -8,8 +8,6 @@ namespace Zaplog\Library {
 
     use DOMDocument;
     use DOMXPath;
-    use Exception;
-    use SlimRestApi\Infra\Db;
     use SlimRestApi\Infra\Ini;
     use Zaplog\Exception\CurlException;
 
@@ -28,87 +26,66 @@ namespace Zaplog\Library {
                 curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true); // sometime is useful :)
             }
             $result = curl_exec($curl);
-            if (curl_errno($curl) !== 0)
+            if ($result === false)
                 throw new CurlException($url);
             return $result;
         }
 
-        function __invoke(string $url)
-
+        function __invoke(string $url): array
         {
             assert(filter_var($url, FILTER_VALIDATE_URL) !== false);
             $metadata = [];
-            // read the file with our own user-agent, restore after
-            // many webservers block the default PHP user-agent
-            $html = self::httpRequest($url);
             libxml_use_internal_errors(true);
             $doc = new DomDocument();
-            $doc->loadHTML($html);
+            $doc->loadHTML(self::httpRequest($url));
             $xpath = new DOMXPath($doc);
 
-            // first try og:
-            $metadata['link_url'] = @$xpath->query('/*/head/meta[@property="og:url"]/@content')->item(0)->nodeValue;
-            $metadata['link_title'] = @$xpath->query('/*/head/meta[@property="og:title"]/@content')->item(0)->nodeValue;
-            $metadata['link_description'] = @$xpath->query('/*/head/meta[@property="og:description"]/@content')->item(0)->nodeValue;
-            // TODO can be multiple images
-            $metadata['link_image'] = @$xpath->query('//meta[@property="og:image"]/@content')->item(0)->nodeValue;
-            $metadata['link_site_name'] = @$xpath->query('/*/head/meta[@property="og:site_name"]/@content')->item(0)->nodeValue;
+            $xfunc = function ($x) use ($xpath)
+            {
+                return @$xpath->query($x)->item(0)->nodeValue;
+            };
 
-            // than try twitter:
-            // TODO upgrade to PHP 7.4 ??= operator
-            if (empty($metadata['link_url'])) {
-                $metadata['link_url'] = @$xpath->query('/*/head/meta[@name="twitter:url"]/@content')->item(0)->nodeValue;
-            }
-            if (empty($metadata['link_title'])) {
-                $metadata['link_title'] = @$xpath->query('/*/head/meta[@name="twitter:title"]/@content')->item(0)->nodeValue;
-            }
-            if (empty($metadata['link_description'])) {
-                $metadata['link_description'] = @$xpath->query('/*/head/meta[@name="twitter:description"]/@content')->item(0)->nodeValue;
-            }
-            // TODO can be multiple images
-            if (empty($metadata['link_image'])) {
-                $metadata['link_image'] = @$xpath->query('/*/head/meta[@name="twitter:image"]/@content')->item(0)->nodeValue;
-            }
-            if (empty($metadata['link_site_name'])) {
-                $metadata['link_site_name'] = @$xpath->query('/*/head/meta[@name="twitter:site"]/@content')->item(0)->nodeValue;
-            }
+            $metadata['link_url']
+                =  $xfunc('/*/head/meta[@property="og:url"]/@content')
+                ?? $xfunc('/*/head/meta[@name="twitter:url"]/@content')
+                ?? $xfunc('/*/head/link[@rel="canonical"]/@href')
+                ?? $url;
 
-            // than be opportunistic, try other tags
-            if (empty($metadata['link_description'])) {
-                $metadata['link_description'] = @$xpath->query('/*/head/meta[@name="description"]/@content')->item(0)->nodeValue;
-            }
-            if (empty($metadata['link_title'])) {
-                $metadata['link_title'] = @$xpath->query('/*/head/title')->item(0)->nodeValue;
-            }
-            if (empty($metadata['link_url'])) {
-                $metadata['link_url'] = @$xpath->query('/*/head/link[@rel="canonical"]/@href')->item(0)->nodeValue;
-            }
-            if (empty($metadata['link_url'])) {
-                $metadata['link_url'] = $url;
-            }
-            if (empty($metadata['link_image'])) {
-                $metadata['link_image'] = @$xpath->query('/*/head/link[@rel="apple-touch-icon"]/@href')->item(0)->nodeValue;
-            }
+            $metadata['link_title']
+                =  $xfunc('/*/head/meta[@property="og:title"]/@content')
+                ?? $xfunc('/*/head/meta[@name="twitter:title"]/@content')
+                ?? $xfunc('/*/head/title');
+
+            $metadata['link_description']
+                =  $xfunc('/*/head/meta[@property="og:description"]/@content')
+                ?? $xfunc('/*/head/meta[@name="twitter:description"]/@content')
+                ?? $xfunc('/*/head/meta[@name="description"]/@content');
+
+            // TODO can be multiple images
+            $metadata['link_image']
+                =  $xfunc('//meta[@property="og:image"]/@content')
+                ?? $xfunc('/*/head/meta[@name="twitter:image"]/@content')
+                ?? $xfunc('/*/head/link[@rel="apple-touch-icon"]/@href');
+
+            $metadata['link_site_name']
+                = $xfunc('/*/head/meta[@property="og:site_name"]/@content')
+                 ?? $xfunc('/*/head/meta[@name="twitter:site"]/@content');
 
             // @Todo use Google JSON-LD data
 
             // get RSS and Atom feeds
-            // <link rel="alternate" type="application/rss+xml" title="RSS" href="http://feeds.feedburner.com/TheRssBlog">
             // TODO can be multiple feeds, for now return first
-            $metadata['link_rss'] = @$xpath->query('/*/head/link[@rel="alternate"][@type="application/rss+xml"]/@href')->item(0)->nodeValue;
-            $metadata['link_atom'] = @$xpath->query('/*/head/link[@rel="alternate"][@type="application/atom+xml"]/@href')->item(0)->nodeValue;
+            $metadata['link_rss'] = $xfunc('/*/head/link[@rel="alternate"][@type="application/rss+xml"]/@href');
+            $metadata['link_atom'] = $xfunc('/*/head/link[@rel="alternate"][@type="application/atom+xml"]/@href');
 
             $metadata['link_domain'] = parse_url($metadata['link_url'], PHP_URL_HOST);
-            if (empty($metadata['link_site_name'])) {
-                $metadata['link_site_name'] = $metadata['link_domain'];
-            }
 
             // keywords, author, copyright
             $metadata['link_keywords']
-                =  @$xpath->query('/*/head/meta[@name="keywords"]/@content')->item(0)->nodeValue
-                ?? @$xpath->query('/*/head/meta[@name="news_keywords"]/@content')->item(0)->nodeValue;
-            $metadata['link_author'] = @$xpath->query('/*/head/meta[@name="author"]/@content')->item(0)->nodeValue;
-            $metadata['link_copyright'] = @$xpath->query('/*/head/meta[@name="copyright"]/@content')->item(0)->nodeValue;
+                =  $xfunc('/*/head/meta[@name="keywords"]/@content')
+                ?? $xfunc('/*/head/meta[@name="news_keywords"]/@content');
+            $metadata['link_author'] = $xfunc('/*/head/meta[@name="author"]/@content');
+            $metadata['link_copyright'] = $xfunc('/*/head/meta[@name="copyright"]/@content');
 
             // some URL magic
             $metadata['link_url'] = (new Url($metadata['link_url']))->normalized();
@@ -119,6 +96,7 @@ namespace Zaplog\Library {
             // TODO remove HTML entities and other garbage from descriptions etc.
             $metadata['link_description'] = preg_replace('/[[:^print:]]/', '', $metadata['link_description']);
 
+            // normalize keywords and return as array
             $keywords = [];
             foreach (explode(",", $metadata['link_keywords'] ?? "") as $keyword) {
                 $keyword = trim($keyword);
@@ -126,7 +104,7 @@ namespace Zaplog\Library {
                     $keywords[] = (new NormalizedText($keyword))->convertNonAscii()->convertNonPath()();
                 }
             }
-            $metadata['link_keywords'] = $keywords;
+            $metadata['link_keywords'] = array_unique($keywords);
 
             return $metadata;
         }

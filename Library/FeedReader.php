@@ -36,12 +36,10 @@ namespace Zaplog\Library {
 
                         if (DB::execute("SELECT * FROM links WHERE urlhash=MD5(:url)", [":url" => $link])->rowCount() === 0) {
 
-                            error_log("reading " . $link);
-
                             // --------------------------------------------------------------------------
                             // we do not use the content of the feeds because many feeds have no images
                             // instead we harvest the metadata from the articles themselves. Also
-                            // bypasses Feedburner links
+                            // bypasses Feedburner links (we need the original links)
                             // --------------------------------------------------------------------------
 
                             $metadata = (new HtmlMetadata)($link);
@@ -62,15 +60,13 @@ namespace Zaplog\Library {
                             $linkid = Db::lastInsertId();
                             foreach ($metadata['link_keywords'] as $tag) {
                                 // these metadata tags are not assigned to a channel (so they can be filtered)
-                                Db::execute("INSERT IGNORE INTO tags(linkid, channelid, tag) VALUES (:linkid, :channelid, :tag)",
+                                Db::execute("INSERT INTO tags(linkid, channelid, tag) VALUES (:linkid, :channelid, :tag)",
                                     [
                                         ":linkid" => $linkid,
                                         ":channelid" => self::SYSTEMCHANNEL,
                                         ":tag" => $tag,
                                     ]);
                             }
-                        } else {
-                            error_log("skipping " . $link);
                         }
                     }
                 } catch (Exception $e) {
