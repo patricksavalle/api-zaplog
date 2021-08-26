@@ -261,7 +261,7 @@ namespace Zaplog {
                             ":tag" => $tag,
                         ]);
                 }
-                return $response->withJson($metadata);
+                return $response->withJson($linkid);
             })
                 ->add(new Authentication);
 
