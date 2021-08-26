@@ -18,8 +18,6 @@ namespace Zaplog {
     require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
     require_once BASE_PATH . '/Exception/EmailException.php';
 
-    use SlimRestApi\Infra\Memcache;
-
 //    use SlimRestApi\Middleware\CliRequest;
     use SlimRestApi\Middleware\Memcaching;
     use stdClass;
@@ -89,7 +87,7 @@ namespace Zaplog {
                     return $response->withJson(null);
                 } catch (EmailException $e) {
                     // TODO remove in production
-                    return $response->withJson("/Api.php/2factor/" . $Auth->utoken);
+                    return $response->withJson($Auth->utoken);
                 }
             })
                 ->add(new BodyParameters([
@@ -174,7 +172,7 @@ namespace Zaplog {
                     LEFT JOIN links ON tags.linkid=links.id 
                     WHERE tags.tag=:tag
                     GROUP BY links.id 
-                    ORDER BY links.score DESC 
+                    ORDER BY links.score, links.createdatetime DESC 
                     LIMIT :offset,:count",
                     [
                         ":tag" => $args->tag,
@@ -187,7 +185,7 @@ namespace Zaplog {
                 ->add(new ReadOnly)
                 ->add(new QueryParameters([
                     '{offset:\int},0',
-                    '{count:\int},100',
+                    '{count:\int},20',
                 ]));
 
             // -----------------------------------------------------
@@ -215,7 +213,7 @@ namespace Zaplog {
                     '{search:.+},null',
                     '{channel:\int},null',
                     '{offset:\int},0',
-                    '{count:\int},100',
+                    '{count:\int},20',
                     '{order:(id|score)},id',
                 ]));
 
@@ -243,17 +241,17 @@ namespace Zaplog {
                 if (Db::execute("INSERT INTO links(url,channelid,title,description,image)
                 VALUES (:url, :channelid, :title, :description, :image)",
                         [
-                            ":url" => $metadata["link_url"],
+                            ":url" => $metadata["url"],
                             ":channelid" => Authentication::token()->channelid,
-                            ":title" => $metadata["link_title"],
-                            ":description" => $metadata["link_description"],
-                            ":image" => $metadata["link_image"],
+                            ":title" => $metadata["title"],
+                            ":description" => $metadata["description"],
+                            ":image" => $metadata["image"],
                         ])->rowCount() == 0
                 ) {
                     throw new Exception;
                 }
                 $linkid = Db::lastInsertId();
-                foreach ($metadata['link_keywords'] as $tag) {
+                foreach ($metadata['keywords'] as $tag) {
                     // these metadata tags are not assigned to a channel
                     Db::execute("INSERT INTO tags(linkid, tag) VALUES (:linkid, :tag)",
                         [
@@ -397,7 +395,7 @@ namespace Zaplog {
                     '{channel:[\w-]{3,54}},null',
                     '{link:,\d{1,10}},null',
                     '{offset:\int},0',
-                    '{count:\int},100',
+                    '{count:\int},20',
                 ]));
 
             // ------------------------------------------------
