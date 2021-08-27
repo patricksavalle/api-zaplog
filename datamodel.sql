@@ -45,7 +45,7 @@ CREATE TABLE activities
     id        INT         NOT NULL AUTO_INCREMENT,
     channelid INT                DEFAULT NULL,
     linkid    INT                DEFAULT NULL,
-    activity  ENUM ('post', 'autopost', 'vote', 'bookmark', 'tag', 'autotag', 'share', 'untag', 'unbookmark'),
+    activity  ENUM ('post', 'autopost', 'vote', 'bookmark', 'tag', 'autotag', 'share', 'untag', 'unbookmark', 'login'),
     datetime  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     INDEX (linkid),
@@ -62,19 +62,25 @@ CREATE TABLE channels
     id             INT         NOT NULL AUTO_INCREMENT,
     email          VARCHAR(55)          DEFAULT NULL,
     name           VARCHAR(55)          DEFAULT NULL,
+    feedurl        VARCHAR(256)         DEFAULT NULL,
     createdatetime TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
     avatar         VARCHAR(55)          DEFAULT NULL,
-    score          INT                  DEFAULT 0,
+    bookmarkscount INT                  DEFAULT 0,
+    postscount     INT                  DEFAULT 0,
+    viewscount     INT                  DEFAULT 0,
+    votescount     INT                  DEFAULT 0,
+    score          INT GENERATED ALWAYS AS (
+        postscount * 2 +
+        votescount * 5 +
+        bookmarkscount * 10 +
+        FLOOR(LOG(viewscount+1))
+    ),
+    reputation     INT                  DEFAULT 0,
     PRIMARY KEY (id),
     UNIQUE INDEX (email),
-    UNIQUE INDEX (name)
+    UNIQUE INDEX (name),
+    UNIQUE INDEX (feedurl)
 );
-
--- -----------------------------------------------------
--- used for RSS-reader and such
--- -----------------------------------------------------
-
-INSERT INTO channels(name) VALUES ("feedreader");
 
 -- -----------------------------------------------------
 -- Authenticated tokens / sessions
@@ -90,11 +96,9 @@ CREATE TABLE sessions
 ) ENGINE=MYISAM;
 
 DELIMITER //
-
 CREATE EVENT expire_sessions
     ON SCHEDULE EVERY 1 HOUR
     DO DELETE FROM sessions WHERE lastupdate < SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 HOUR)//
-
 DELIMITER ;
 
 -- -----------------------------------------------------
@@ -119,7 +123,11 @@ CREATE TABLE links
     viewscount     INT                    DEFAULT 0,
     votescount     INT                    DEFAULT 0,
     tagscount      INT                    DEFAULT 0,
-    score          INT GENERATED ALWAYS AS (votescount * 5 + bookmarkscount * 10 + FLOOR(SQRT(tagscount)) + FLOOR(LOG(viewscount+1))),
+    score          INT GENERATED ALWAYS AS (
+        votescount * 5 +
+        bookmarkscount * 10 +
+        FLOOR(LOG(viewscount+1))
+    ),
 
     PRIMARY KEY (id),
     INDEX (channelid),
@@ -138,70 +146,6 @@ CREATE TRIGGER on_insert_link
 BEGIN
     INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.id, IF(NEW.channelid=1, 'autopost', 'post'));
 END//
-DELIMITER ;
-
--- -----------------------------------------------------
--- Frontpage selection
--- -----------------------------------------------------
-
-CREATE TABLE frontpagelinks
-(
-    linkid         INT NOT NULL,
-    bookmarkscount INT DEFAULT 0,
-    viewscount     INT DEFAULT 0,
-    votescount     INT DEFAULT 0,
-    tagscount      INT DEFAULT 0,
-    score          INT NOT NULL DEFAULT 0,
-    PRIMARY KEY (linkid),
-    INDEX(score)
-) ENGINE=MEMORY;
-
-DELIMITER //
-CREATE EVENT select_frontpage
-    ON SCHEDULE EVERY 3 HOUR
-    DO
-    BEGIN
-        CREATE TABLE newfrontpagelinks LIKE frontpagelinks;
-
-        -- prepare new frontpage selection -> all existing links that had activity
-        INSERT INTO frontpagelinks(linkid)
-        SELECT id FROM links LEFT JOIN activities ON activities.linkid = links.id;
-
-        -- calculate scores for frontpage
-        UPDATE frontpagelinks LEFT JOIN activities ON activities.linkid = frontpagelinks.linkid
-        SET score = score +
-                    CASE
-                        WHEN activity = 'post' THEN 0
-                        WHEN activity = 'tag' THEN 0
-                        WHEN activity = 'vote' THEN 10
-                        WHEN activity = 'bookmark' THEN 15
-                        END;
-
-        -- clean the old activity (older than 1 + 3 hours)
-        DELETE FROM activities WHERE activity.datetime < SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 HOUR);
-
-        START TRANSACTION;
-        DROP TABLE frontpagelinks;
-        RENAME TABLE newfrontpagelinks TO frontpagelinks;
-        COMMIT;
-
-    END//
-DELIMITER ;
-
--- -----------------------------------------------------
--- Channel score calculation
--- -----------------------------------------------------
-
-DELIMITER //
-CREATE EVENT calculate_reputation
-    ON SCHEDULE EVERY 24 HOUR
-    DO
-    BEGIN
-        -- add some half life to existing reputation, nothing lasts forever
-        UPDATE channel SET reputation = CAST(reputation * 0.9 AS INTEGER);
-
-        -- add the most recent scores
-    END//
 DELIMITER ;
 
 -- --------------------------------------------------
@@ -379,3 +323,104 @@ CREATE VIEW trendingtopics AS
     ORDER BY SUM(frontpage.score) DESC
     LIMIT 25;
 
+-- -----------------------------------------------------
+-- Frontpage selection
+-- -----------------------------------------------------
+
+CREATE TABLE frontpagelinks
+(
+    linkid         INT NOT NULL,
+    bookmarkscount INT DEFAULT 0,
+    viewscount     INT DEFAULT 0,
+    votescount     INT DEFAULT 0,
+    tagscount      INT DEFAULT 0,
+    score          INT NOT NULL DEFAULT 0,
+    PRIMARY KEY (linkid),
+    INDEX(score)
+) ENGINE=MEMORY;
+
+DELIMITER //
+CREATE EVENT select_frontpage
+    ON SCHEDULE EVERY 3 HOUR
+    DO
+    BEGIN
+        CREATE TABLE newfrontpagelinks LIKE frontpagelinks;
+
+        -- prepare new frontpage selection -> all existing links that had activity
+        INSERT INTO frontpagelinks(linkid)
+        SELECT id FROM links LEFT JOIN activities ON activities.linkid = links.id;
+
+        -- calculate scores for frontpage
+        UPDATE frontpagelinks LEFT JOIN activities ON activities.linkid = frontpagelinks.linkid
+        SET score = score +
+                    CASE
+                        WHEN activity = 'post' THEN 0
+                        WHEN activity = 'tag' THEN 0
+                        WHEN activity = 'vote' THEN 10
+                        WHEN activity = 'bookmark' THEN 15
+                        END;
+
+        -- clean the old activity (older than 1 + 3 hours)
+        DELETE FROM activities WHERE activity.datetime < SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 HOUR);
+
+        START TRANSACTION;
+        DROP TABLE frontpagelinks;
+        RENAME TABLE newfrontpagelinks TO frontpagelinks;
+        COMMIT;
+
+    END//
+DELIMITER ;
+
+-- -----------------------------------------------------
+-- Channel score calculation
+-- -----------------------------------------------------
+
+DELIMITER //
+CREATE EVENT calculate_reputation
+    ON SCHEDULE EVERY 24 HOUR
+    DO
+    BEGIN
+        -- add some half life to existing reputation, nothing lasts forever
+        UPDATE channel SET reputation = CAST(reputation * 0.9 AS INTEGER);
+
+        -- add the most recent scores
+    END//
+DELIMITER ;
+
+-- -----------------------------------------------------
+-- RSS-feeds
+-- -----------------------------------------------------
+
+INSERT INTO channels(name,feedurl) VALUES ("system");
+INSERT INTO channels(name,feedurl) VALUES ("Russia Today", "https://www.rt.com/rss");
+INSERT INTO channels(name,feedurl) VALUES ("Off-guardian", "https://off-guardian.org/feed");
+INSERT INTO channels(name,feedurl) VALUES ("Zero Hedge", "https://feeds.feedburner.com/zerohedge/feed");
+INSERT INTO channels(name,feedurl) VALUES ("Infowars", "https://www.infowars.com/rss.xml");
+INSERT INTO channels(name,feedurl) VALUES ("Xandernieuws", "https://www.xandernieuws.net/feed");
+INSERT INTO channels(name,feedurl) VALUES ("CNET", "https://www.cnet.com/rss/all");
+INSERT INTO channels(name,feedurl) VALUES ("Gizmodo", "https://gizmodo.com/rss");
+
+# DELIMITER //
+# CREATE EVENT expire_autoposted_links
+#     ON SCHEDULE EVERY 1 DAY
+#     DO
+#     DELETE links.* FROM links
+#     JOIN channels ON links.channelid=channel.id
+#     WHERE NOT channel.feedurl IS NULL
+#       AND links.createdatetime < SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 WEEK)
+#       AND links.votescount=0;
+# DELIMITER ;
+#
+# DELIMITER //
+# CREATE TRIGGER reject_old_links
+#     BEFORE INSERT
+#     ON links
+#     FOR EACH ROW
+# BEGIN
+#     IF (NEW.createdatetime < SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 WEEK)) THEN
+#     BEGIN
+#
+#     END IF;
+# END//
+# DELIMITER ;
+#

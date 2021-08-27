@@ -11,25 +11,15 @@ namespace Zaplog\Library {
 
     class FeedReader
     {
-        const SYSTEMCHANNEL = 1;
-
-        private $feeds = [
-            "https://www.rt.com/rss/",
-            "https://off-guardian.org/feed/",
-            "https://feeds.feedburner.com/zerohedge/feed",
-            "https://www.infowars.com/rss.xml",
-            "https://www.xandernieuws.net/feed/",
-            "https://www.cnet.com/rss/all/",
-            "https://gizmodo.com/rss",
-        ];
-
         public function __invoke()
         {
-            foreach ($this->feeds as $feed) {
+            $channels = Db::execute("SELECT * FROM channels WHERE NOT feedurl IS NULL")->fetchAll();
+
+            foreach ($channels as $channel) {
 
                 try {
 
-                    $content = (new Feed)($feed);
+                    $content = (new Feed)($channel->feedurl);
                     foreach ($content["item"] as $item) {
 
                         $link = (new Url($item["link"]))->normalized();
@@ -47,7 +37,7 @@ namespace Zaplog\Library {
                                         VALUES (:url, :channel, :title, :description, :image)",
                                         [
                                             ":url" => $metadata["url"],
-                                            ":channel" => self::SYSTEMCHANNEL,
+                                            ":channel" => $channel->id,
                                             ":title" => $metadata["title"],
                                             ":description" => $metadata["description"],
                                             ":image" => $metadata["image"] ?? $content["ímage"]["url"] ?? null,
@@ -58,20 +48,20 @@ namespace Zaplog\Library {
                                 /** @noinspection PhpUndefinedMethodInspection */
                                 $linkid = Db::lastInsertId();
                                 foreach ($metadata['keywords'] as $tag) {
-                                    // these metadata tags are not assigned to a channel (so they can be filtered)
-                                    Db::execute("INSERT INTO tags(linkid, tag) VALUES (:linkid, :tag)",
+                                    Db::execute("INSERT INTO tags(linkid, channelid, tag) VALUES (:linkid, :channelid, :tag)",
                                         [
                                             ":linkid" => $linkid,
+                                            ":channelid" => $channel->id,
                                             ":tag" => $tag,
                                         ]);
                                 }
                             } catch (Exception $e) {
-                                error_log($e->getMessage() . "@ " . __FILE__ . "(" . __LINE__ . ")");
+                                error_log($e->getMessage() . "@ " . __FILE__ . "(" . __LINE__ . ") " . $link);
                             }
                         }
                     }
                 } catch (Exception $e) {
-                    error_log($e->getMessage() . "@ " . __FILE__ . "(" . __LINE__ . ")");
+                    error_log($e->getMessage() . "@ " . __FILE__ . "(" . __LINE__ . ") " . $channel["feedurl"]);
                 }
             }
         }

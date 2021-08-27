@@ -124,6 +124,46 @@ namespace Zaplog {
                 ->add(new ReadOnly);
 
             // ----------------------------------------------------------------
+            // Return channels (index, top, new)
+            // ----------------------------------------------------------------
+
+            $this->get("/channels/index", function (
+                ServerRequestInterface $request,
+                ResponseInterface      $response,
+                stdClass               $args): ResponseInterface {
+                return $response->withJson(Db::execute("SELECT * FROM channels ORDER BY name LIMIT :offset,:count",
+                    [
+                        ":offset" => $args->offset,
+                        ":count" => $args->count,
+                    ]
+                )->fetchAll());
+            })
+                ->add(new Memcaching(60/*sec*/))
+                ->add(new ReadOnly)
+                ->add(new QueryParameters([
+                    '{offset:\int},0',
+                    '{count:\int},20',
+                ]));
+
+            $this->get("/channels/top", function (
+                ServerRequestInterface $request,
+                ResponseInterface      $response,
+                stdClass               $args): ResponseInterface {
+                return $response->withJson(Db::execute("SELECT * FROM channels ORDER BY reputation DESC LIMIT 25")->fetchAll());
+            })
+                ->add(new Memcaching(3600/*sec*/))
+                ->add(new ReadOnly);
+
+            $this->get("/channels/new", function (
+                ServerRequestInterface $request,
+                ResponseInterface      $response,
+                stdClass               $args): ResponseInterface {
+                return $response->withJson(Db::execute("SELECT * FROM channels ORDER BY id DESC LIMIT 25")->fetchAll());
+            })
+                ->add(new Memcaching(10/*sec*/))
+                ->add(new ReadOnly);
+
+            // ----------------------------------------------------------------
             // Return a link, including tags and related links
             // ----------------------------------------------------------------
 

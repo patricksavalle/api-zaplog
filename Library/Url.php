@@ -125,7 +125,7 @@ namespace Zaplog\Library {
                     $s = explode("&", $url['query']);
                     // remove the campaign arguments ?utm_campaign=RSS&utm_medium=rss&utm_source=rss
                     foreach ($s as $i => $z) {
-                        if (strpos($z, "utm_") === 0) unset($s[$i]);
+                        if (stripos($z, "utm_") === 0) unset($s[$i]);
                     }
                     if (!empty($s)) {
                         $url['query'] = "";
