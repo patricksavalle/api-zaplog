@@ -157,6 +157,7 @@ CREATE TABLE tags
     id        INT         NOT NULL AUTO_INCREMENT,
     linkid    INT         NOT NULL,
     datetime  TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- channel (=user) that added the tags
     channelid INT                  DEFAULT NULL,
     tag       VARCHAR(50) NOT NULL,
     PRIMARY KEY (id),

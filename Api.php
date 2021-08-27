@@ -127,6 +127,35 @@ namespace Zaplog {
             // Return channels (index, top, new)
             // ----------------------------------------------------------------
 
+            $this->get("/channels/id/{id:[\d]{1,10}}", function (
+                ServerRequestInterface $request,
+                ResponseInterface      $response,
+                stdClass               $args): ResponseInterface {
+                $channel = Db::execute("SELECT * FROM channels WHERE id=:id", [":id" => $args->id])->fetchAll();
+                // select the most popular tags of this channel
+                $tags = Db::execute("SELECT tag, COUNT(tag) AS tagscount 
+                    FROM tags 
+                    JOIN links ON tags.linkid=links.id 
+                    WHERE links.channelid=:channelid 
+                    AND tags.channelid=links.channelid
+                    GROUP BY tag ORDER BY COUNT(tag) DESC LIMIT 10",
+                    [":channelid" => $args->id])->fetchAll();
+                $related = Db::execute("SELECT 1", [])->fetchAll();
+                return $response->withJson(
+                    [
+                        "channel" => $channel,
+                        "tags" => $tags,
+                        "related" => $related,
+                    ]
+                );
+            })
+                ->add(new Memcaching(60/*sec*/))
+                ->add(new ReadOnly)
+                ->add(new QueryParameters([
+                    '{offset:\int},0',
+                    '{count:\int},20',
+                ]));
+
             $this->get("/channels/index", function (
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
@@ -401,7 +430,7 @@ namespace Zaplog {
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
                 return $response->withJson(
-                    Db::execute("SELECT tag, COUNT(tag) as linkscount FROM tags GROUP BY tag ORDER BY tag",[])->fetchAll()
+                    Db::execute("SELECT tag, COUNT(tag) as linkscount FROM tags GROUP BY tag ORDER BY tag", [])->fetchAll()
                 );
             })
                 ->add(new Memcaching(10/*sec*/))
