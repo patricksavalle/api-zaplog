@@ -152,16 +152,6 @@ namespace Zaplog\Library {
             $scheme = parse_url($this->url, PHP_URL_SCHEME);
             if (!empty($scheme)) {
                 return $this->url;
-            } elseif (strpos($this->url, "//") == 0) {
-                return "https:" . $this->url;
-            }
-
-            // ---------------------
-            // queries and anchors
-            // ---------------------
-
-            if ($this->url[0] == '#' || $this->url[0] == '?') {
-                return $base . $this->url;
             }
 
             // ------------------------------------------------
@@ -178,6 +168,19 @@ namespace Zaplog\Library {
             assert(empty($user));
             assert(empty($pass));
 
+            if (strpos($this->url, "//") === 0) {
+                // assume https:
+                return $scheme. ":" . $this->url;
+            }
+
+            // ---------------------
+            // queries and anchors
+            // ---------------------
+
+            if (strpos($this->url, '#')===0 || strpos($this->url, '?')===0) {
+                return $base . $this->url;
+            }
+
             // ------------------------------------------
             // remove non-directory element from path
             // ------------------------------------------
@@ -188,7 +191,7 @@ namespace Zaplog\Library {
             // destroy path if relative url points to root
             // ------------------------------------------
 
-            if ($this->url[0] == '/') {
+            if ($this->url[0] === '/') {
                 $path = '';
             }
 
