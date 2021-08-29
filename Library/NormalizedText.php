@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace Zaplog\Library {
 
+    /**
+     *
+     *  Taken from https://stackoverflow.com/questions/8781911/remove-non-ascii-characters-from-string/24925209#24925209
+     *
+     */
+
     class NormalizedText
     {
         protected $name;

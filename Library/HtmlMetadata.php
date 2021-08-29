@@ -100,7 +100,7 @@ namespace Zaplog\Library {
             foreach (explode(",", $metadata['keywords'] ?? "") as $keyword) {
                 $keyword = trim($keyword);
                 if (!empty($keyword)) {
-                    $keywords[] = (new NormalizedText($keyword))->convertNonAscii()->convertNonPath()();
+                    $keywords[] = $keyword;
                 }
             }
             $metadata['keywords'] = array_unique($keywords);
