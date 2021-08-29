@@ -392,7 +392,7 @@ DELIMITER ;
 -- RSS-feeds
 -- -----------------------------------------------------
 
-INSERT INTO channels(name,feedurl) VALUES ("system");
+INSERT INTO channels(name) VALUES ("system");
 INSERT INTO channels(name,feedurl) VALUES ("Russia Today", "https://www.rt.com/rss");
 INSERT INTO channels(name,feedurl) VALUES ("Off-guardian", "https://off-guardian.org/feed");
 INSERT INTO channels(name,feedurl) VALUES ("Zero Hedge", "https://feeds.feedburner.com/zerohedge/feed");
