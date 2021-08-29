@@ -13,8 +13,19 @@ namespace Zaplog\Library {
             $this->url = $url;
         }
 
+        /*
+         * Try to construct a normalized / canonical URL.
+         * This will avoid different URL's to the same resource in the system.
+         *
+         *  Borrowed from the FLATTR code. Ported tot PHP 7.3 and optimized.
+         */
+
         public function normalized(): string
         {
+            // -------------------------------------------------------
+            //
+            // -------------------------------------------------------
+
             $newUrl = "";
             $url = parse_url($this->url);
             $defaultSchemes = array("http" => 80, "https" => 443);
@@ -22,7 +33,7 @@ namespace Zaplog\Library {
             if (isset($url['scheme'])) {
                 $url['scheme'] = strtolower($url['scheme']);
                 // Strip scheme default ports
-                if (isset($defaultSchemes[$url['scheme']]) && isset($url['port']) && $defaultSchemes[$url['scheme']] == $url['port'])
+                if (isset($defaultSchemes[$url['scheme']]) && isset($url['port']) && $defaultSchemes[$url['scheme']] === $url['port'])
                     unset($url['port']);
                 $newUrl .= $url['scheme'] . "://";
             } else {
@@ -33,7 +44,7 @@ namespace Zaplog\Library {
                 $url['host'] = strtolower($url['host']);
                 // Seems like a valid domain, properly validation should be made in higher layers.
                 if (preg_match("/[a-z]+\Z/", $url['host'])) {
-                    if (preg_match("/^www\./", $url['host']) && gethostbyname($url['host']) == gethostbyname(str_replace("www.", "", $url['host'])))
+                    if (preg_match("/^www\./", $url['host']) && gethostbyname($url['host']) === gethostbyname(str_replace("www.", "", $url['host'])))
                         $newUrl .= str_replace("www.", "", $url['host']);
                     else
                         $newUrl .= $url['host'];
@@ -116,8 +127,7 @@ namespace Zaplog\Library {
                 $newUrl .= rtrim($new_path, '/');
             }
 
-            if (isset($url['fragment']))
-                unset($url['fragment']);
+            unset($url['fragment']);
 
             // Sort GET params alphabetically
             if (isset($url['query'])) {
@@ -170,14 +180,14 @@ namespace Zaplog\Library {
 
             if (strpos($this->url, "//") === 0) {
                 // assume https:
-                return $scheme. ":" . $this->url;
+                return $scheme . ":" . $this->url;
             }
 
             // ---------------------
             // queries and anchors
             // ---------------------
 
-            if (strpos($this->url, '#')===0 || strpos($this->url, '?')===0) {
+            if (strpos($this->url, '#') === 0 || strpos($this->url, '?') === 0) {
                 return $base . $this->url;
             }
 
