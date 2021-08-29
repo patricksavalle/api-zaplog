@@ -131,7 +131,7 @@ namespace Zaplog {
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                $channel = Db::execute("SELECT * FROM channels WHERE id=:id", [":id" => $args->id])->fetchAll();
+                $channel = Db::execute("SELECT * FROM channels WHERE id=:id", [":id" => $args->id])->fetch();
                 // select the most popular tags of this channel
                 $tags = Db::execute("SELECT tag, COUNT(tag) AS tagscount 
                     FROM tags 
