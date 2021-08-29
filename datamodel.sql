@@ -318,10 +318,10 @@ CREATE VIEW frontpage AS SELECT * FROM links ORDER BY score DESC LIMIT 20;
 -- -----------------------------------------------------
 
 CREATE VIEW trendingtopics AS
-    SELECT tag, SUM(frontpage.score) AS score FROM tags
-    JOIN frontpage ON tags.linkid=frontpage.id
+    SELECT tag, SUM(links.score) AS score FROM tags
+    JOIN links ON tags.linkid=links.id
     GROUP BY tags.tag
-    ORDER BY SUM(frontpage.score) DESC
+    ORDER BY SUM(links.score) DESC
     LIMIT 25;
 
 -- -----------------------------------------------------
