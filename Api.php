@@ -13,7 +13,8 @@ namespace Zaplog {
     require_once BASE_PATH . '/vendor/autoload.php';
     require_once BASE_PATH . '/Middleware/Authentication.php';
     require_once BASE_PATH . '/Library/HtmlMetadata.php';
-    require_once BASE_PATH . '/Library/FeedReader.php';
+    require_once BASE_PATH . '/Model/Links.php';
+    require_once BASE_PATH . '/Model/FeedReader.php';
     require_once BASE_PATH . '/Library/TwoFactorAuth.php';
     require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
     require_once BASE_PATH . '/Exception/EmailException.php';
@@ -31,10 +32,11 @@ namespace Zaplog {
     use SlimRestApi\Infra\Db;
     use Zaplog\Exception\EmailException;
     use Zaplog\Exception\ResourceNotFoundException;
-    use Zaplog\Library\FeedReader;
+    use Zaplog\Model\FeedReader;
     use Zaplog\Library\HtmlMetadata;
     use Zaplog\Library\TwoFactorAuth;
     use Zaplog\Middleware\Authentication;
+    use Zaplog\Model\Links;
 
     class Api extends SlimRestApi
     {
@@ -131,7 +133,7 @@ namespace Zaplog {
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                $channel = Db::execute("SELECT * FROM channels WHERE id=:id", [":id" => $args->id])->fetch();
+                $channel = Db::execute("SELECT * FROM channels_public_view WHERE id=:id", [":id" => $args->id])->fetch();
                 // select the most popular tags of this channel
                 $tags = Db::execute("SELECT tag, COUNT(tag) AS tagscount 
                     FROM tags 
@@ -160,7 +162,7 @@ namespace Zaplog {
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                return $response->withJson(Db::execute("SELECT * FROM channels ORDER BY name LIMIT :offset,:count",
+                return $response->withJson(Db::execute("SELECT * FROM channels_public_view ORDER BY name LIMIT :offset,:count",
                     [
                         ":offset" => $args->offset,
                         ":count" => $args->count,
@@ -174,23 +176,45 @@ namespace Zaplog {
                     '{count:\int},20',
                 ]));
 
-            $this->get("/channels/top", function (
+            $this->get("/channels/active", function (
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                return $response->withJson(Db::execute("SELECT * FROM channels ORDER BY reputation DESC LIMIT 25")->fetchAll());
+                $top = Db::execute("SELECT * FROM channels_public_view ORDER BY reputation DESC LIMIT 10")->fetchAll();
+                $new = Db::execute("SELECT * FROM channels_public_view ORDER BY id DESC LIMIT 10")->fetchAll();
+                $updated = Db::execute("SELECT channels.* FROM channels_public_view AS channels
+                    JOIN links ON links.channelid=channels.id
+                    ORDER BY links.createdatetime DESC LIMIT 10")->fetchAll();
+                return $response->withJson(
+                    [
+                        "top10" => $top,
+                        "new10" => $new,
+                        "updated10" => $updated,
+                    ]
+                );
             })
-                ->add(new Memcaching(3600/*sec*/))
+                ->add(new Memcaching(60/*sec*/))
                 ->add(new ReadOnly);
 
-            $this->get("/channels/new", function (
+            // ----------------------------------------------------------------
+            // Change the channel name
+            // ----------------------------------------------------------------
+
+            $this->patch("/channels", function (
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                return $response->withJson(Db::execute("SELECT * FROM channels ORDER BY id DESC LIMIT 25")->fetchAll());
+                Db::execute("UPDATE channels SET name=:name WHERE id=:channelid",
+                    [
+                        ":name" => $args->name,
+                        ":channelid" => Authentication::token()->channelid,
+                    ]);
+                return $response->withJson(null);
             })
-                ->add(new Memcaching(10/*sec*/))
-                ->add(new ReadOnly);
+                ->add(new Authentication)
+                ->add(new BodyParameters([
+                    '{name:[\w+]{3,55}}'
+                ]));
 
             // ----------------------------------------------------------------
             // Return a link, including tags and related links
@@ -320,29 +344,7 @@ namespace Zaplog {
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                $metadata = (new HtmlMetadata)(urldecode($args->urlencoded));
-                if (Db::execute("INSERT INTO links(url,channelid,title,description,image)
-                VALUES (:url, :channelid, :title, :description, :image)",
-                        [
-                            ":url" => $metadata["url"],
-                            ":channelid" => Authentication::token()->channelid,
-                            ":title" => $metadata["title"],
-                            ":description" => $metadata["description"],
-                            ":image" => $metadata["image"],
-                        ])->rowCount() == 0
-                ) {
-                    throw new Exception;
-                }
-                $linkid = Db::lastInsertId();
-                foreach ($metadata['keywords'] as $tag) {
-                    // these metadata tags are not assigned to a channel
-                    Db::execute("INSERT INTO tags(linkid, tag) VALUES (:linkid, :tag)",
-                        [
-                            ":linkid" => $linkid,
-                            ":tag" => $tag,
-                        ]);
-                }
-                return $response->withJson($linkid);
+                return $response->withJson(Links::postLinkFromUrl(Authentication::token()->channelid, urldecode($args->urlencoded)));
             })
                 ->add(new Authentication);
 
@@ -495,7 +497,7 @@ namespace Zaplog {
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
                 set_time_limit(300/*5min*/);
-                (new FeedReader)();
+                (new FeedReader)->refreshAllFeeds();
                 return $response;
             });
 //                ->add(new CliRequest);

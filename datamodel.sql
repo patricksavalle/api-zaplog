@@ -3,6 +3,17 @@
  * @author:     patrick@patricksavalle.com
  */
 
+/*
+    I tried to make the datamodel as complete and self-contained as possible
+    WITHOUT actually using algoritm-like code (loops).
+
+    Actual algoritms will be in the REST/PHP layers. Database integrity and
+    data-retention / cleanup typically in the DB.
+
+    This datamodel should be understandable WITHOUT reading the PHP/code layer
+    (and vice versa)
+ */
+
 DROP SCHEMA IF EXISTS zaplog;
 CREATE SCHEMA zaplog
     DEFAULT CHARACTER SET utf8
@@ -30,7 +41,7 @@ CREATE TABLE tokens
 
 DELIMITER //
 CREATE EVENT expire_tokens
-    ON SCHEDULE EVERY 1 HOUR
+    ON SCHEDULE EVERY 20 MINUTE
     DO DELETE FROM tokens WHERE expirationdatetime < CURRENT_TIMESTAMP//
 DELIMITER ;
 
@@ -38,6 +49,8 @@ DELIMITER ;
 -- Activity stream data, remembers activity that is needed
 -- to calculate frontpage-ranking
 -- No locking, referential integrity, write-only --> MYISAM
+--
+-- This table should not be updated from outside this datamodel
 -- -----------------------------------------------------
 
 CREATE TABLE activities
@@ -45,7 +58,22 @@ CREATE TABLE activities
     id        INT         NOT NULL AUTO_INCREMENT,
     channelid INT                DEFAULT NULL,
     linkid    INT                DEFAULT NULL,
-    activity  ENUM ('post', 'autopost', 'vote', 'bookmark', 'tag', 'autotag', 'share', 'untag', 'unbookmark', 'login'),
+    activity  ENUM (
+        'post',
+        'autopost',
+        'vote',
+        'bookmark',
+        'tag',
+        'autotag',
+        'share',
+        'untag',
+        'unbookmark',
+        'login',
+        'feedrefresh',
+        'channelnamechange',
+        'newfrontpage',
+        'reputationsupdate'
+    ),
     datetime  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     INDEX (linkid),
@@ -62,9 +90,13 @@ CREATE TABLE channels
     id             INT         NOT NULL AUTO_INCREMENT,
     email          VARCHAR(55)          DEFAULT NULL,
     name           VARCHAR(55)          DEFAULT NULL,
+    -- IF NOT FEEDURL IS NULL -> automatic RSS content
     feedurl        VARCHAR(256)         DEFAULT NULL,
     createdatetime TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    refeeddatetime TIMESTAMP   NOT NULL,
     avatar         VARCHAR(55)          DEFAULT NULL,
+    background     VARCHAR(55)          DEFAULT NULL,
+    bio            VARCHAR(255)         DEFAULT NULL,
     bookmarkscount INT                  DEFAULT 0,
     postscount     INT                  DEFAULT 0,
     viewscount     INT                  DEFAULT 0,
@@ -81,6 +113,26 @@ CREATE TABLE channels
     UNIQUE INDEX (name),
     UNIQUE INDEX (feedurl)
 );
+
+DELIMITER //
+CREATE TRIGGER on_refeed_channel
+    AFTER UPDATE
+    ON channels
+    FOR EACH ROW
+BEGIN
+    IF (OLD.refeeddatetime<>NEW.refeeddatetime) THEN
+        INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.id, 'feedrefresh');
+    END IF;
+    IF (OLD.name<>NEW.name) THEN
+        INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.id, 'channelnamechange');
+    END IF;
+END//
+DELIMITER ;
+
+-- For public queries. Hide privacy data.
+
+CREATE VIEW channels_public_view AS
+    SELECT id, name, createdatetime, bio, postscount, viewscount, votescount, score, reputation FROM channels;
 
 -- -----------------------------------------------------
 -- Authenticated tokens / sessions
@@ -118,7 +170,7 @@ CREATE TABLE links
     description    TEXT                   DEFAULT NULL,
     image          VARCHAR(256)           DEFAULT NULL,
     -- because this system is very read intensive we will keep totals in this table
-    -- instead of counting/joining the respective tables
+    -- instead of counting/joining the respective tables each time
     bookmarkscount INT                    DEFAULT 0,
     viewscount     INT                    DEFAULT 0,
     votescount     INT                    DEFAULT 0,
@@ -130,8 +182,8 @@ CREATE TABLE links
     ),
 
     PRIMARY KEY (id),
-    INDEX (channelid),
-    UNIQUE INDEX (urlhash),
+    UNIQUE INDEX (channelid),
+    INDEX (urlhash),
     INDEX (score),
     FOREIGN KEY (channelid) REFERENCES channels (id)
         ON DELETE CASCADE
@@ -144,7 +196,7 @@ CREATE TRIGGER on_insert_link
     ON links
     FOR EACH ROW
 BEGIN
-    INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.id, IF(NEW.channelid=1, 'autopost', 'post'));
+    INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.id, 'post');
 END//
 DELIMITER ;
 

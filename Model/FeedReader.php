@@ -1,0 +1,54 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Zaplog\Model {
+
+    require_once BASE_PATH . '/Library/XmlFeed.php';
+    require_once BASE_PATH . '/Library/NormalizedText.php';
+    require_once BASE_PATH . '/Model/Links.php';
+
+    use Exception;
+    use SlimRestApi\Infra\Db;
+    use Zaplog\Library\Url;
+    use Zaplog\Library\XmlFeed;
+
+    class FeedReader
+    {
+        public function refreshSingleFeed(string $channelid, string $feedurl)
+        {
+            $content = (new XmlFeed)($feedurl);
+            foreach ($content["item"] as $item) {
+                $link = (new Url($item["link"]))->normalized();
+
+                // check if unique for channel before we crawl the url
+                if (DB::execute("SELECT * FROM links WHERE urlhash=MD5(:url) AND channelid=:channelid",
+                        [
+                            ":url" => $link,
+                            ":channelid" => $channelid,
+                        ])->rowCount() === 0) {
+
+                    // --------------------------------------------------------------------------
+                    // we do not use the content of the feeds because many feeds have no images
+                    // instead we harvest the metadata from the articles themselves. Also
+                    // bypasses Feedburner links (we need the original links)
+                    // --------------------------------------------------------------------------
+
+                    Links::postLinkFromUrl($channelid, $link);
+                }
+            }
+            Db::execute("UPDATE channels SET refeeddatetime=NOW() WHERE id=:id", [":id" => $channelid]);
+        }
+
+        public function refreshAllFeeds()
+        {
+            foreach (Db::execute("SELECT id, feedurl FROM channels WHERE NOT feedurl IS NULL")->fetchAll() as $channel) {
+                try {
+                    $this->refreshSingleFeed((string)$channel->id, $channel->feedurl);
+                } catch (Exception $e) {
+                    error_log($e->getMessage() . " @ " . __FILE__ . "(" . __LINE__ . ") " . $channel->feedurl);
+                }
+            }
+        }
+    }
+}

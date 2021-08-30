@@ -9,7 +9,7 @@ namespace Zaplog\Library {
     use SlimRestApi\Infra\Ini;
     use Zaplog\Exception\CurlException;
 
-    class Feed
+    class XmlFeed
     {
         protected $xml;
 
@@ -23,17 +23,17 @@ namespace Zaplog\Library {
             }
         }
 
-        public static function loadRss(string $url, string $user = "", string $pass = ""): Feed
+        public static function loadRss(string $url, string $user = "", string $pass = ""): XmlFeed
         {
             return self::fromRss(self::loadXml($url, $user, $pass));
         }
 
-        public static function loadAtom(string $url, string $user = "", string $pass = ""): Feed
+        public static function loadAtom(string $url, string $user = "", string $pass = ""): XmlFeed
         {
             return self::fromAtom(self::loadXml($url, $user, $pass));
         }
 
-        private static function fromRss(SimpleXMLElement $xml): Feed
+        private static function fromRss(SimpleXMLElement $xml): XmlFeed
         {
             if (!$xml->channel) {
                 throw new Exception('Invalid feed.');
@@ -57,7 +57,7 @@ namespace Zaplog\Library {
             return $feed;
         }
 
-        private static function fromAtom(SimpleXMLElement $xml): Feed
+        private static function fromAtom(SimpleXMLElement $xml): XmlFeed
         {
             if (!in_array('http://www.w3.org/2005/Atom', $xml->getDocNamespaces(), true)
                 && !in_array('http://purl.org/atom/ns#', $xml->getDocNamespaces(), true)
