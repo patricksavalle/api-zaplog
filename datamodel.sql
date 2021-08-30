@@ -90,10 +90,11 @@ CREATE TABLE channels
     id             INT         NOT NULL AUTO_INCREMENT,
     email          VARCHAR(55)          DEFAULT NULL,
     name           VARCHAR(55)          DEFAULT NULL,
+    language       CHAR(2)              DEFAULT NULL,
     -- IF NOT FEEDURL IS NULL -> automatic RSS content
     feedurl        VARCHAR(256)         DEFAULT NULL,
     createdatetime TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    refeeddatetime TIMESTAMP   NOT NULL,
+    refeeddatetime TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
     avatar         VARCHAR(55)          DEFAULT NULL,
     background     VARCHAR(55)          DEFAULT NULL,
     bio            VARCHAR(255)         DEFAULT NULL,
@@ -121,10 +122,10 @@ CREATE TRIGGER on_refeed_channel
     FOR EACH ROW
 BEGIN
     IF (OLD.refeeddatetime<>NEW.refeeddatetime) THEN
-        INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.id, 'feedrefresh');
+        INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.id, NULL, 'feedrefresh');
     END IF;
     IF (OLD.name<>NEW.name) THEN
-        INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.id, 'channelnamechange');
+        INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.id, NULL, 'channelnamechange');
     END IF;
 END//
 DELIMITER ;
@@ -434,7 +435,7 @@ CREATE EVENT calculate_reputation
     DO
     BEGIN
         -- add some half life to existing reputation, nothing lasts forever
-        UPDATE channel SET reputation = CAST(reputation * 0.9 AS INTEGER);
+        -- UPDATE channel SET reputation = CAST(reputation * 0.9 AS INTEGER);
 
         -- add the most recent scores
     END//
