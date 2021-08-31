@@ -136,6 +136,7 @@ namespace Zaplog\Library {
                     // remove the campaign arguments ?utm_campaign=RSS&utm_medium=rss&utm_source=rss
                     foreach ($s as $i => $z) {
                         if (stripos($z, "utm_") === 0) unset($s[$i]);
+                        elseif (stripos($z, "__twitter_impression") === 0) unset($s[$i]);
                     }
                     if (!empty($s)) {
                         $url['query'] = "";

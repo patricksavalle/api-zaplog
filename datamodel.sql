@@ -23,34 +23,12 @@ USE zaplog;
 SET GLOBAL event_scheduler = ON;
 
 -- -----------------------------------------------------
--- 2-factor tokens, authentication is based on 2F/email
--- -----------------------------------------------------
-
-CREATE TABLE tokens
-(
-    hash               CHAR(32)  NOT NULL,
-    json               JSON      NOT NULL,
-    expirationdatetime TIMESTAMP NOT NULL,
-    PRIMARY KEY (hash),
-    INDEX ( expirationdatetime )
-) ENGINE = MYISAM;
-
--- ----------------------------------------------------------------------------
--- Delete tokens that are past the expirationdate
--- ----------------------------------------------------------------------------
-
-DELIMITER //
-CREATE EVENT expire_tokens
-    ON SCHEDULE EVERY 20 MINUTE
-    DO DELETE FROM tokens WHERE expirationdatetime < CURRENT_TIMESTAMP//
-DELIMITER ;
-
--- -----------------------------------------------------
 -- Activity stream data, remembers activity that is needed
 -- to calculate frontpage-ranking
 -- No locking, referential integrity, write-only --> MYISAM
 --
 -- This table should not be updated from outside this datamodel
+-- (use triggers)
 -- -----------------------------------------------------
 
 CREATE TABLE activities
@@ -88,10 +66,12 @@ CREATE TABLE activities
 CREATE TABLE channels
 (
     id             INT         NOT NULL AUTO_INCREMENT,
-    email          VARCHAR(55)          DEFAULT NULL,
+    -- we don't store anything from the user, just an email hash
+    -- to maintain a channel per email-adress
+    emailhash      CHAR(32)             DEFAULT NULL,
     name           VARCHAR(55)          DEFAULT NULL,
     language       CHAR(2)              DEFAULT NULL,
-    -- IF NOT FEEDURL IS NULL -> automatic RSS content
+    -- automatic RSS content
     feedurl        VARCHAR(256)         DEFAULT NULL,
     createdatetime TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
     refeeddatetime TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -110,7 +90,7 @@ CREATE TABLE channels
     ),
     reputation     INT                  DEFAULT 0,
     PRIMARY KEY (id),
-    UNIQUE INDEX (email),
+    UNIQUE INDEX (emailhash),
     UNIQUE INDEX (name),
     UNIQUE INDEX (feedurl)
 );
@@ -183,7 +163,7 @@ CREATE TABLE links
     ),
 
     PRIMARY KEY (id),
-    UNIQUE INDEX (channelid),
+    INDEX (channelid),
     INDEX (urlhash),
     INDEX (score),
     FOREIGN KEY (channelid) REFERENCES channels (id)

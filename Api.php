@@ -15,7 +15,7 @@ namespace Zaplog {
     require_once BASE_PATH . '/Library/HtmlMetadata.php';
     require_once BASE_PATH . '/Model/Links.php';
     require_once BASE_PATH . '/Model/FeedReader.php';
-    require_once BASE_PATH . '/Library/TwoFactorAuth.php';
+    require_once BASE_PATH . '/Library/TwoFactorAction.php';
     require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
     require_once BASE_PATH . '/Exception/EmailException.php';
 
@@ -34,7 +34,7 @@ namespace Zaplog {
     use Zaplog\Exception\ResourceNotFoundException;
     use Zaplog\Model\FeedReader;
     use Zaplog\Library\HtmlMetadata;
-    use Zaplog\Library\TwoFactorAuth;
+    use Zaplog\Library\TwoFactorAction;
     use Zaplog\Middleware\Authentication;
     use Zaplog\Model\Links;
 
@@ -67,7 +67,7 @@ namespace Zaplog {
             // the triggers associated with the token
             // -----------------------------------------------------
 
-            $this->get("/2factor/{utoken:[[:alnum:]]{32}}", new TwoFactorAuth);
+            $this->get("/2factor/{utoken:[[:alnum:]]{32}}", new TwoFactorAction);
 
             // -----------------------------------------------------
             // send a single-use auto-expiring log-in link to email
@@ -80,10 +80,10 @@ namespace Zaplog {
                 stdClass               $args): ResponseInterface {
                 $email = urldecode($args->emailencoded);
                 $args->receiver = $email;
-                $Auth = new TwoFactorAuth;
+                $Auth = new TwoFactorAction;
                 try {
                     $Auth
-                        ->addTrigger('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'createSession'], [$email])
+                        ->addAction('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'createSession'], [$email])
                         ->createToken()
                         ->sendToken($args);
                     return $response->withJson(null);
@@ -344,7 +344,7 @@ namespace Zaplog {
                 ServerRequestInterface $request,
                 ResponseInterface      $response,
                 stdClass               $args): ResponseInterface {
-                return $response->withJson(Links::postLinkFromUrl(Authentication::token()->channelid, urldecode($args->urlencoded)));
+                return $response->withJson(Links::postLinkFromUrl((string)Authentication::token()->channelid, urldecode($args->urlencoded)));
             })
                 ->add(new Authentication);
 

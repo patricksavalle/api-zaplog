@@ -28,17 +28,17 @@ namespace Zaplog\Library {
      *
      * Handle the confirmed token, SLIM route-handler
      *
-     *  $this->get("/<url_segment>/{utoken:[[:alnum:]]{32}}", new TwoFactorAuth);
+     *  $this->get("/<url_segment>/{utoken:[[:alnum:]]{32}}", new TwoFactorAction);
      *
      * This will cause the triggers to be run. The result of the last methods will be returned.
      */
-    class TwoFactorAuth extends stdClass
+    class TwoFactorAction extends stdClass
     {
         // MUST BE PUBLIC, otherwise it will not be enumerated into the Locker
         public $triggers = [];
         public $utoken = null;
 
-        public function addParams($iterable): TwoFactorAuth
+        public function addParams($iterable): TwoFactorAction
         {
             foreach ($iterable as $key => $value) {
                 /** @noinspection PhpVariableVariableInspection */
@@ -49,13 +49,13 @@ namespace Zaplog\Library {
             return $this;
         }
 
-        public function addTrigger($phpfile, callable $callable, array $arguments): TwoFactorAuth
+        public function addAction($phpfile, callable $callable, array $arguments): TwoFactorAction
         {
             $this->triggers[] = [$phpfile, $callable, $arguments];
             return $this;
         }
 
-        public function createToken(): TwoFactorAuth
+        public function createToken(): TwoFactorAction
         {
             // Create a token for '$this', to execute to token, use the __invoke methode
             $this->utoken = Locker::stash($this->triggers, 60 * 60 * 24);
@@ -68,7 +68,7 @@ namespace Zaplog\Library {
          * @throws EmailException
          * @throws Exception
          */
-        public function sendToken(stdClass $args): TwoFactorAuth
+        public function sendToken(stdClass $args): TwoFactorAction
         {
             // In $args are the template variables for the email template
 

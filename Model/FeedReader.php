@@ -19,22 +19,27 @@ namespace Zaplog\Model {
         {
             $content = (new XmlFeed)($feedurl);
             foreach ($content["item"] as $item) {
-                $link = (new Url($item["link"]))->normalized();
 
-                // check if unique for channel before we crawl the url
-                if (DB::execute("SELECT * FROM links WHERE urlhash=MD5(:url) AND channelid=:channelid",
-                        [
-                            ":url" => $link,
-                            ":channelid" => $channelid,
-                        ])->rowCount() === 0) {
+                try {
+                    $link = (new Url($item["link"]))->normalized();
 
-                    // --------------------------------------------------------------------------
-                    // we do not use the content of the feeds because many feeds have no images
-                    // instead we harvest the metadata from the articles themselves. Also
-                    // bypasses Feedburner links (we need the original links)
-                    // --------------------------------------------------------------------------
+                    // check if unique for channel before we crawl the url
+                    if (DB::execute("SELECT id FROM links WHERE urlhash=MD5(:url) AND channelid=:channelid LIMIT 1",
+                            [
+                                ":url" => $link,
+                                ":channelid" => $channelid,
+                            ])->rowCount() === 0) {
 
-                    Links::postLinkFromUrl($channelid, $link);
+                        // --------------------------------------------------------------------------
+                        // we do not use the content of the feeds because many feeds have no images
+                        // instead we harvest the metadata from the articles themselves. Also
+                        // bypasses Feedburner links (we need the original links)
+                        // --------------------------------------------------------------------------
+
+                        Links::postLinkFromUrl($channelid, $link);
+                    }
+                } catch (Exception $e) {
+                    error_log($e->getMessage() . " @ " . __FILE__ . "(" . __LINE__ . ") " . $link);
                 }
             }
             Db::execute("UPDATE channels SET refeeddatetime=NOW() WHERE id=:id", [":id" => $channelid]);
@@ -42,7 +47,7 @@ namespace Zaplog\Model {
 
         public function refreshAllFeeds()
         {
-            foreach (Db::execute("SELECT id, feedurl FROM channels WHERE NOT feedurl IS NULL")->fetchAll() as $channel) {
+            foreach (Db::execute("SELECT id, feedurl FROM channels WHERE NOT feedurl IS NULL ORDER BY RAND()")->fetchAll() as $channel) {
                 try {
                     $this->refreshSingleFeed((string)$channel->id, $channel->feedurl);
                 } catch (Exception $e) {

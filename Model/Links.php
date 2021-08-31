@@ -18,8 +18,7 @@ class Links
     static public function postLinkFromUrl(string $channelid, string $url): string
     {
         $metadata = (new HtmlMetadata)($url);
-
-        if (Db::execute("INSERT INTO links(url,channelid,title,description,image)
+        if (Db::execute("INSERT INTO links(url, channelid, title, description, image)
                         VALUES (:url, :channelid, :title, :description, :image)",
                 [
                     ":url" => $metadata["url"],
@@ -27,7 +26,7 @@ class Links
                     ":title" => $metadata["title"],
                     ":description" => $metadata["description"],
                     ":image" => $metadata["image"],
-                ])->rowCount() == 0
+                ])->rowCount() === 0
         ) {
             throw new Exception;
         }

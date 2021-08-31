@@ -32,10 +32,10 @@ class Authentication
     static public function createSession( string $email )
     {
         assert(filter_var($email, FILTER_VALIDATE_EMAIL) !== false);
-        Db::execute("INSERT IGNORE channels(email) VALUES (:email)", [':email' => $email]);
+        Db::execute("INSERT IGNORE channels(emailhash) VALUES (MD5(:email))", [':email' => $email]);
         $token = Password::randomMD5();
         if (Db::execute("INSERT INTO sessions(token,channelid) 
-                SELECT :token, id FROM channels WHERE email=:email",
+                SELECT :token, id FROM channels WHERE emailhash=MD5(:email)",
                 [
                     ":token" => $token,
                     ":email" => $email,

@@ -48,7 +48,7 @@ namespace Zaplog\Library {
                 = $xfunc('/*/head/meta[@property="og:url"]/@content')
                 ?? $xfunc('/*/head/meta[@name="twitter:url"]/@content')
                 ?? $xfunc('/*/head/link[@rel="canonical"]/@href')
-                ?? $url;
+                ?? (new Url($url))->normalized();;
 
             $metadata['title']
                 = $xfunc('/*/head/meta[@property="og:title"]/@content')
@@ -87,7 +87,6 @@ namespace Zaplog\Library {
             $metadata['copyright'] = $xfunc('/*/head/meta[@name="copyright"]/@content');
 
             // some URL magic
-            $metadata['url'] = (new Url($metadata['url']))->normalized();
             if (isset($metadata['image'])) $metadata['image'] = (new Url($metadata['image']))->absolutized($metadata['url']);
             if (isset($metadata['rss'])) $metadata['rss'] = (new Url($metadata['rss']))->absolutized($metadata['url']);
             if (isset($metadata['atom'])) $metadata['atom'] = (new Url($metadata['atom']))->absolutized($metadata['url']);

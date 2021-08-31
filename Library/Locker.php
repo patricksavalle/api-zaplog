@@ -9,7 +9,6 @@ require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
 use Exception;
 use SlimRestApi\Infra\Db;
 use SlimRestApi\Infra\Password;
-use stdClass;
 use Zaplog\Exception\ResourceNotFoundException;
 
 class Locker

@@ -59,6 +59,12 @@ Deze REST-API is gebaseerd op het SLIM 3 Framework en custom plugins
 - SMTP server
 - optioneel Memcache
 
+Je natuurlijk helemaal vrij je eigen tooling te gebruiken, maar ter indicatie de tooling die ik gebruik (windows 10):
+- XAMPP 
+- PHPStorm
+- MySql Workbench
+- Postman
+
 ## Bouwen en deployen
 
 Het resolven / ophalen van alle libraries gebeurt met composer:
