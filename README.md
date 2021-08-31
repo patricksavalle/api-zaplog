@@ -54,6 +54,3 @@ Dit zal een handvol RSS feeds inlezen.
 # FRONT-END
 
 Het front-end heeft een apart project op https://github.com/zaplogv2/web.zaplog
-
-Beiden tegelijk gebruiken kan kan alleen via NGINX of APACHE omdat het front-end
-het back-end aanroept en de interne PHP-server dan blokkeert.
