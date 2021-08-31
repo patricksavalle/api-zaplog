@@ -4,7 +4,15 @@ Zie: https://github.com/zaplogv2/doc.zaplog voor uitleg van de functionaliteit.
 
 Wanneer de API draait, zal deze een overzicht van endpoints tonen op: /Api.php
 
+## Benodigde skills
+
+Advanced SQL en advanced PHP. De volledige syntax van OO PHP 7.3 wordt benut en het datamodel
+heeft ingebouwde referentiele integriteit (foreign keys), events en triggers.
+
 ## Bouwen en deployen
+
+Zorg dat de MariaDb database draait. Installeer in principe de LAMP of XAMPP stack. Clone het project vanuit Github.
+Ik heb zelf ontwikkeld op XAMP 3.2.4 (PHP 7.3, MariaDb 10.4.6)
 
 Het resolven / ophalen van alle libraries gebeurt met composer:
 
