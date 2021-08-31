@@ -39,6 +39,12 @@ Deze moet in de meeste installaties expliciet woden aangezet.
 
 De server maakt gebruik van een externe SMTP server. Deze kan in de bovenstaande .ini worden geconfigureerd.
 
+Voor wat initiële content kun je het volgende tijdelijke endpoint aanroepen:
+
+    /Api.php/cronjobhour
+
+Dit zal een handvol RSS feeds inlezen.
+
 # FRONT-END
 
 Het front-end heeft een apart project op:
