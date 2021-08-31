@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Zaplog\Library;
 
@@ -21,27 +21,23 @@ class Locker
      */
     static public function stash($iterable, int $ttl = 10 * 60): string
     {
-        // TODO get this to work and remove from datamodel.sql
-
-//        Db::execute("CREATE TABLE IF NOT EXISTS tokens
-//            (
-//                hash               CHAR(32)  NOT NULL,
-//                json               JSON      NOT NULL,
-//                expirationdatetime TIMESTAMP NOT NULL,
-//                PRIMARY KEY (hash),
-//                INDEX ( expirationdatetime )
-//            ) ENGINE = MYISAM;");
-//
-//        Db::execute("CREATE EVENT IF NOT EXISTS expire_tokens
-//            ON SCHEDULE EVERY 1 HOUR
-//            DO DELETE FROM tokens WHERE tokens.expirationdatetime < CURRENT_TIMESTAMP;");
+        // to make this module self contained we create our own DB on demand
+        // this gives some overhead every time a token is stored but not very much
+        Db::execute("CREATE TABLE IF NOT EXISTS tokens85df2
+            (
+                hash               CHAR(32)  NOT NULL,
+                json               JSON      NOT NULL,
+                expirationdatetime TIMESTAMP NOT NULL,
+                PRIMARY KEY (hash),
+                INDEX ( expirationdatetime )
+            ) ENGINE = MYISAM");
 
         $json = json_encode($iterable);
         if (empty($json)) {
             throw new Exception;
         }
         $hash = Password::randomMD5();
-        if (Db::execute("INSERT INTO tokens(hash, json, expirationdatetime) VALUES (:hash, :json, ADDDATE( NOW(), INTERVAL :ttl SECOND))",
+        if (Db::execute("INSERT INTO tokens85df2(hash, json, expirationdatetime) VALUES (:hash, :json, ADDDATE( NOW(), INTERVAL :ttl SECOND))",
                 [
                     ":hash" => $hash,
                     ":json" => $json,
@@ -56,12 +52,12 @@ class Locker
     static public function unstash(string $hash)/* : mixed */
     {
         // try to get the token from the database
-        $row = Db::execute("SELECT json FROM tokens WHERE hash = :hash AND NOW() < expirationdatetime", [":hash" => $hash])->fetch();
+        $row = Db::execute("SELECT json FROM tokens85df2 WHERE hash = :hash AND NOW() < expirationdatetime", [":hash" => $hash])->fetch();
         if (empty($row)) {
             throw new ResourceNotFoundException("Invalid or expired token or link", 401);
         }
-        // remove the token from the database
-        if (Db::execute("DELETE FROM tokens WHERE hash = :hash", [":hash" => $hash])->rowCount() == 0) {
+        // remove the token from the database and remove expired tokens
+        if (Db::execute("DELETE FROM tokens85df2 WHERE hash = :hash OR NOW() > expirationdatetime", [":hash" => $hash])->rowCount() == 0) {
             throw new Exception;
         }
         return json_decode($row->json);
