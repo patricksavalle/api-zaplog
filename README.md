@@ -6,10 +6,14 @@ Wanneer de API draait, zal deze een overzicht van endpoints tonen op: /Api.php
 
 <img src="https://user-images.githubusercontent.com/701331/131515274-1248a9d4-7d95-40f9-8d81-079c0cc8fb32.png" width="500"/>
 
+Dit is een prototype en heeft nog geen unit-tests o.i.d. 
+
 ## Benodigde skills
 
 Advanced SQL en advanced PHP. De volledige syntax van OO PHP 7.3 wordt benut en het datamodel
 heeft ingebouwde referentiele integriteit (foreign keys), events en triggers.
+
+Kennis van het SLIM3 framework is handig (hoewel de code voor zich spreekt), maar niet nodig als je aan delen van de applicatie wilt werken.
 
 ## Bouwen en deployen
 
