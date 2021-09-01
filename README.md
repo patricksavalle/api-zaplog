@@ -4,7 +4,7 @@ Zie: https://github.com/zaplogv2/doc.zaplog voor uitleg van de functionaliteit.
 
 Wanneer de API draait, zal deze een overzicht van endpoints tonen op: /Api.php
 
-<img src="https://user-images.githubusercontent.com/701331/131515274-1248a9d4-7d95-40f9-8d81-079c0cc8fb32.png" width="500"/>
+<img src="https://user-images.githubusercontent.com/701331/131680261-752bd0a1-6c15-4b4d-8111-815b144d48a6.png" width="500"/>
 
 Dit is een prototype en heeft nog geen unit-tests o.i.d. 
 
