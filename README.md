@@ -30,7 +30,7 @@ Deze server is geschreven in PHP 7.4 op MariaDB en kan worden gestart met de ing
 
 Het base adres voor de API is:
 
-    /api.php
+    /Api.php
 
 De root URL genereert een quick list van beschikbare endpoints.
 
@@ -47,7 +47,7 @@ De server maakt gebruik van een externe SMTP server. Deze kan in de bovenstaande
 
 Voor wat initiële content kun je het volgende tijdelijke endpoint aanroepen:
 
-    /Api.php/cronjobhour
+    /Api.php/cronjobs/hour
 
 Dit zal een handvol RSS feeds inlezen.
 

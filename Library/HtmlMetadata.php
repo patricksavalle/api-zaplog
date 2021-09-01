@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Zaplog\Library {
 
     require_once BASE_PATH . '/Library/Url.php';
+    require_once BASE_PATH . '/Exception/CurlException.php';
 
     use DOMDocument;
     use DOMXPath;
