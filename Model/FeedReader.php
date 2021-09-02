@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace Zaplog\Model {
 
-    require_once BASE_PATH . '/Library/XmlFeed.php';
-    require_once BASE_PATH . '/Library/NormalizedText.php';
     require_once BASE_PATH . '/Model/Links.php';
 
     use Exception;
     use SlimRestApi\Infra\Db;
-    use Zaplog\Library\Url;
-    use Zaplog\Library\XmlFeed;
+    use ContentSyndication\Url;
+    use ContentSyndication\XmlFeed;
 
     class FeedReader
     {
@@ -21,7 +19,7 @@ namespace Zaplog\Model {
             foreach ($content["item"] as $item) {
 
                 try {
-                    $link = (new Url($item["link"]))->normalized();
+                    $link = (new Url($item["link"]))->normalized()->get();
 
                     // check if unique for channel before we crawl the url
                     if (DB::execute("SELECT id FROM links WHERE urlhash=MD5(:url) AND channelid=:channelid LIMIT 1",
@@ -39,7 +37,7 @@ namespace Zaplog\Model {
                         Links::postLinkFromUrl($channelid, $link);
                     }
                 } catch (Exception $e) {
-                    error_log($e->getMessage() . " @ " . __FILE__ . "(" . __LINE__ . ") " . $link);
+                    error_log($e->getMessage() . " @ " . __METHOD__ . "(" . __LINE__ . ") " . $link);
                 }
             }
             Db::execute("UPDATE channels SET refeeddatetime=NOW() WHERE id=:id", [":id" => $channelid]);
@@ -51,7 +49,7 @@ namespace Zaplog\Model {
                 try {
                     $this->refreshSingleFeed((string)$channel->id, $channel->feedurl);
                 } catch (Exception $e) {
-                    error_log($e->getMessage() . " @ " . __FILE__ . "(" . __LINE__ . ") " . $channel->feedurl);
+                    error_log($e->getMessage() . " @ " . __METHOD__ . "(" . __LINE__ . ") " . $channel->feedurl);
                 }
             }
         }

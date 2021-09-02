@@ -4,23 +4,21 @@
  */
 
 /*
-    I tried to make the datamodel as complete and self-contained as possible
-    WITHOUT actually using algoritm-like code (loops).
-
-    Actual algoritms will be in the REST/PHP layers. Database integrity and
-    data-retention / cleanup typically in the DB.
+    I tried to make the datamodel as complete and self-contained as possible.
+    It should be possible to use the model with a different code-base on top.
 
     This datamodel should be understandable WITHOUT reading the PHP/code layer
     (and vice versa)
  */
+
+-- we need the event scheduler!!!
+SET GLOBAL event_scheduler = ON;
 
 DROP SCHEMA IF EXISTS zaplog;
 CREATE SCHEMA zaplog
     DEFAULT CHARACTER SET utf8
     DEFAULT COLLATE utf8_general_ci;
 USE zaplog;
--- we need the event scheduler!!!
-SET GLOBAL event_scheduler = ON;
 
 -- -----------------------------------------------------
 -- Activity stream data, remembers activity that is needed
@@ -33,7 +31,7 @@ SET GLOBAL event_scheduler = ON;
 
 CREATE TABLE activities
 (
-    id        INT         NOT NULL AUTO_INCREMENT,
+    id        INT       NOT NULL AUTO_INCREMENT,
     channelid INT                DEFAULT NULL,
     linkid    INT                DEFAULT NULL,
     activity  ENUM (
@@ -51,7 +49,7 @@ CREATE TABLE activities
         'channelnamechange',
         'newfrontpage',
         'reputationsupdate'
-    ),
+        ),
     datetime  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     INDEX (linkid),
@@ -65,30 +63,30 @@ CREATE TABLE activities
 
 CREATE TABLE channels
 (
-    id             INT         NOT NULL AUTO_INCREMENT,
+    id             INT       NOT NULL AUTO_INCREMENT,
     -- we don't store anything from the user, just an email hash
     -- to maintain a channel per email-adress
-    emailhash      CHAR(32)             DEFAULT NULL,
-    name           VARCHAR(55)          DEFAULT NULL,
-    language       CHAR(2)              DEFAULT NULL,
+    emailhash      CHAR(32)           DEFAULT NULL,
+    name           VARCHAR(55)        DEFAULT NULL,
+    language       CHAR(2)            DEFAULT NULL,
     -- automatic RSS content
-    feedurl        VARCHAR(256)         DEFAULT NULL,
-    createdatetime TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    refeeddatetime TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    avatar         VARCHAR(55)          DEFAULT NULL,
-    background     VARCHAR(55)          DEFAULT NULL,
-    bio            VARCHAR(255)         DEFAULT NULL,
-    bookmarkscount INT                  DEFAULT 0,
-    postscount     INT                  DEFAULT 0,
-    viewscount     INT                  DEFAULT 0,
-    votescount     INT                  DEFAULT 0,
+    feedurl        VARCHAR(256)       DEFAULT NULL,
+    createdatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    refeeddatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    avatar         VARCHAR(55)        DEFAULT NULL,
+    backimgage     VARCHAR(55)        DEFAULT NULL,
+    bio            VARCHAR(255)       DEFAULT NULL,
+    bookmarkscount INT                DEFAULT 0,
+    postscount     INT                DEFAULT 0,
+    viewscount     INT                DEFAULT 0,
+    votescount     INT                DEFAULT 0,
     score          INT GENERATED ALWAYS AS (
-        postscount * 2 +
-        votescount * 5 +
-        bookmarkscount * 10 +
-        FLOOR(LOG(viewscount+1))
-    ),
-    reputation     INT                  DEFAULT 0,
+                               postscount * 2 +
+                               votescount * 5 +
+                               bookmarkscount * 10 +
+                               FLOOR(LOG(viewscount + 1))
+                       ),
+    reputation     INT                DEFAULT 0,
     PRIMARY KEY (id),
     UNIQUE INDEX (emailhash),
     UNIQUE INDEX (name),
@@ -96,15 +94,15 @@ CREATE TABLE channels
 );
 
 DELIMITER //
-CREATE TRIGGER on_refeed_channel
+CREATE TRIGGER on_update_channel
     AFTER UPDATE
     ON channels
     FOR EACH ROW
 BEGIN
-    IF (OLD.refeeddatetime<>NEW.refeeddatetime) THEN
+    IF (OLD.refeeddatetime <> NEW.refeeddatetime) THEN
         INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.id, NULL, 'feedrefresh');
     END IF;
-    IF (OLD.name<>NEW.name) THEN
+    IF (OLD.name <> NEW.name) THEN
         INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.id, NULL, 'channelnamechange');
     END IF;
 END//
@@ -113,7 +111,16 @@ DELIMITER ;
 -- For public queries. Hide privacy data.
 
 CREATE VIEW channels_public_view AS
-    SELECT id, name, createdatetime, bio, postscount, viewscount, votescount, score, reputation FROM channels;
+SELECT id,
+       name,
+       createdatetime,
+       bio,
+       postscount,
+       viewscount,
+       votescount,
+       score,
+       reputation
+FROM channels;
 
 -- -----------------------------------------------------
 -- Authenticated tokens / sessions
@@ -121,17 +128,19 @@ CREATE VIEW channels_public_view AS
 
 CREATE TABLE sessions
 (
-    token      CHAR(32)    NOT NULL,
-    lastupdate TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
-    channelid  INT         NOT NULL,
+    token      CHAR(32) NOT NULL,
+    lastupdate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    channelid  INT      NOT NULL,
     UNIQUE INDEX (token),
     INDEX (lastupdate)
-) ENGINE=MYISAM;
+) ENGINE = MYISAM;
 
 DELIMITER //
 CREATE EVENT expire_sessions
     ON SCHEDULE EVERY 1 HOUR
-    DO DELETE FROM sessions WHERE lastupdate < SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 HOUR)//
+    DO DELETE
+       FROM sessions
+       WHERE lastupdate < SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 HOUR)//
 DELIMITER ;
 
 -- -----------------------------------------------------
@@ -157,10 +166,10 @@ CREATE TABLE links
     votescount     INT                    DEFAULT 0,
     tagscount      INT                    DEFAULT 0,
     score          INT GENERATED ALWAYS AS (
-        votescount * 5 +
-        bookmarkscount * 10 +
-        FLOOR(LOG(viewscount+1))
-    ),
+                               votescount * 5 +
+                               bookmarkscount * 10 +
+                               FLOOR(LOG(viewscount + 1))
+                       ),
 
     PRIMARY KEY (id),
     INDEX (channelid),
@@ -180,6 +189,18 @@ BEGIN
     INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.id, 'post');
 END//
 DELIMITER ;
+
+-- -----------------------------------------------------
+-- Frontpage selection
+-- -----------------------------------------------------
+
+CREATE TABLE frontpagelinks
+(
+    id    INT NOT NULL,
+    score INT NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    INDEX (score)
+) ENGINE = MEMORY;
 
 -- --------------------------------------------------
 -- Link tags
@@ -211,7 +232,8 @@ CREATE TRIGGER on_insert_tag
     FOR EACH ROW
 BEGIN
     UPDATE links SET tagscount = tagscount + 1 WHERE id = NEW.linkid;
-    INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.linkid, if(NEW.channelid=1,'autotag','tag'));
+    INSERT INTO activities(channelid, linkid, activity)
+    VALUES (NEW.channelid, NEW.linkid, if(NEW.channelid = 1, 'autotag', 'tag'));
 END//
 DELIMITER ;
 
@@ -308,70 +330,72 @@ DELIMITER ;
 -- -----------------------------------------------------
 
 CREATE VIEW activitystream AS
-    SELECT
-        activities.*,
-        channels.name as channelname,
-        links.title as linktitle,
-        links.url as linkurl,
-        links.image as linkimage
-    FROM activities
-    LEFT JOIN channels ON activities.channelid=channels.id
-    LEFT JOIN links ON activities.linkid=links.id AND activity IN ('post', 'tag', 'vote', 'bookmark');
+SELECT activities.*,
+       channels.name as channelname,
+       links.title   as linktitle,
+       links.url     as linkurl,
+       links.image   as linkimage
+FROM activities
+         LEFT JOIN channels ON activities.channelid = channels.id
+         LEFT JOIN links ON activities.linkid = links.id AND activity IN ('post', 'tag', 'vote', 'bookmark');
 
 -- -----------------------------------------------------
 -- Channels that are currently logged in
 -- -----------------------------------------------------
 
 CREATE VIEW whosonline AS
-    SELECT name, avatar, score, lastupdate FROM sessions
-    LEFT JOIN channels ON sessions.channelid=channels.id;
+SELECT name, avatar, score, lastupdate
+FROM sessions
+         LEFT JOIN channels ON sessions.channelid = channels.id;
 
 -- -----------------------------------------------------
 -- 24h Statistics
 -- -----------------------------------------------------
 
 CREATE VIEW statistics AS
-SELECT
-    (SELECT COUNT(*) FROM links WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 DAY)) AS numposts24h,
-    (SELECT COUNT(*) FROM links WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 MONTH)) AS numposts1m,
-    (SELECT COUNT(*) FROM channels) AS numchannels,
-    (SELECT COUNT(*) FROM channels WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 MONTH)) AS newchannels1m,
-    (SELECT COUNT(*) FROM tags) AS numtags,
-    (SELECT COUNT(*) FROM sessions) AS numonline;
+SELECT (SELECT COUNT(*) FROM links WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 DAY))      AS numposts24h,
+       (SELECT COUNT(*)
+        FROM links
+        WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 MONTH))                               AS numposts1m,
+       (SELECT COUNT(*) FROM channels)                                                                     AS numchannels,
+       (SELECT COUNT(*)
+        FROM channels
+        WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 MONTH))                               AS newchannels1m,
+       (SELECT COUNT(*) FROM tags)                                                                         AS numtags,
+       (SELECT COUNT(*) FROM sessions)                                                                     AS numonline;
 
 -- -----------------------------------------------------
 -- Most popular links
 -- -----------------------------------------------------
 
--- TODO temporary, for development
-CREATE VIEW frontpage AS SELECT * FROM links ORDER BY score DESC LIMIT 20;
+CREATE VIEW trendinglinks AS
+SELECT *
+FROM links
+ORDER BY score DESC
+LIMIT 20;
 
 -- -----------------------------------------------------
 -- Most popular tags
 -- -----------------------------------------------------
 
 CREATE VIEW trendingtopics AS
-    SELECT tag, SUM(links.score) AS score FROM tags
-    JOIN links ON tags.linkid=links.id
-    GROUP BY tags.tag
-    ORDER BY SUM(links.score) DESC
-    LIMIT 25;
+SELECT tag, SUM(links.score) AS score
+FROM tags
+         JOIN frontpagelinks AS links ON tags.linkid = links.id
+GROUP BY tags.tag
+LIMIT 25;
 
 -- -----------------------------------------------------
--- Frontpage selection
+-- Most popular tags
 -- -----------------------------------------------------
 
-CREATE TABLE frontpagelinks
-(
-    linkid         INT NOT NULL,
-    bookmarkscount INT DEFAULT 0,
-    viewscount     INT DEFAULT 0,
-    votescount     INT DEFAULT 0,
-    tagscount      INT DEFAULT 0,
-    score          INT NOT NULL DEFAULT 0,
-    PRIMARY KEY (linkid),
-    INDEX(score)
-) ENGINE=MEMORY;
+CREATE VIEW trendingchannels AS
+SELECT channels.*
+FROM frontpagelinks
+         JOIN links ON links.id = frontpagelinks.id
+         JOIN channels_public_view AS channels ON channels.id = links.channelid
+GROUP BY channels.id
+LIMIT 25;
 
 DELIMITER //
 CREATE EVENT select_frontpage
@@ -382,7 +406,9 @@ CREATE EVENT select_frontpage
 
         -- prepare new frontpage selection -> all existing links that had activity
         INSERT INTO frontpagelinks(linkid)
-        SELECT id FROM links LEFT JOIN activities ON activities.linkid = links.id;
+        SELECT id
+        FROM links
+                 LEFT JOIN activities ON activities.linkid = links.id;
 
         -- calculate scores for frontpage
         UPDATE frontpagelinks LEFT JOIN activities ON activities.linkid = frontpagelinks.linkid
@@ -425,14 +451,22 @@ DELIMITER ;
 -- RSS-feeds
 -- -----------------------------------------------------
 
-INSERT INTO channels(name) VALUES ("system");
-INSERT INTO channels(name,feedurl) VALUES ("Russia Today", "https://www.rt.com/rss");
-INSERT INTO channels(name,feedurl) VALUES ("Off-guardian", "https://off-guardian.org/feed");
-INSERT INTO channels(name,feedurl) VALUES ("Zero Hedge", "https://feeds.feedburner.com/zerohedge/feed");
-INSERT INTO channels(name,feedurl) VALUES ("Infowars", "https://www.infowars.com/rss.xml");
-INSERT INTO channels(name,feedurl) VALUES ("Xandernieuws", "https://www.xandernieuws.net/feed");
-INSERT INTO channels(name,feedurl) VALUES ("CNET", "https://www.cnet.com/rss/all");
-INSERT INTO channels(name,feedurl) VALUES ("Gizmodo", "https://gizmodo.com/rss");
+INSERT INTO channels(name)
+VALUES ("system");
+INSERT INTO channels(name, feedurl)
+VALUES ("Russia Today", "https://www.rt.com/rss");
+INSERT INTO channels(name, feedurl)
+VALUES ("Off-guardian", "https://off-guardian.org/feed");
+INSERT INTO channels(name, feedurl)
+VALUES ("Zero Hedge", "https://feeds.feedburner.com/zerohedge/feed");
+INSERT INTO channels(name, feedurl)
+VALUES ("Infowars", "https://www.infowars.com/rss.xml");
+INSERT INTO channels(name, feedurl)
+VALUES ("Xandernieuws", "https://www.xandernieuws.net/feed");
+INSERT INTO channels(name, feedurl)
+VALUES ("CNET", "https://www.cnet.com/rss/all");
+INSERT INTO channels(name, feedurl)
+VALUES ("Gizmodo", "https://gizmodo.com/rss");
 
 # DELIMITER //
 # CREATE EVENT expire_autoposted_links

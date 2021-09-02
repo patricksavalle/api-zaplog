@@ -6,7 +6,6 @@ namespace Zaplog\Library {
 
     require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
     require_once BASE_PATH . '/Library/Mail.php';
-    require_once BASE_PATH . '/Library/Locker.php';
 
     use Exception;
     use Psr\Http\Message\ResponseInterface;
@@ -14,6 +13,7 @@ namespace Zaplog\Library {
     use SlimRestApi\Infra\Ini;
     use stdClass;
     use Zaplog\Exception\EmailException;
+    use SlimRestApi\Infra\Locker;
 
     /**
      * Generic mechanism for authorising actions through an email link.

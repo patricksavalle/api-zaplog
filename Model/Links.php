@@ -5,13 +5,11 @@ declare(strict_types=1);
 namespace Zaplog\Model;
 
 require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
-require_once BASE_PATH . '/Library/HtmlMetadata.php';
-require_once BASE_PATH . '/Library/NormalizedText.php';
 
 use Exception;
-use Zaplog\Library\HtmlMetadata;
 use SlimRestApi\Infra\Db;
-use Zaplog\Library\NormalizedText;
+use ContentSyndication\HtmlMetadata;
+use ContentSyndication\NormalizedText;
 
 class Links
 {
@@ -37,7 +35,7 @@ class Links
         foreach ($metadata['keywords'] as $tag) {
             try {
                 // only accept reasonable tags
-                $tag = (new NormalizedText($tag))->convertNonAscii()->convertNonPath()();
+                $tag = (new NormalizedText($tag))->convertToAscii()->hyphenizeForPath()();
                 assert(preg_match("/[\w-]{3,50}/", $tag) !== false);
                 assert(substr_count($tag, "-") < 5);
                 Db::execute("INSERT INTO tags(linkid, channelid, tag) VALUES (:linkid, :channelid, :tag)",
@@ -48,7 +46,7 @@ class Links
                     ]);
             }
             catch (Exception $e) {
-                error_log($e->getMessage() . " @ " . __FILE__ . "(" . __LINE__ . ") " . $tag);
+                error_log($e->getMessage() . " @ " . __METHOD__ . "(" . __LINE__ . ") " . $tag);
             }
         }
         return $linkid;
