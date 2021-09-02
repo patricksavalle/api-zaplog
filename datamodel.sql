@@ -71,6 +71,7 @@ CREATE TABLE channels
     language       CHAR(2)            DEFAULT NULL,
     -- automatic RSS content
     feedurl        VARCHAR(256)       DEFAULT NULL,
+    themeurl       VARCHAR(256)       DEFAULT NULL,
     createdatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     refeeddatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     avatar         VARCHAR(55)        DEFAULT NULL,

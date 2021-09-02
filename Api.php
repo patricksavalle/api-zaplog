@@ -206,12 +206,14 @@ namespace Zaplog {
                         name=IFNULL(:name,name), 
                         avatar=IFNULL(:avatar,avatar), 
                         bio=IFNULL(:bio,bio), 
-                        feedurl=IFNULL(:feedurl,feedurl) WHERE id=:channelid",
+                        feedurl=IFNULL(:feedurl,feedurl), 
+                        themeurl=IFNULL(:themeurl,themeurl) WHERE id=:channelid",
                         [
                             ":name" => $args->name,
                             ":avatar" => $args->avatar,
                             ":bio" => $args->bio,
                             ":feedurl" => $args->feedurl,
+                            ":themeurl" => $args->feedurl,
                             ":channelid" => Authentication::token()->channelid,
                         ]);
                     return $response->withJson(null);
@@ -220,6 +222,7 @@ namespace Zaplog {
                     ->add(new BodyParameters([
                         '{name:[\w+]{3,55}},null',
                         '{feedurl:\url},null',
+                        '{themeurl:\url},null',
                         '{avatar:\url},null',
                         '{bio:.{0,255},null',
                     ]));
