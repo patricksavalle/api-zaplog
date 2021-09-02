@@ -324,7 +324,7 @@ namespace Zaplog {
                 // delete a link by it's id
                 // --------------------------------------------------
 
-                $this->delete("/{id:\d{1,10}}", function (
+                $this->delete("/id/{id:\d{1,10}}", function (
                     ServerRequestInterface $request,
                     ResponseInterface      $response,
                     stdClass               $args): ResponseInterface {
@@ -509,7 +509,7 @@ namespace Zaplog {
                 // delete a tag, only delete your own tags
                 // ------------------------------------------------
 
-                $this->delete("/{id:\d{1,10}}", function (
+                $this->delete("/id/{id:\d{1,10}}", function (
                     ServerRequestInterface $request,
                     ResponseInterface      $response,
                     stdClass               $args): ResponseInterface {
