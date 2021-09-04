@@ -8,7 +8,8 @@
     "social blogging",
     "weblog",
     "social bookmarking",
-    "linkdump"
+    "linkdump",
+    "community"
   ],
   "license": "MIT",
   "authors": [
@@ -22,16 +23,16 @@
   "require": {
     "php": ">=7.3",
     "slim/slim": "^3.0",
-    "patricksavalle/slim-rest-api": "*",
+    "patricksavalle/slim-rest-api": "dev-master",
     "patricksavalle/slim-request-params": "*",
-    "patricksavalle/content-syndication": "*",
+    "patricksavalle/content-syndication": "dev-master",
     "palanik/corsslim": "dev-slim3",
     "pavlakis/slim-cli": "*",
+    "phpmailer/phpmailer": "^6.5",
     "ext-json": "*",
     "ext-libxml": "*",
     "ext-dom": "*",
     "ext-simplexml": "*",
-    "phpmailer/phpmailer": "^6.5",
     "ext-pdo": "*",
     "ext-curl": "*"
   },

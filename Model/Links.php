@@ -2,53 +2,87 @@
 
 declare(strict_types=1);
 
-namespace Zaplog\Model;
+namespace Zaplog\Model {
 
-require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
+    require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
 
-use Exception;
-use SlimRestApi\Infra\Db;
-use ContentSyndication\HtmlMetadata;
-use ContentSyndication\NormalizedText;
+    use Exception;
+    use SlimRestApi\Infra\Db;
+    use ContentSyndication\HtmlMetadata;
+    use ContentSyndication\NormalizedText;
+    use Zaplog\Exception\ResourceNotFoundException;
 
-class Links
-{
-    static public function postLinkFromUrl(string $channelid, string $url): string
+    class Links
     {
-        $metadata = (new HtmlMetadata)($url);
-        if (Db::execute("INSERT INTO links(url, channelid, title, description, image)
+        static public function postLinkFromUrl(string $channelid, string $url): string
+        {
+            $metadata = (new HtmlMetadata)($url);
+            if (Db::execute("INSERT INTO links(url, channelid, title, description, image)
                         VALUES (:url, :channelid, :title, :description, :image)",
-                [
-                    ":url" => $metadata["url"],
-                    ":channelid" => $channelid,
-                    ":title" => $metadata["title"],
-                    ":description" => $metadata["description"],
-                    ":image" => $metadata["image"],
-                ])->rowCount() === 0
-        ) {
-            throw new Exception;
-        }
-
-        /** @noinspection PhpUndefinedMethodInspection */
-        $linkid = Db::lastInsertId();
-
-        foreach ($metadata['keywords'] as $tag) {
-            try {
-                // only accept reasonable tags
-                $tag = (new NormalizedText($tag))->convertToAscii()->hyphenizeForPath()();
-                assert(preg_match("/[\w-]{3,50}/", $tag) !== false);
-                assert(substr_count($tag, "-") < 5);
-                Db::execute("INSERT INTO tags(linkid, channelid, tag) VALUES (:linkid, :channelid, :tag)",
                     [
-                        ":linkid" => $linkid,
+                        ":url" => $metadata["url"],
                         ":channelid" => $channelid,
-                        ":tag" => $tag,
-                    ]);
+                        ":title" => $metadata["title"],
+                        ":description" => $metadata["description"],
+                        ":image" => $metadata["image"],
+                    ])->rowCount() === 0
+            ) {
+                throw new Exception;
             }
-            catch (Exception $e) {
-                error_log($e->getMessage() . " @ " . __METHOD__ . "(" . __LINE__ . ") " . $tag);
+
+            /** @noinspection PhpUndefinedMethodInspection */
+            $linkid = Db::lastInsertId();
+
+            foreach ($metadata['keywords'] as $tag) {
+                try {
+                    // only accept reasonable tags
+                    $tag = (new NormalizedText($tag))->convertToAscii()->hyphenizeForPath()->get();
+                    assert(preg_match("/[\w-]{3,50}/", $tag) !== false);
+                    assert(substr_count($tag, "-") < 5);
+                    Db::execute("INSERT INTO tags(linkid, channelid, tag) VALUES (:linkid, :channelid, :tag)",
+                        [
+                            ":linkid" => $linkid,
+                            ":channelid" => $channelid,
+                            ":tag" => $tag,
+                        ]);
+                } catch (Exception $e) {
+                    error_log($e->getMessage() . " @ " . __METHOD__ . "(" . __LINE__ . ") " . $tag);
+                }
             }
+            return $linkid;
         }
-        return $linkid;
+
+        static public function getSingleLink($id): array
+        {
+            $link = Db::execute("SELECT * FROM links WHERE id=:id", [":id" => $id])->fetch();
+            if (!$link) throw new ResourceNotFoundException;
+
+            $tags = Db::execute("SELECT * FROM tags WHERE linkid=:id", [":id" => $id])->fetchAll();
+
+            $rels = Db::execute("SELECT links.*, GROUP_CONCAT(tags.tag SEPARATOR ',') AS tags 
+                FROM links JOIN tags 
+                ON tags.linkid=links.id 
+                AND links.id<>:id1
+                AND tag IN 
+                    (
+                        SELECT tags.tag FROM links LEFT JOIN tags on tags.linkid=links.id WHERE links.id=:id2 
+                    )
+                GROUP BY links.id
+                ORDER BY COUNT(links.id) DESC
+                LIMIT 5",
+                [
+                    ":id1" => $id,
+                    ":id2" => $id,
+                ])->fetchAll();
+
+            Db::execute("UPDATE links SET viewscount = viewscount + 1 WHERE id=:id", [":id" => $id]);
+
+            return
+                [
+                    "link" => $link,
+                    "tags" => $tags,
+                    "related" => $rels,
+                ];
+        }
     }
 }

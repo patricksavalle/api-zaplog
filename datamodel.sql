@@ -124,27 +124,6 @@ SELECT id,
 FROM channels;
 
 -- -----------------------------------------------------
--- Authenticated tokens / sessions
--- -----------------------------------------------------
-
-CREATE TABLE sessions
-(
-    token      CHAR(32) NOT NULL,
-    lastupdate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    channelid  INT      NOT NULL,
-    UNIQUE INDEX (token),
-    INDEX (lastupdate)
-) ENGINE = MYISAM;
-
-DELIMITER //
-CREATE EVENT expire_sessions
-    ON SCHEDULE EVERY 1 HOUR
-    DO DELETE
-       FROM sessions
-       WHERE lastupdate < SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 HOUR)//
-DELIMITER ;
-
--- -----------------------------------------------------
 -- The links that are being shared, rated, etc.
 -- -----------------------------------------------------
 
@@ -341,29 +320,19 @@ FROM activities
          LEFT JOIN links ON activities.linkid = links.id AND activity IN ('post', 'tag', 'vote', 'bookmark');
 
 -- -----------------------------------------------------
--- Channels that are currently logged in
--- -----------------------------------------------------
-
-CREATE VIEW whosonline AS
-SELECT name, avatar, score, lastupdate
-FROM sessions
-         LEFT JOIN channels ON sessions.channelid = channels.id;
-
--- -----------------------------------------------------
 -- 24h Statistics
 -- -----------------------------------------------------
 
 CREATE VIEW statistics AS
-SELECT (SELECT COUNT(*) FROM links WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 DAY))      AS numposts24h,
+SELECT (SELECT COUNT(*) FROM links WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 DAY)) AS numposts24h,
        (SELECT COUNT(*)
         FROM links
-        WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 MONTH))                               AS numposts1m,
-       (SELECT COUNT(*) FROM channels)                                                                     AS numchannels,
+        WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 MONTH))                          AS numposts1m,
+       (SELECT COUNT(*) FROM channels)                                                                AS numchannels,
        (SELECT COUNT(*)
         FROM channels
-        WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 MONTH))                               AS newchannels1m,
-       (SELECT COUNT(*) FROM tags)                                                                         AS numtags,
-       (SELECT COUNT(*) FROM sessions)                                                                     AS numonline;
+        WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 MONTH))                          AS newchannels1m,
+       (SELECT COUNT(*) FROM tags)                                                                    AS numtags;
 
 -- -----------------------------------------------------
 -- Most popular links

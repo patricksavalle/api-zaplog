@@ -18,6 +18,7 @@ namespace Zaplog {
     require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
     require_once BASE_PATH . '/Exception/EmailException.php';
 
+    use ContentSyndication\HtmlMetadata;
     use SlimRestApi\Middleware\CliRequest;
     use SlimRestApi\Middleware\Memcaching;
     use stdClass;
@@ -26,20 +27,18 @@ namespace Zaplog {
     use SlimRequestParams\QueryParameters;
     use SlimRestApi\Middleware\ReadOnly;
     use SlimRestApi\SlimRestApi;
-    use Psr\Http\Message\ResponseInterface;
-    use Psr\Http\Message\ServerRequestInterface;
+    use Psr\Http\Message\ResponseInterface as Response;
+    use Psr\Http\Message\ServerRequestInterface as Request;
     use SlimRestApi\Infra\Db;
     use Zaplog\Exception\EmailException;
     use Zaplog\Exception\ResourceNotFoundException;
-    use Zaplog\Model\FeedReader;
-    use Zaplog\Library\HtmlMetadata;
     use Zaplog\Library\TwoFactorAction;
+    use Zaplog\Model\FeedReader;
     use Zaplog\Middleware\Authentication;
     use Zaplog\Model\Links;
 
     class Api extends SlimRestApi
     {
-        /** @noinspection PhpUndefinedFieldInspection */
         public function __construct()
         {
             parent::__construct();
@@ -48,10 +47,11 @@ namespace Zaplog {
             // show the API homepage
             // -----------------------------------------
 
-            $this->get("/", function ($rq, $rp, $args): ResponseInterface {
+            $this->get("/", function ($rq, $rp, $args): Response {
                 echo "<p>See: <a href='https://github.com/zaplogv2/api.zaplog'>Github repository</a></p>";
                 echo "<h1>" . __CLASS__ . "</h1>";
                 echo "<table>";
+                /** @noinspection PhpUndefinedFieldInspection */
                 foreach ($this->router->getRoutes() as $route) {
                     foreach ($route->getMethods() as $method) {
                         echo "<tr><td>$method</td><td>{$route->getPattern()}</td></tr>";
@@ -60,13 +60,6 @@ namespace Zaplog {
                 echo "</table>";
                 return $rp;
             });
-
-            // -----------------------------------------------------
-            // The 2-factor hook, if you have a 2F token, you can
-            // execute the action stored with the token
-            // -----------------------------------------------------
-
-            $this->get("/2factor/{utoken:[[:alnum:]]{32}}", new TwoFactorAction);
 
             // -----------------------------------------------------
             // Authenticated methods can only be used with a session
@@ -80,54 +73,47 @@ namespace Zaplog {
                 // uses an email template /login.html
                 // -----------------------------------------------------
 
-                $this->post("/{emailencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
-                    ServerRequestInterface $request,
-                    ResponseInterface      $response,
-                    stdClass               $args): ResponseInterface {
+                $this->post("/{emailencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}/{loginurlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
                     $email = urldecode($args->emailencoded);
-                    $args->receiver = $email;
+                    $loginurl = urldecode($args->loginurlencoded);
                     $action = new TwoFactorAction;
                     try {
                         $action
                             ->addAction('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'createSession'], [$email])
                             ->createToken()
-                            ->sendToken($args);
+                            ->sendToken($email, $loginurl, "Your single-use login link", "Press the button to login", "Login");
                         return $response->withJson(null);
-                    } catch (EmailException $e) {
+                    } catch (Exception $e) {
                         // TODO remove in production
                         return $response->withJson($action->utoken);
                     }
-                })
-                    ->add(new BodyParameters([
-                        '{subject:.{1,128}},Your single-use login link',
-                        '{button:.{1,30}},Login',
-                        '{button_url:\url},null',
-                        '{template_url:\url},login.html',
-                        '{*}',
-                    ]));
+                });
 
                 // ----------------------------------------------------------------
                 // Return the active channels (sessions) 'who's online'
                 // ----------------------------------------------------------------
 
                 $this->get("", function (
-                    ServerRequestInterface $request,
-                    ResponseInterface      $response,
-                    stdClass               $args): ResponseInterface {
-                    return $response->withJson(Db::execute("SELECT * FROM whosonline")->fetchAll());
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
+                    return $response->withJson(Authentication::activeUsers("channels_public_view", "emailhash"));
                 })
-                    ->add(new ReadOnly)
-                    ->add(new Authentication);
+                    ->add(new Memcaching(60/*sec*/))
+                    ->add(new ReadOnly);
 
                 // -----------------------------------------------------
                 // invalidate the session token in the HTTP header
                 // -----------------------------------------------------
 
                 $this->delete("", function (
-                    ServerRequestInterface $request,
-                    ResponseInterface      $response,
-                    stdClass               $args): ResponseInterface {
-                    Db::execute("DELETE FROM sessions WHERE token=:token", [":token" => Authentication::token()]);
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
+                    Authentication::deleteSession();
                     return $response->withJson(null);
                 })
                     ->add(new Authentication);
@@ -146,9 +132,9 @@ namespace Zaplog {
                 // ----------------------------------------------------------------
 
                 $this->get("", function (
-                    ServerRequestInterface $request,
-                    ResponseInterface      $response,
-                    stdClass               $args): ResponseInterface {
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
                     return $response->withJson(Db::execute("SELECT * FROM channels_public_view ORDER BY name LIMIT :offset,:count",
                         [
                             ":offset" => $args->offset,
@@ -168,9 +154,9 @@ namespace Zaplog {
                 // ----------------------------------------------------------------
 
                 $this->get("/id/{id:[\d]{1,10}}", function (
-                    ServerRequestInterface $request,
-                    ResponseInterface      $response,
-                    stdClass               $args): ResponseInterface {
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
                     $channel = Db::execute("SELECT * FROM channels_public_view WHERE id=:id", [":id" => $args->id])->fetch();
                     $populartags = Db::execute("SELECT tag, COUNT(tag) AS tagscount 
                         FROM tags JOIN links ON tags.linkid=links.id AND tags.channelid=links.channelid 
@@ -199,9 +185,9 @@ namespace Zaplog {
                 // ----------------------------------------------------------------
 
                 $this->patch("", function (
-                    ServerRequestInterface $request,
-                    ResponseInterface      $response,
-                    stdClass               $args): ResponseInterface {
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
                     Db::execute("UPDATE channels SET 
                         name=IFNULL(:name,name), 
                         avatar=IFNULL(:avatar,avatar), 
@@ -214,7 +200,7 @@ namespace Zaplog {
                             ":bio" => $args->bio,
                             ":feedurl" => $args->feedurl,
                             ":themeurl" => $args->feedurl,
-                            ":channelid" => Authentication::token()->channelid,
+                            ":channelid" => Authentication::getSession()->id,
                         ]);
                     return $response->withJson(null);
                 })
@@ -232,9 +218,9 @@ namespace Zaplog {
                 // ----------------------------------------------------------------
 
                 $this->get("/active", function (
-                    ServerRequestInterface $request,
-                    ResponseInterface      $response,
-                    stdClass               $args): ResponseInterface {
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
                     $top = Db::execute("SELECT * FROM channels_public_view ORDER BY reputation DESC LIMIT 10")->fetchAll();
                     $new = Db::execute("SELECT * FROM channels_public_view ORDER BY id DESC LIMIT 10")->fetchAll();
                     $updated = Db::execute("SELECT channels.* FROM channels_public_view AS channels
@@ -258,9 +244,9 @@ namespace Zaplog {
             // -----------------------------------------------------
 
             $this->get("/frontpage", function (
-                ServerRequestInterface $request,
-                ResponseInterface      $response,
-                stdClass               $args): ResponseInterface {
+                Request  $request,
+                Response $response,
+                stdClass $args): Response {
                 return $response->withJson(
                     [
                         "trendinglinks" => Db::execute("SELECT * FROM trendinglinks")->fetchAll(),
@@ -279,10 +265,10 @@ namespace Zaplog {
                 // ------------------------------------------------------
 
                 $this->post("/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
-                    ServerRequestInterface $request,
-                    ResponseInterface      $response,
-                    stdClass               $args): ResponseInterface {
-                    return $response->withJson(Links::postLinkFromUrl((string)Authentication::token()->channelid, urldecode($args->urlencoded)));
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
+                    return $response->withJson(Links::postLinkFromUrl((string)Authentication::getSession()->id, urldecode($args->urlencoded)));
                 })
                     ->add(new Authentication);
 
@@ -291,36 +277,10 @@ namespace Zaplog {
                 // ----------------------------------------------------------------
 
                 $this->get("/id/{id:\d{1,10}}", function (
-                    ServerRequestInterface $request,
-                    ResponseInterface      $response,
-                    stdClass               $args): ResponseInterface {
-                    $params = [":id" => $args->id];
-                    $link = Db::execute("SELECT * FROM links WHERE id=:id", $params)->fetch();
-                    if (!$link) throw new ResourceNotFoundException;
-                    $tags = Db::execute("SELECT * FROM tags WHERE linkid=:id", $params)->fetchAll();
-                    $rels = Db::execute("SELECT links.*, GROUP_CONCAT(tags.tag SEPARATOR ',') AS tags 
-                        FROM links JOIN tags 
-                        ON tags.linkid=links.id 
-                        AND links.id<>:id1
-                        AND tag IN 
-                            (
-                                SELECT tags.tag FROM links LEFT JOIN tags on tags.linkid=links.id WHERE links.id=:id2 
-                            )
-                        GROUP BY links.id
-                        ORDER BY COUNT(links.id) DESC
-                        LIMIT 5",
-                        [
-                            ":id1" => $args->id,
-                            ":id2" => $args->id,
-                        ])->fetchAll();
-                    Db::execute("UPDATE links SET viewscount = viewscount + 1 WHERE id=:id", $params);
-                    return $response->withJson(
-                        [
-                            "link" => $link,
-                            "tags" => $tags,
-                            "related" => $rels,
-                        ]
-                    );
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
+                    return $response->withJson(Links::getSingleLink($args->id));
                 });
 
                 // --------------------------------------------------
@@ -328,13 +288,13 @@ namespace Zaplog {
                 // --------------------------------------------------
 
                 $this->delete("/id/{id:\d{1,10}}", function (
-                    ServerRequestInterface $request,
-                    ResponseInterface      $response,
-                    stdClass               $args): ResponseInterface {
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
                     if (Db::execute("DELETE FROM links WHERE id =:id and channelid=:channelid",
                             [
                                 ":id" => $args->id,
-                                ":channelid" => Authentication::token()->channelid,
+                                ":channelid" => Authentication::getSession()->id,
                             ])->rowCount() == 0)
                         throw new ResourceNotFoundException;
                     return $response->withJson(null);
@@ -346,9 +306,9 @@ namespace Zaplog {
                 // -----------------------------------------------------
 
                 $this->get("", function (
-                    ServerRequestInterface $request,
-                    ResponseInterface      $response,
-                    stdClass               $args): ResponseInterface {
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
                     $links = Db::execute("SELECT * FROM links 
                         ORDER BY id DESC LIMIT :offset,:count",
                         [
@@ -368,9 +328,9 @@ namespace Zaplog {
                 // -----------------------------------------------------
 
                 $this->get("/tag/{tag:[\w-]{3,55}}", function (
-                    ServerRequestInterface $request,
-                    ResponseInterface      $response,
-                    stdClass               $args): ResponseInterface {
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
                     $links = Db::execute("SELECT links.* FROM tags
                         JOIN links ON tags.linkid=links.id 
                         WHERE tags.tag=:tag
@@ -395,9 +355,9 @@ namespace Zaplog {
                 // -----------------------------------------------------
 
                 $this->get("/channel/{id:[\w-]{3,55}}", function (
-                    ServerRequestInterface $request,
-                    ResponseInterface      $response,
-                    stdClass               $args): ResponseInterface {
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
                     $links = Db::execute("SELECT * FROM links WHERE channelid = :channel
                         ORDER BY id DESC LIMIT :offset,:count",
                         [
@@ -418,9 +378,9 @@ namespace Zaplog {
                 // ----------------------------------------------------
 
                 $this->get("/metadata/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
-                    ServerRequestInterface $request,
-                    ResponseInterface      $response,
-                    stdClass               $args): ResponseInterface {
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
                     return $response->withJson((new HtmlMetadata)(urldecode($args->urlencoded)));
                 })
                     ->add(new Authentication);
@@ -434,13 +394,13 @@ namespace Zaplog {
                 // ------------------------------------------------
 
                 $this->post("/link/{id:\d{1,10}}", function (
-                    ServerRequestInterface $request,
-                    ResponseInterface      $response,
-                    stdClass               $args): ResponseInterface {
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
                     if (Db::execute("INSERT INTO votes(linkid, channelid) VALUES(:id, :channelid)",
                             [
                                 ":id" => $args->id,
-                                ":channelid" => Authentication::token()->channelid,
+                                ":channelid" => Authentication::getSession()->id,
                             ])->rowCount() == 0
                     ) {
                         throw new Exception;
@@ -458,14 +418,14 @@ namespace Zaplog {
                 // ------------------------------------------------
 
                 $this->post("/link/{id:\d{1,10}}/tag/{tag:[\w-]{3,50}}", function (
-                    ServerRequestInterface $request,
-                    ResponseInterface      $response,
-                    stdClass               $args): ResponseInterface {
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
                     if (Db::execute("INSERT INTO tags(linkid, channelid, tag) VALUES(:id, :channelid, :tag)",
                             [
                                 ":id" => $args->id,
                                 ":tag" => $args->tag,
-                                ":channelid" => Authentication::token()->channelid,
+                                ":channelid" => Authentication::getSession()->id,
                             ])->rowCount() == 0
                     ) {
                         throw new Exception;
@@ -479,9 +439,9 @@ namespace Zaplog {
                 // ------------------------------------------------
 
                 $this->get("/index", function (
-                    ServerRequestInterface $request,
-                    ResponseInterface      $response,
-                    stdClass               $args): ResponseInterface {
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
                     return $response->withJson(
                         Db::execute("SELECT tag, COUNT(tag) as linkscount FROM tags GROUP BY tag ORDER BY tag", [])->fetchAll()
                     );
@@ -494,9 +454,9 @@ namespace Zaplog {
                 // ------------------------------------------------
 
                 $this->get("/active", function (
-                    ServerRequestInterface $request,
-                    ResponseInterface      $response,
-                    stdClass               $args): ResponseInterface {
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
                     return $response->withJson(
                         [
                             "top" => Db::execute("SELECT * FROM trendingtopics")->fetchAll(),
@@ -513,13 +473,13 @@ namespace Zaplog {
                 // ------------------------------------------------
 
                 $this->delete("/id/{id:\d{1,10}}", function (
-                    ServerRequestInterface $request,
-                    ResponseInterface      $response,
-                    stdClass               $args): ResponseInterface {
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
                     if (Db::execute("DELETE tags FROM tags WHERE id=:id and channelid=:channelid",
                             [
                                 ":id" => $args->id,
-                                ":channelid" => Authentication::token()->channelid,
+                                ":channelid" => Authentication::getSession()->id,
                             ])->rowCount() == 0
                     ) {
                         throw new Exception;
@@ -535,9 +495,9 @@ namespace Zaplog {
             // ------------------------------------------------
 
             $this->get("/activities", function (
-                ServerRequestInterface $request,
-                ResponseInterface      $response,
-                stdClass               $args): ResponseInterface {
+                Request  $request,
+                Response $response,
+                stdClass $args): Response {
                 $activities = Db::execute("SELECT * FROM activitystream ORDER BY id DESC LIMIT :offset,:count",
                     [
                         ":offset" => $args->offset,
@@ -559,9 +519,9 @@ namespace Zaplog {
             // ------------------------------------------------
 
             $this->get("/statistics", function (
-                ServerRequestInterface $request,
-                ResponseInterface      $response,
-                stdClass               $args): ResponseInterface {
+                Request  $request,
+                Response $response,
+                stdClass $args): Response {
                 return $response->withJson(Db::execute("SELECT * FROM statistics")->fetch());
             })
                 ->add(new Memcaching(10/*sec*/))
@@ -569,40 +529,35 @@ namespace Zaplog {
 
             // ------------------------------------------------
             // generic cronjob interfaces, not public
+            // call: php Api.php /cronjobs/hour GET
             // ------------------------------------------------
 
             $this->group('/cronjobs', function () {
 
                 $this->get("/hour", function (
-                    ServerRequestInterface $request,
-                    ResponseInterface      $response,
-                    stdClass               $args): ResponseInterface {
-                    set_time_limit(300/*5min*/);
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
                     (new FeedReader)->refreshAllFeeds();
                     return $response;
                 });
-                // TODO enable in production
-//                ->add(new CliRequest(300));
+                   // ->add(new CliRequest(300));
 
                 $this->get("/day", function (
-                    ServerRequestInterface $request,
-                    ResponseInterface      $response,
-                    stdClass               $args): ResponseInterface {
-                    set_time_limit(300/*5min*/);
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
                     return $response;
-                });
-                // TODO enable in production
-//                ->add(new CliRequest(300));
+                })
+                    ->add(new CliRequest(300));
 
                 $this->get("/month", function (
-                    ServerRequestInterface $request,
-                    ResponseInterface      $response,
-                    stdClass               $args): ResponseInterface {
-                    set_time_limit(300/*5min*/);
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
                     return $response;
-                });
-                // TODO enable in production
-//                ->add(new CliRequest(300));
+                })
+                    ->add(new CliRequest(300));
 
             });
         }
