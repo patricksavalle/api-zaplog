@@ -19,6 +19,7 @@ namespace Zaplog {
     require_once BASE_PATH . '/Exception/EmailException.php';
 
     use ContentSyndication\HtmlMetadata;
+    use SlimRestApi\Infra\MemcachedFunction;
     use SlimRestApi\Middleware\CliRequest;
     use SlimRestApi\Middleware\Memcaching;
     use stdClass;
@@ -200,7 +201,7 @@ namespace Zaplog {
                             ":bio" => $args->bio,
                             ":feedurl" => $args->feedurl,
                             ":themeurl" => $args->feedurl,
-                            ":channelid" => Authentication::getSession()->id,
+                            ":channelid" => (new MemcachedFunction)(['\Zaplog\Middleware\Authentication', 'getSession'])->id,
                         ]);
                     return $response->withJson(null);
                 })
@@ -268,7 +269,9 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Links::postLinkFromUrl((string)Authentication::getSession()->id, urldecode($args->urlencoded)));
+                    return $response->withJson(Links::postLinkFromUrl(
+                        (string)(new MemcachedFunction)(['\Zaplog\Middleware\Authentication', 'getSession'])->id,
+                        urldecode($args->urlencoded)));
                 })
                     ->add(new Authentication);
 
