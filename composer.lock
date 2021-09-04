@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "43e363bde8ea082a51507367d4692d45",
+    "content-hash": "4a0e2f2e2b907b652b8bdca2826bb4f8",
     "packages": [
         {
             "name": "nikic/fast-route",
@@ -108,6 +108,61 @@
             "time": "2016-01-15T04:37:35+00:00"
         },
         {
+            "name": "patricksavalle/content-syndication",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/patricksavalle/php-content-syndication.git",
+                "reference": "8d9eae2b8cdec202e167aecb22bddaa9e8a30137"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/patricksavalle/php-content-syndication/zipball/8d9eae2b8cdec202e167aecb22bddaa9e8a30137",
+                "reference": "8d9eae2b8cdec202e167aecb22bddaa9e8a30137",
+                "shasum": ""
+            },
+            "require": {
+                "ext-curl": "*",
+                "ext-dom": "*",
+                "ext-json": "*",
+                "ext-libxml": "*",
+                "ext-simplexml": "*",
+                "php": ">=7.3"
+            },
+            "default-branch": true,
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "ContentSyndication\\": "."
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Patrick Savalle",
+                    "email": "patrick@patricksavalle.com",
+                    "homepage": "https://github.com/patricksavalle/php-content-syndication",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Helper library for dealing with HTML metadata retrieval, RSS, ATOM, URL parsing and normalization",
+            "keywords": [
+                "Syndication",
+                "atom",
+                "html metadata",
+                "rss",
+                "url parsing"
+            ],
+            "support": {
+                "issues": "https://github.com/patricksavalle/php-content-syndication/issues",
+                "source": "https://github.com/patricksavalle/php-content-syndication/tree/master"
+            },
+            "time": "2021-09-02T17:25:51+00:00"
+        },
+        {
             "name": "patricksavalle/slim-request-params",
             "version": "v1.1",
             "source": {
@@ -162,26 +217,29 @@
         },
         {
             "name": "patricksavalle/slim-rest-api",
-            "version": "v1.1",
+            "version": "dev-master",
             "source": {
                 "type": "git",
                 "url": "https://github.com/patricksavalle/slim-rest-api.git",
-                "reference": "b3972e1180c6d3c2d0fd1b700a2c26a8b1a41e4f"
+                "reference": "37878c801064dbad0729e0428b3e8ddf41de152a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/patricksavalle/slim-rest-api/zipball/b3972e1180c6d3c2d0fd1b700a2c26a8b1a41e4f",
-                "reference": "b3972e1180c6d3c2d0fd1b700a2c26a8b1a41e4f",
+                "url": "https://api.github.com/repos/patricksavalle/slim-rest-api/zipball/37878c801064dbad0729e0428b3e8ddf41de152a",
+                "reference": "37878c801064dbad0729e0428b3e8ddf41de152a",
                 "shasum": ""
             },
             "require": {
+                "ext-json": "*",
                 "ext-openssl": "*",
                 "ext-pdo": "*",
                 "palanik/corsslim": "dev-slim3",
                 "patricksavalle/slim-request-params": "*",
                 "pavlakis/slim-cli": "^1.0",
+                "php": ">=7.3",
                 "slim/slim": "^3.0"
             },
+            "default-branch": true,
             "type": "library",
             "autoload": {
                 "psr-4": {
@@ -215,7 +273,7 @@
                 "issues": "https://github.com/patricksavalle/slim-rest-api/issues",
                 "source": "https://github.com/patricksavalle/slim-rest-api/tree/master"
             },
-            "time": "2020-02-01T09:55:19+00:00"
+            "time": "2021-09-04T09:05:15+00:00"
         },
         {
             "name": "pavlakis/slim-cli",
@@ -584,11 +642,14 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
+        "patricksavalle/slim-rest-api": 20,
+        "patricksavalle/content-syndication": 20,
         "palanik/corsslim": 20
     },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
+        "php": ">=7.3",
         "ext-json": "*",
         "ext-libxml": "*",
         "ext-dom": "*",
