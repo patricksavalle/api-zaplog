@@ -33,6 +33,14 @@ namespace Zaplog\Model {
             /** @noinspection PhpUndefinedMethodInspection */
             $linkid = Db::lastInsertId();
 
+            // remove duplicate keywords after normalisation
+            $keywords = [];
+            foreach ($metadata['keywords'] as $tag) {
+                $keywords[] = (new NormalizedText($tag))->convertToAscii()->hyphenizeForPath()->get();
+            }
+            $metadata['keywords'] = array_unique($keywords);
+
+            // insert keywords into database
             foreach ($metadata['keywords'] as $tag) {
                 try {
                     // only accept reasonable tags
