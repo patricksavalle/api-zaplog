@@ -10,6 +10,7 @@ namespace Zaplog\Model {
     use SlimRestApi\Infra\Db;
     use ContentSyndication\HtmlMetadata;
     use ContentSyndication\NormalizedText;
+    use SlimRestApi\Infra\MemcachedFunction;
     use Zaplog\Exception\ResourceNotFoundException;
 
     class Links
@@ -60,36 +61,38 @@ namespace Zaplog\Model {
             return $linkid;
         }
 
+        static public function getRelatedLinks($id): array
+        {
+            return Db::execute("SELECT links.*, GROUP_CONCAT(tags.tag SEPARATOR ',') AS tags, @lid:=:id AS parentid 
+                FROM links JOIN tags ON tags.linkid=links.id AND links.id<>@lid
+                AND tag IN 
+                    (
+                        SELECT tags.tag FROM links LEFT JOIN tags on tags.linkid=links.id WHERE links.id=@lid 
+                    )
+                GROUP BY links.id ORDER BY COUNT(links.id) DESC LIMIT 5",
+                [":id" => $id])->fetchAll();
+        }
+
         static public function getSingleLink($id): array
         {
             $link = Db::execute("SELECT * FROM links WHERE id=:id", [":id" => $id])->fetch();
             if (!$link) throw new ResourceNotFoundException;
 
-            $tags = Db::execute("SELECT * FROM tags WHERE linkid=:id", [":id" => $id])->fetchAll();
+            $tags = Db::execute("SELECT * FROM tags WHERE linkid=:id GROUP BY tag", [":id" => $id])->fetchAll();
 
-            $rels = Db::execute("SELECT links.*, GROUP_CONCAT(tags.tag SEPARATOR ',') AS tags 
-                FROM links JOIN tags 
-                ON tags.linkid=links.id 
-                AND links.id<>:id1
-                AND tag IN 
-                    (
-                        SELECT tags.tag FROM links LEFT JOIN tags on tags.linkid=links.id WHERE links.id=:id2 
-                    )
-                GROUP BY links.id
-                ORDER BY COUNT(links.id) DESC
-                LIMIT 5",
-                [
-                    ":id1" => $id,
-                    ":id2" => $id,
-                ])->fetchAll();
+            $rels = (new MemcachedFunction)([__CLASS__, 'getRelatedLinks'], [$id], 60);
+
+            $activity = Activities::get(0, 25, NULL, $id);
 
             Db::execute("UPDATE links SET viewscount = viewscount + 1 WHERE id=:id", [":id" => $id]);
+            Db::execute("INSERT IGNORE INTO views(id) VALUES(:id) ", [":id" => $id]);
 
             return
                 [
                     "link" => $link,
                     "tags" => $tags,
                     "related" => $rels,
+                    "activity" => $activity,
                 ];
         }
     }

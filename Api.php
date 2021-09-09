@@ -18,12 +18,12 @@ namespace Zaplog {
     require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
     require_once BASE_PATH . '/Exception/EmailException.php';
 
+    use stdClass;
+    use Exception;
     use ContentSyndication\HtmlMetadata;
     use SlimRestApi\Infra\MemcachedFunction;
     use SlimRestApi\Middleware\CliRequest;
     use SlimRestApi\Middleware\Memcaching;
-    use stdClass;
-    use Exception;
     use SlimRequestParams\BodyParameters;
     use SlimRequestParams\QueryParameters;
     use SlimRestApi\Middleware\ReadOnly;
@@ -31,9 +31,9 @@ namespace Zaplog {
     use Psr\Http\Message\ResponseInterface as Response;
     use Psr\Http\Message\ServerRequestInterface as Request;
     use SlimRestApi\Infra\Db;
-    use Zaplog\Exception\EmailException;
     use Zaplog\Exception\ResourceNotFoundException;
     use Zaplog\Library\TwoFactorAction;
+    use Zaplog\Model\Activities;
     use Zaplog\Model\FeedReader;
     use Zaplog\Middleware\Authentication;
     use Zaplog\Model\Links;
@@ -80,6 +80,8 @@ namespace Zaplog {
                     stdClass $args): Response {
                     $email = urldecode($args->emailencoded);
                     $loginurl = urldecode($args->loginurlencoded);
+                    assert(filter_var($email, FILTER_VALIDATE_EMAIL) !== false);
+                    assert(filter_var($loginurl, FILTER_VALIDATE_URL) !== false);
                     $action = new TwoFactorAction;
                     try {
                         $action
@@ -101,7 +103,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Authentication::activeUsers("channels_public_view", "emailhash"));
+                    return $response->withJson(Db::execute("SELECT * FROM activeusers")->fetchAll());
                 })
                     ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly);
@@ -160,17 +162,19 @@ namespace Zaplog {
                     stdClass $args): Response {
                     $channel = Db::execute("SELECT * FROM channels_public_view WHERE id=:id", [":id" => $args->id])->fetch();
                     $populartags = Db::execute("SELECT tag, COUNT(tag) AS tagscount 
-                        FROM tags JOIN links ON tags.linkid=links.id AND tags.channelid=links.channelid 
+                        FROM tags JOIN links ON tags.linkid=links.id  
                         WHERE links.channelid=:channelid 
                         GROUP BY tag ORDER BY COUNT(tag) DESC LIMIT 10",
                         [":channelid" => $args->id])->fetchAll();
                     // TODO https://github.com/zaplogv2/api.zaplog/issues/12
                     $relatedlinks = Db::execute("SELECT 1", [])->fetchAll();
+                    $activity = Activities::get(0, 25, $args->id, NULL);
                     return $response->withJson(
                         [
                             "channel" => $channel,
                             "tags" => $populartags,
                             "related" => $relatedlinks,
+                            "activity" => $activity
                         ]
                     );
                 })
@@ -250,7 +254,7 @@ namespace Zaplog {
                 stdClass $args): Response {
                 return $response->withJson(
                     [
-                        "trendinglinks" => Db::execute("SELECT * FROM trendinglinks")->fetchAll(),
+                        "trendinglinks" => Db::execute("SELECT * FROM frontpage")->fetchAll(),
                         "trendingtags" => Db::execute("SELECT * FROM trendingtopics")->fetchAll(),
                         "trendingchannels" => Db::execute("SELECT * FROM trendingchannels")->fetchAll(),
                     ]
@@ -297,7 +301,7 @@ namespace Zaplog {
                     if (Db::execute("DELETE FROM links WHERE id =:id and channelid=:channelid",
                             [
                                 ":id" => $args->id,
-                                ":channelid" => Authentication::getSession()->id,
+                                ":channelid" => (new MemcachedFunction)(['\Zaplog\Middleware\Authentication', 'getSession'])->id,
                             ])->rowCount() == 0)
                         throw new ResourceNotFoundException;
                     return $response->withJson(null);
@@ -403,7 +407,7 @@ namespace Zaplog {
                     if (Db::execute("INSERT INTO votes(linkid, channelid) VALUES(:id, :channelid)",
                             [
                                 ":id" => $args->id,
-                                ":channelid" => Authentication::getSession()->id,
+                                ":channelid" => (new MemcachedFunction)(['\Zaplog\Middleware\Authentication', 'getSession'])->id,
                             ])->rowCount() == 0
                     ) {
                         throw new Exception;
@@ -428,7 +432,7 @@ namespace Zaplog {
                             [
                                 ":id" => $args->id,
                                 ":tag" => $args->tag,
-                                ":channelid" => Authentication::getSession()->id,
+                                ":channelid" => (new MemcachedFunction)(['\Zaplog\Middleware\Authentication', 'getSession'])->id,
                             ])->rowCount() == 0
                     ) {
                         throw new Exception;
@@ -468,7 +472,7 @@ namespace Zaplog {
                         ]
                     );
                 })
-                    ->add(new Memcaching(10/*sec*/))
+                    ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly);
 
                 // ------------------------------------------------
@@ -482,7 +486,7 @@ namespace Zaplog {
                     if (Db::execute("DELETE tags FROM tags WHERE id=:id and channelid=:channelid",
                             [
                                 ":id" => $args->id,
-                                ":channelid" => Authentication::getSession()->id,
+                                ":channelid" => (new MemcachedFunction)(['\Zaplog\Middleware\Authentication', 'getSession'])->id,
                             ])->rowCount() == 0
                     ) {
                         throw new Exception;
@@ -501,20 +505,26 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                $activities = Db::execute("SELECT * FROM activitystream ORDER BY id DESC LIMIT :offset,:count",
-                    [
-                        ":offset" => $args->offset,
-                        ":count" => $args->count,
-                    ])->fetchAll();
-                return $response->withJson($activities);
+                return $response->withJson(Activities::get($args->offset, $args->count, NULL, NULL));
+            })
+                ->add(new Memcaching(60/*sec*/))
+                ->add(new ReadOnly)
+                ->add(new QueryParameters([
+                    '{offset:\int},0',
+                    '{count:\int},250',
+                ]));
+
+            $this->get("/activities/channels/{id:\d{1,10}}", function (
+                Request  $request,
+                Response $response,
+                stdClass $args): Response {
+                return $response->withJson(Activities::get($args->offset, $args->count, $args->id, NULL));
             })
                 ->add(new Memcaching(10/*sec*/))
                 ->add(new ReadOnly)
                 ->add(new QueryParameters([
-                    '{channel:[\w-]{3,54}},null',
-                    '{link:,\d{1,10}},null',
                     '{offset:\int},0',
-                    '{count:\int},20',
+                    '{count:\int},100',
                 ]));
 
             // ------------------------------------------------
@@ -544,7 +554,7 @@ namespace Zaplog {
                     (new FeedReader)->refreshAllFeeds();
                     return $response;
                 });
-                   // ->add(new CliRequest(300));
+                // ->add(new CliRequest(300));
 
                 $this->get("/day", function (
                     Request  $request,

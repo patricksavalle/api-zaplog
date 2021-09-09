@@ -21,101 +21,62 @@ CREATE SCHEMA zaplog
 USE zaplog;
 
 -- -----------------------------------------------------
--- Activity stream data, remembers activity that is needed
--- to calculate frontpage-ranking
--- No locking, referential integrity, write-only --> MYISAM
---
--- This table should not be updated from outside this datamodel
--- (use triggers)
--- -----------------------------------------------------
-
-CREATE TABLE activities
-(
-    id        INT       NOT NULL AUTO_INCREMENT,
-    channelid INT                DEFAULT NULL,
-    linkid    INT                DEFAULT NULL,
-    activity  ENUM (
-        'post',
-        'autopost',
-        'vote',
-        'bookmark',
-        'tag',
-        'autotag',
-        'share',
-        'untag',
-        'unbookmark',
-        'login',
-        'feedrefresh',
-        'channelnamechange',
-        'newfrontpage',
-        'reputationsupdate'
-        ),
-    datetime  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    INDEX (linkid),
-    INDEX (datetime)
-);
-
--- -----------------------------------------------------
--- Channels are collections of links, a single email
--- user can create many channels
+-- Channels are collections of links
 -- -----------------------------------------------------
 
 CREATE TABLE channels
 (
     id             INT       NOT NULL AUTO_INCREMENT,
-    -- we don't store anything from the user, just an email hash
-    -- to maintain a channel per email-adress
-    emailhash      CHAR(32)           DEFAULT NULL,
+    -- we don't store anything from the user, just an identity hash (email, phone, anything)
+    userid         CHAR(32)           DEFAULT NULL,
     name           VARCHAR(55)        DEFAULT NULL,
     language       CHAR(2)            DEFAULT NULL,
     -- automatic RSS content
     feedurl        VARCHAR(256)       DEFAULT NULL,
     themeurl       VARCHAR(256)       DEFAULT NULL,
     createdatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updatedatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     refeeddatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     avatar         VARCHAR(55)        DEFAULT NULL,
-    backimgage     VARCHAR(55)        DEFAULT NULL,
+    bkgimage       VARCHAR(55)        DEFAULT NULL,
     bio            VARCHAR(255)       DEFAULT NULL,
+    -- accumulate statistics on posts of this channel
+    -- because this system is very read intensive we will keep totals in this table
+    -- instead of counting/joining the respective tables each time
     bookmarkscount INT                DEFAULT 0,
     postscount     INT                DEFAULT 0,
     viewscount     INT                DEFAULT 0,
     votescount     INT                DEFAULT 0,
+    uniquevoters   INT                DEFAULT 0,
+    reactionscount INT                DEFAULT 0,
+    uniquereactors INT                DEFAULT 0,
+    tagscount      INT                DEFAULT 0,
     score          INT GENERATED ALWAYS AS (
-                               postscount * 2 +
-                               votescount * 5 +
+                               (uniquereactors + 1) * reactionscount +
+                               (uniquevoters + 1) * votescount +
                                bookmarkscount * 10 +
+                               postscount * 20 +
+                               IF(tagscount / (postscount + 1) > 3 AND tagscount / (postscount + 1) < 8, 5, 0) +
                                FLOOR(LOG(viewscount + 1))
                        ),
     reputation     INT                DEFAULT 0,
     PRIMARY KEY (id),
-    UNIQUE INDEX (emailhash),
+    UNIQUE INDEX (userid),
     UNIQUE INDEX (name),
-    UNIQUE INDEX (feedurl)
+    UNIQUE INDEX (feedurl),
+    INDEX (score)
 );
 
-DELIMITER //
-CREATE TRIGGER on_update_channel
-    AFTER UPDATE
-    ON channels
-    FOR EACH ROW
-BEGIN
-    IF (OLD.refeeddatetime <> NEW.refeeddatetime) THEN
-        INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.id, NULL, 'feedrefresh');
-    END IF;
-    IF (OLD.name <> NEW.name) THEN
-        INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.id, NULL, 'channelnamechange');
-    END IF;
-END//
-DELIMITER ;
-
+-- -----------------------------------------------------
 -- For public queries. Hide privacy data.
+-- -----------------------------------------------------
 
 CREATE VIEW channels_public_view AS
 SELECT id,
        name,
        createdatetime,
        bio,
+       avatar,
        postscount,
        viewscount,
        votescount,
@@ -133,32 +94,92 @@ CREATE TABLE links
     createdatetime TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     crawldatetime  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     channelid      INT           NOT NULL,
-    -- TODO can be optimized to BINARY(16)
     urlhash        CHAR(32) GENERATED ALWAYS AS (MD5(url)),
     url            VARCHAR(1024) NOT NULL,
     title          VARCHAR(256)  NOT NULL,
+    copyright      VARCHAR(256)  NOT NULL,
     description    TEXT                   DEFAULT NULL,
     image          VARCHAR(256)           DEFAULT NULL,
     -- because this system is very read intensive we will keep totals in this table
     -- instead of counting/joining the respective tables each time
+    reactionscount INT                    DEFAULT 0,
+    uniquereactors INT                    DEFAULT 0,
     bookmarkscount INT                    DEFAULT 0,
     viewscount     INT                    DEFAULT 0,
     votescount     INT                    DEFAULT 0,
     tagscount      INT                    DEFAULT 0,
     score          INT GENERATED ALWAYS AS (
+                               reactionscount * 1 +
+                               uniquereactors * 5 +
                                votescount * 5 +
                                bookmarkscount * 10 +
+                               IF(tagscount > 3 AND tagscount < 8, 5, 0) +
                                FLOOR(LOG(viewscount + 1))
                        ),
-
     PRIMARY KEY (id),
     INDEX (channelid),
     INDEX (urlhash),
+    INDEX (createdatetime),
     INDEX (score),
     FOREIGN KEY (channelid) REFERENCES channels (id)
         ON DELETE CASCADE
         ON UPDATE CASCADE
 );
+
+-- --------------------------------------------------------------
+-- Stores last 24h of interactions, used for frontpage algorithm
+-- An event removes expired links (>24hr)
+-- This is an optimisation that simplifies many queries and
+-- avoids the need for datetimes in votes and tags
+-- --------------------------------------------------------------
+
+CREATE TABLE interactions
+(
+    id             INT         NOT NULL AUTO_INCREMENT,
+    linkid         INT                  DEFAULT NULL,
+    channelid      INT         NOT NULL,
+    datetime       TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    type           ENUM (
+        'on_insert_channel',
+        'on_update_channel',
+        'on_insert_link',
+        'on_update_link',
+        'on_insert_reaction',
+        'on_insert_vote',
+        'on_insert_tag',
+        'on_insert_bookmark'
+        )                      NOT NULL,
+    PRIMARY KEY (id),
+    INDEX (datetime),
+    FOREIGN KEY (linkid) REFERENCES links (id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    FOREIGN KEY (channelid) REFERENCES channels (id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
+DELIMITER //
+CREATE TRIGGER on_insert_channel
+    AFTER INSERT
+    ON channels
+    FOR EACH ROW
+BEGIN
+    INSERT INTO interactions(channelid,type) VALUES(NEW.id,'on_insert_channel');
+END//
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER on_update_channel
+    AFTER UPDATE
+    ON channels
+    FOR EACH ROW
+BEGIN
+    IF (NEW.bio<>OLD.bio OR NEW.name<>OLD.name OR NEW.avatar<>OLD.avatar) THEN
+        INSERT INTO interactions(channelid,type) VALUES(NEW.id,'on_update_channel');
+    END IF;
+END//
+DELIMITER ;
 
 DELIMITER //
 CREATE TRIGGER on_insert_link
@@ -166,21 +187,84 @@ CREATE TRIGGER on_insert_link
     ON links
     FOR EACH ROW
 BEGIN
-    INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.id, 'post');
+    UPDATE channels SET postscount = postscount + 1 WHERE id = NEW.channelid;
+    INSERT INTO interactions(linkid,channelid,type) VALUES(NEW.id, NEW.channelid,'on_insert_link');
 END//
 DELIMITER ;
 
--- -----------------------------------------------------
--- Frontpage selection
--- -----------------------------------------------------
+DELIMITER //
+CREATE TRIGGER on_update_link
+    AFTER UPDATE
+    ON links
+    FOR EACH ROW
+BEGIN
+    IF (NEW.description<>OLD.description OR NEW.image<>OLD.image OR NEW.title<>OLD.title) THEN
+        INSERT INTO interactions(channelid,type) VALUES(NEW.id,'on_update_link');
+    END IF;
+END//
+DELIMITER ;
 
-CREATE TABLE frontpagelinks
+DELIMITER //
+CREATE TRIGGER on_delete_link
+    AFTER DELETE
+    ON links
+    FOR EACH ROW
+BEGIN
+    UPDATE channels SET postscount = postscount - 1 WHERE id = OLD.channelid;
+END//
+DELIMITER ;
+
+-- --------------------------------------------------
+-- reactions
+-- --------------------------------------------------
+
+CREATE TABLE reactions
 (
-    id    INT NOT NULL,
-    score INT NOT NULL DEFAULT 0,
+    id             INT       NOT NULL AUTO_INCREMENT,
+    createdatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    linkid         INT       NOT NULL,
+    channelid      INT       NOT NULL,
+    comment        TEXT               DEFAULT NULL,
     PRIMARY KEY (id),
-    INDEX (score)
-) ENGINE = MEMORY;
+    INDEX (channelid),
+    INDEX (linkid),
+    INDEX (createdatetime),
+    FOREIGN KEY (linkid) REFERENCES links (id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    FOREIGN KEY (channelid) REFERENCES channels (id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
+DELIMITER //
+CREATE TRIGGER on_insert_reaction
+    AFTER INSERT
+    ON reactions
+    FOR EACH ROW
+BEGIN
+    UPDATE links
+    SET reactionscount = reactionscount + 1,
+        uniquereactors = (SELECT COUNT(DISTINCT channelid) FROM reactions WHERE linkid = NEW.linkid)
+    WHERE id = NEW.linkid;
+    UPDATE channels SET reactionscount = reactionscount + 1 WHERE id = NEW.channelid;
+    INSERT INTO interactions(linkid,channelid,type) VALUES(NEW.linkid, NEW.channelid,'on_insert_reaction');
+END//
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER on_delete_reaction
+    AFTER DELETE
+    ON reactions
+    FOR EACH ROW
+BEGIN
+    UPDATE links
+    SET tagscount      = tagscount - 1,
+        uniquereactors = (SELECT COUNT(DISTINCT channelid) FROM reactions WHERE linkid = OLD.linkid)
+    WHERE id = OLD.linkid;
+    UPDATE channels SET reactionscount = reactionscount - 1 WHERE id = OLD.channelid;
+END//
+DELIMITER ;
 
 -- --------------------------------------------------
 -- Link tags
@@ -188,15 +272,15 @@ CREATE TABLE frontpagelinks
 
 CREATE TABLE tags
 (
-    id        INT         NOT NULL AUTO_INCREMENT,
-    linkid    INT         NOT NULL,
-    datetime  TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id             INT         NOT NULL AUTO_INCREMENT,
+    linkid         INT         NOT NULL,
     -- channel (=user) that added the tags
-    channelid INT                  DEFAULT NULL,
-    tag       VARCHAR(50) NOT NULL,
+    channelid      INT         NOT NULL,
+    tag            VARCHAR(50) NOT NULL,
     PRIMARY KEY (id),
-    UNIQUE INDEX (linkid, channelid, tag),
-    INDEX (tag),
+    INDEX (linkid),
+    INDEX (channelid),
+    UNIQUE INDEX (tag, linkid),
     FOREIGN KEY (linkid) REFERENCES links (id)
         ON DELETE CASCADE
         ON UPDATE CASCADE,
@@ -212,8 +296,8 @@ CREATE TRIGGER on_insert_tag
     FOR EACH ROW
 BEGIN
     UPDATE links SET tagscount = tagscount + 1 WHERE id = NEW.linkid;
-    INSERT INTO activities(channelid, linkid, activity)
-    VALUES (NEW.channelid, NEW.linkid, if(NEW.channelid = 1, 'autotag', 'tag'));
+    UPDATE channels SET tagscount = tagscount + 1 WHERE id = NEW.channelid;
+    INSERT INTO interactions(linkid,channelid,type) VALUES(NEW.linkid, NEW.channelid,'on_insert_tag');
 END//
 DELIMITER ;
 
@@ -224,22 +308,21 @@ CREATE TRIGGER on_delete_tag
     FOR EACH ROW
 BEGIN
     UPDATE links SET tagscount = tagscount - 1 WHERE id = OLD.linkid;
-    INSERT INTO activities(channelid, linkid, activity) VALUES (OLD.channelid, OLD.linkid, 'untag');
+    UPDATE channels SET tagscount = tagscount - 1 WHERE id = OLD.channelid;
 END//
 DELIMITER ;
 
 -- --------------------------------------------------
---
+-- The votes
 -- --------------------------------------------------
 
 CREATE TABLE votes
 (
-    id        INT       NOT NULL AUTO_INCREMENT,
-    linkid    INT       NOT NULL,
-    channelid INT       NOT NULL,
-    datetime  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id             INT NOT NULL AUTO_INCREMENT,
+    linkid         INT NOT NULL,
+    -- channel that votes
+    channelid      INT NOT NULL,
     PRIMARY KEY (id),
-    INDEX (datetime),
     UNIQUE INDEX (linkid, channelid),
     INDEX (channelid),
     FOREIGN KEY (linkid) REFERENCES links (id)
@@ -257,7 +340,19 @@ CREATE TRIGGER on_insert_vote
     FOR EACH ROW
 BEGIN
     UPDATE links SET votescount = votescount + 1 WHERE id = NEW.linkid;
-    INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.linkid, 'vote');
+    UPDATE channels SET votescount = votescount + 1 WHERE id = NEW.channelid;
+    INSERT INTO interactions(linkid,channelid,type) VALUES(NEW.linkid, NEW.channelid,'on_insert_vote');
+END//
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER on_delete_vote
+    AFTER DELETE
+    ON votes
+    FOR EACH ROW
+BEGIN
+    UPDATE links SET votescount = votescount - 1 WHERE id = OLD.linkid;
+    UPDATE channels SET votescount = votescount - 1 WHERE id = OLD.channelid;
 END//
 DELIMITER ;
 
@@ -267,12 +362,12 @@ DELIMITER ;
 
 CREATE TABLE bookmarks
 (
-    id        INT       NOT NULL AUTO_INCREMENT,
-    datetime  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    linkid    INT       NOT NULL,
-    channelid INT       NOT NULL,
+    id              INT       NOT NULL AUTO_INCREMENT,
+    createdatetime  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    linkid          INT       NOT NULL,
+    channelid       INT       NOT NULL,
     PRIMARY KEY (id),
-    INDEX (datetime),
+    INDEX (createdatetime),
     INDEX (linkid),
     INDEX (channelid),
     FOREIGN KEY (linkid) REFERENCES links (id)
@@ -290,7 +385,8 @@ CREATE TRIGGER on_insert_bookmark
     FOR EACH ROW
 BEGIN
     UPDATE links SET bookmarkscount = bookmarkscount + 1 WHERE id = NEW.linkid;
-    INSERT INTO activities(channelid, linkid, activity) VALUES (NEW.channelid, NEW.linkid, 'bookmark');
+    UPDATE channels SET bookmarkscount = bookmarkscount + 1 WHERE id = NEW.channelid;
+    INSERT INTO interactions(linkid,channelid,type) VALUES(NEW.linkid, NEW.channelid,'on_insert_bookmark');
 END//
 DELIMITER ;
 
@@ -301,164 +397,92 @@ CREATE TRIGGER on_delete_bookmark
     FOR EACH ROW
 BEGIN
     UPDATE links SET bookmarkscount = bookmarkscount - 1 WHERE id = OLD.linkid;
-    INSERT INTO activities(channelid, linkid, activity) VALUES (OLD.channelid, OLD.linkid, 'unbookmark');
+    UPDATE channels SET bookmarkscount = bookmarkscount - 1 WHERE id = OLD.channelid;
 END//
 DELIMITER ;
 
 -- -----------------------------------------------------
--- enriched activity stream
+-- Users (channels) that reacted last hour
+-- This query must be cached by the server
 -- -----------------------------------------------------
 
-CREATE VIEW activitystream AS
-SELECT activities.*,
-       channels.name as channelname,
-       links.title   as linktitle,
-       links.url     as linkurl,
-       links.image   as linkimage
-FROM activities
-         LEFT JOIN channels ON activities.channelid = channels.id
-         LEFT JOIN links ON activities.linkid = links.id AND activity IN ('post', 'tag', 'vote', 'bookmark');
+CREATE VIEW activeusers AS
+    SELECT DISTINCT channels_public_view.*
+    FROM channels_public_view JOIN interactions ON interactions.channelid=channels_public_view.id
+    WHERE interactions.datetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 HOUR);
 
 -- -----------------------------------------------------
 -- 24h Statistics
 -- -----------------------------------------------------
 
 CREATE VIEW statistics AS
-SELECT (SELECT COUNT(*) FROM links WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 DAY)) AS numposts24h,
-       (SELECT COUNT(*)
-        FROM links
-        WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 MONTH))                          AS numposts1m,
-       (SELECT COUNT(*) FROM channels)                                                                AS numchannels,
-       (SELECT COUNT(*)
-        FROM channels
-        WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 MONTH))                          AS newchannels1m,
-       (SELECT COUNT(*) FROM tags)                                                                    AS numtags;
+SELECT (SELECT COUNT(*) FROM links WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 DAY))      AS numposts24h,
+       (SELECT COUNT(*) FROM links WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 MONTH))    AS numposts1m,
+       (SELECT COUNT(*) FROM channels)                                                                     AS numchannels,
+       (SELECT COUNT(*) FROM channels WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 MONTH)) AS newchannels1m,
+       (SELECT COUNT(*) FROM tags)                                                                         AS numtags;
 
 -- -----------------------------------------------------
--- Most popular links
+-- Frontpage, this query should be cached by server
 -- -----------------------------------------------------
 
-CREATE VIEW trendinglinks AS
-SELECT *
-FROM links
-ORDER BY score DESC
-LIMIT 20;
+DELIMITER //
+CREATE EVENT expire_interactions
+    ON SCHEDULE EVERY 1 HOUR
+    DO
+    BEGIN
+        DELETE FROM interactions WHERE datetime < SUBDATE(CURRENT_TIMESTAMP, INTERVAL 24 HOUR);
+    END//
+DELIMITER ;
 
--- -----------------------------------------------------
--- Most popular tags
--- -----------------------------------------------------
+CREATE VIEW frontpage AS
+    SELECT * FROM links WHERE id IN (SELECT DISTINCT id FROM interactions)
+    -- order by score, give old posts some half life decay after 3 hours
+    ORDER BY (score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, createdatetime), 2))) DESC LIMIT 25;
+
+-- --------------------------------------------------------
+-- Most popular tags, this query should be cached by server
+-- --------------------------------------------------------
 
 CREATE VIEW trendingtopics AS
-SELECT tag, SUM(links.score) AS score
-FROM tags
-         JOIN frontpagelinks AS links ON tags.linkid = links.id
-GROUP BY tags.tag
-LIMIT 25;
+    SELECT tags.* FROM tags
+             JOIN frontpage AS links ON tags.linkid = links.id
+    GROUP BY tags.tag
+    ORDER BY SUM(links.score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, links.createdatetime), 2))) DESC
+    LIMIT 25;
 
--- -----------------------------------------------------
--- Most popular tags
--- -----------------------------------------------------
+-- --------------------------------------------------------
+-- Most popular tags, this query should be cached by server
+-- --------------------------------------------------------
 
 CREATE VIEW trendingchannels AS
-SELECT channels.*
-FROM frontpagelinks
-         JOIN links ON links.id = frontpagelinks.id
-         JOIN channels_public_view AS channels ON channels.id = links.channelid
-GROUP BY channels.id
-LIMIT 25;
-
-DELIMITER //
-CREATE EVENT select_frontpage
-    ON SCHEDULE EVERY 3 HOUR
-    DO
-    BEGIN
-        CREATE TABLE newfrontpagelinks LIKE frontpagelinks;
-
-        -- prepare new frontpage selection -> all existing links that had activity
-        INSERT INTO frontpagelinks(linkid)
-        SELECT id
-        FROM links
-                 LEFT JOIN activities ON activities.linkid = links.id;
-
-        -- calculate scores for frontpage
-        UPDATE frontpagelinks LEFT JOIN activities ON activities.linkid = frontpagelinks.linkid
-        SET score = score +
-                    CASE
-                        WHEN activity = 'post' THEN 0
-                        WHEN activity = 'tag' THEN 0
-                        WHEN activity = 'vote' THEN 10
-                        WHEN activity = 'bookmark' THEN 15
-                        END;
-
-        -- clean the old activity (older than 1 + 3 hours)
-        DELETE FROM activities WHERE activity.datetime < SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 HOUR);
-
-        START TRANSACTION;
-        DROP TABLE frontpagelinks;
-        RENAME TABLE newfrontpagelinks TO frontpagelinks;
-        COMMIT;
-
-    END//
-DELIMITER ;
-
--- -----------------------------------------------------
--- Channel score calculation
--- -----------------------------------------------------
-
-DELIMITER //
-CREATE EVENT calculate_reputation
-    ON SCHEDULE EVERY 24 HOUR
-    DO
-    BEGIN
-        -- add some half life to existing reputation, nothing lasts forever
-        -- UPDATE channel SET reputation = CAST(reputation * 0.9 AS INTEGER);
-
-        -- add the most recent scores
-    END//
-DELIMITER ;
+    SELECT channels.* FROM channels_public_view AS channels
+            JOIN frontpage AS links ON channels.id = links.channelid
+    GROUP BY channels.id
+    ORDER BY SUM(links.score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, links.createdatetime), 2))) DESC
+    LIMIT 25;
 
 -- -----------------------------------------------------
 -- RSS-feeds
 -- -----------------------------------------------------
 
-INSERT INTO channels(name)
-VALUES ("system");
-INSERT INTO channels(name, feedurl)
-VALUES ("Russia Today", "https://www.rt.com/rss");
-INSERT INTO channels(name, feedurl)
-VALUES ("Off-guardian", "https://off-guardian.org/feed");
-INSERT INTO channels(name, feedurl)
-VALUES ("Zero Hedge", "https://feeds.feedburner.com/zerohedge/feed");
-INSERT INTO channels(name, feedurl)
-VALUES ("Infowars", "https://www.infowars.com/rss.xml");
-INSERT INTO channels(name, feedurl)
-VALUES ("Xandernieuws", "https://www.xandernieuws.net/feed");
-INSERT INTO channels(name, feedurl)
-VALUES ("CNET", "https://www.cnet.com/rss/all");
-INSERT INTO channels(name, feedurl)
-VALUES ("Gizmodo", "https://gizmodo.com/rss");
+INSERT INTO channels(name) VALUES ("system");
+INSERT INTO channels(name, feedurl) VALUES ("Russia Today", "https://www.rt.com/rss");
+INSERT INTO channels(name, feedurl) VALUES ("Off-guardian", "https://off-guardian.org/feed");
+INSERT INTO channels(name, feedurl) VALUES ("Zero Hedge", "https://feeds.feedburner.com/zerohedge/feed");
+INSERT INTO channels(name, feedurl) VALUES ("Infowars", "https://www.infowars.com/rss.xml");
+INSERT INTO channels(name, feedurl) VALUES ("Xandernieuws", "https://www.xandernieuws.net/feed");
+INSERT INTO channels(name, feedurl) VALUES ("CNET", "https://www.cnet.com/rss/all");
+INSERT INTO channels(name, feedurl) VALUES ("Gizmodo", "https://gizmodo.com/rss");
 
-# DELIMITER //
-# CREATE EVENT expire_autoposted_links
-#     ON SCHEDULE EVERY 1 DAY
-#     DO
-#     DELETE links.* FROM links
-#     JOIN channels ON links.channelid=channel.id
-#     WHERE NOT channel.feedurl IS NULL
-#       AND links.createdatetime < SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 WEEK)
-#       AND links.votescount=0;
-# DELIMITER ;
-#
-# DELIMITER //
-# CREATE TRIGGER reject_old_links
-#     BEFORE INSERT
-#     ON links
-#     FOR EACH ROW
-# BEGIN
-#     IF (NEW.createdatetime < SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 WEEK)) THEN
-#     BEGIN
-#
-#     END IF;
-# END//
-# DELIMITER ;
-#
+CREATE VIEW activitystream AS
+    SELECT
+        interactions.*,
+        channels.name AS channelname,
+        channels.avatar AS channelavatar,
+        links.title AS linktitle,
+        links.image AS linkimage,
+        links.description AS linktext
+    FROM interactions
+        JOIN channels_public_view AS channels ON channels.id=interactions.channelid
+        LEFT JOIN links ON links.id=interactions.linkid AND interactions.type = 'on_insert_link'
