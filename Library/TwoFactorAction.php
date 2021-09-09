@@ -11,7 +11,7 @@ namespace Zaplog\Library {
     class TwoFactorAction extends \SlimRestApi\Infra\TwoFactorAction
     {
         // overload of base class
-        protected function sendMail($receiver, $sender, $sendername, $subject, $body)
+        protected function sendMail(string $receiver, string $sender, string $sendername, string $subject, string $body)
         {
             // Mail the secret to the recipient
             Mail::setSubject($subject);
@@ -22,7 +22,6 @@ namespace Zaplog\Library {
             if (Mail::send() != true) {
                 throw new EmailException(Mail::getErrorInfo(), 500);
             }
-            return $this;
         }
     }
 }
