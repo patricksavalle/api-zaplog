@@ -44,6 +44,9 @@ namespace Zaplog {
         {
             parent::__construct();
 
+            // Add the two factor handler to the server
+            $this->get("/2factor/{utoken:[[:alnum:]]{32}}", new TwoFactorAction);
+
             // -----------------------------------------
             // show the API homepage
             // -----------------------------------------

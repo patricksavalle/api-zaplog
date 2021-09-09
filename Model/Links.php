@@ -63,36 +63,42 @@ namespace Zaplog\Model {
 
         static public function getRelatedLinks($id): array
         {
-            return Db::execute("SELECT links.*, GROUP_CONCAT(tags.tag SEPARATOR ',') AS tags, @lid:=:id AS parentid 
-                FROM links JOIN tags ON tags.linkid=links.id AND links.id<>@lid
-                AND tag IN 
-                    (
-                        SELECT tags.tag FROM links LEFT JOIN tags on tags.linkid=links.id WHERE links.id=@lid 
-                    )
-                GROUP BY links.id ORDER BY COUNT(links.id) DESC LIMIT 5",
-                [":id" => $id])->fetchAll();
+            return Db::execute("SELECT GROUP_CONCAT(tags.tag SEPARATOR ',') AS tags, links.*
+                FROM links JOIN tags ON tags.linkid=links.id AND links.id<>:id1
+                WHERE tag IN (
+                        SELECT tags.tag FROM links JOIN tags on tags.linkid=links.id WHERE links.id=:id2 
+                ) GROUP BY links.id ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT 5",
+                [
+                    ":id1" => $id,
+                    ":id2" => $id,
+                ]
+            )->fetchAll();
         }
 
         static public function getSingleLink($id): array
         {
+            // get the link itself
             $link = Db::execute("SELECT * FROM links WHERE id=:id", [":id" => $id])->fetch();
             if (!$link) throw new ResourceNotFoundException;
 
+            // get its tags
             $tags = Db::execute("SELECT * FROM tags WHERE linkid=:id GROUP BY tag", [":id" => $id])->fetchAll();
 
+            // get and cache the links related by tags
             $rels = (new MemcachedFunction)([__CLASS__, 'getRelatedLinks'], [$id], 60);
 
-            $activity = Activities::get(0, 25, NULL, $id);
+            // get all interactions on the link, like voting, tagging, bookmarking, reacting
+            $interaction = Activities::get(0, 25, NULL, $id);
 
+            // update the view counter
             Db::execute("UPDATE links SET viewscount = viewscount + 1 WHERE id=:id", [":id" => $id]);
 
-            return
-                [
-                    "link" => $link,
-                    "tags" => $tags,
-                    "related" => $rels,
-                    "activity" => $activity,
-                ];
+            return [
+                "link" => $link,
+                "tags" => $tags,
+                "related" => $rels,
+                "interaction" => $interaction,
+            ];
         }
     }
 }
