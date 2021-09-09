@@ -27,7 +27,7 @@ USE zaplog;
 CREATE TABLE channels
 (
     id             INT       NOT NULL AUTO_INCREMENT,
-    -- we don't store anything from the user, just a hash of an identity (email, phone, anything)
+    -- we don't store anything from the user, just an identity hash (email, phone, anything)
     userid         CHAR(32)           DEFAULT NULL,
     name           VARCHAR(55)        DEFAULT NULL,
     language       CHAR(2)            DEFAULT NULL,
@@ -97,7 +97,7 @@ CREATE TABLE links
     crawldatetime  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     channelid      INT           NOT NULL,
     published      BOOL                   DEFAULT true,
-    -- urlhash        CHAR(32) GENERATED ALWAYS AS (MD5(url)),
+    urlhash        CHAR(32) GENERATED ALWAYS AS (MD5(url)),
     url            VARCHAR(1024) NOT NULL,
     title          VARCHAR(256)  NOT NULL,
     copyright      VARCHAR(256)           DEFAULT NULL,
@@ -120,7 +120,8 @@ CREATE TABLE links
                        ),
     PRIMARY KEY (id),
     INDEX (channelid),
-    INDEX (published),
+    INDEX (urlhash),
+    index (published),
     INDEX (createdatetime),
     INDEX (score),
     FOREIGN KEY (channelid) REFERENCES channels (id)
