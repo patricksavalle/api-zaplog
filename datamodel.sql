@@ -52,11 +52,11 @@ CREATE TABLE channels
     uniquereactors INT                DEFAULT 0,
     tagscount      INT                DEFAULT 0,
     score          INT GENERATED ALWAYS AS (
-                               (uniquereactors + 1) * reactionscount +
-                               (uniquevoters + 1) * votescount +
-                               bookmarkscount * 10 +
-                               postscount * 20 +
-                               IF(tagscount / (postscount + 1) > 3 AND tagscount / (postscount + 1) < 8, 5, 0) +
+                               FLOOR(LN(uniquereactors + 2.71828) * reactionscount * 2) +
+                               FLOOR(LN(uniquevoters + 2.71828) * votescount * 5) +
+                               bookmarkscount * 20 +
+                               postscount * 10 +
+                               tagscount * 1 +
                                FLOOR(LOG(viewscount + 1))
                        ),
     prevscore      INT                DEFAULT 0,
@@ -111,12 +111,11 @@ CREATE TABLE links
     votescount     INT                    DEFAULT 0,
     tagscount      INT                    DEFAULT 0,
     score          INT GENERATED ALWAYS AS (
-                               reactionscount * 1 +
-                               uniquereactors * 5 +
-                               votescount * 5 +
-                               bookmarkscount * 10 +
-                               IF(tagscount > 3 AND tagscount < 8, 5, 0) +
-                               FLOOR(LOG(viewscount + 1))
+                                FLOOR(LN(uniquereactors + 2.71828) * reactionscount * 2) +
+                                votescount * 5 +
+                                bookmarkscount * 20 +
+                                tagscount * 1 +
+                                FLOOR(LOG(viewscount + 1))
                        ),
     PRIMARY KEY (id),
     INDEX (channelid),
@@ -203,6 +202,9 @@ BEGIN
     IF (NEW.description<>OLD.description OR NEW.image<>OLD.image OR NEW.title<>OLD.title) THEN
         INSERT INTO interactions(channelid,type) VALUES(NEW.id,'on_update_link');
     END IF;
+    IF (NEW.viewscount<>OLD.viewscount) THEN
+        UPDATE channels SET viewscount=viewscount+(NEW.viewscount-OLD.viewscount) WHERE id=NEW.channelid;
+    END IF;
 END//
 DELIMITER ;
 
@@ -212,7 +214,7 @@ CREATE TRIGGER on_delete_link
     ON links
     FOR EACH ROW
 BEGIN
-    UPDATE channels SET postscount = postscount - 1 WHERE id = OLD.channelid;
+    UPDATE channels SET postscount = postscount - 1, viewscount = viewscount - OLD.viewscount WHERE id = OLD.channelid;
 END//
 DELIMITER ;
 
@@ -476,6 +478,18 @@ CREATE VIEW trendingchannels AS
     ORDER BY SUM(links.score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, links.createdatetime), 2))) DESC
     LIMIT 25;
 
+CREATE VIEW activitystream AS
+    SELECT
+        interactions.*,
+        channels.name AS channelname,
+        channels.avatar AS channelavatar,
+        links.title AS linktitle,
+        links.image AS linkimage,
+        links.description AS linktext
+    FROM interactions
+        JOIN channels_public_view AS channels ON channels.id=interactions.channelid
+        LEFT JOIN links ON links.id=interactions.linkid AND interactions.type = 'on_insert_link';
+
 -- -----------------------------------------------------
 -- RSS-feeds
 -- -----------------------------------------------------
@@ -489,14 +503,3 @@ INSERT INTO channels(name, feedurl) VALUES ("Xandernieuws", "https://www.xandern
 INSERT INTO channels(name, feedurl) VALUES ("CNET", "https://www.cnet.com/rss/all");
 INSERT INTO channels(name, feedurl) VALUES ("Gizmodo", "https://gizmodo.com/rss");
 
-CREATE VIEW activitystream AS
-    SELECT
-        interactions.*,
-        channels.name AS channelname,
-        channels.avatar AS channelavatar,
-        links.title AS linktitle,
-        links.image AS linkimage,
-        links.description AS linktext
-    FROM interactions
-        JOIN channels_public_view AS channels ON channels.id=interactions.channelid
-        LEFT JOIN links ON links.id=interactions.linkid AND interactions.type = 'on_insert_link'

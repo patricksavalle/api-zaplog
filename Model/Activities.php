@@ -27,6 +27,12 @@ namespace Zaplog\Model {
                     ":offset" => $offset,
                 ])->fetchAll();
 
+            // for link activity no postprocessing
+
+            if (!empty($linkid)) {
+                return $stream;
+            }
+
             // postprocessing, group same channel + type except when new link
 
             $compare = function (stdClass $item1, stdClass $item2): bool {

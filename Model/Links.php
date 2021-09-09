@@ -85,7 +85,6 @@ namespace Zaplog\Model {
             $activity = Activities::get(0, 25, NULL, $id);
 
             Db::execute("UPDATE links SET viewscount = viewscount + 1 WHERE id=:id", [":id" => $id]);
-            Db::execute("INSERT IGNORE INTO views(id) VALUES(:id) ", [":id" => $id]);
 
             return
                 [
