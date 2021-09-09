@@ -228,14 +228,12 @@ namespace Zaplog {
                     stdClass $args): Response {
                     $top = Db::execute("SELECT * FROM channels_public_view ORDER BY reputation DESC LIMIT 10")->fetchAll();
                     $new = Db::execute("SELECT * FROM channels_public_view ORDER BY id DESC LIMIT 10")->fetchAll();
-                    $updated = Db::execute("SELECT channels.* FROM channels_public_view AS channels
-                        JOIN links ON links.channelid=channels.id
-                        ORDER BY links.createdatetime DESC LIMIT 10")->fetchAll();
+                    $upd = Db::execute("SELECT * FROM channels_public_view ORDER BY updatedatetime DESC LIMIT 10")->fetchAll();
                     return $response->withJson(
                         [
                             "top10" => $top,
                             "new10" => $new,
-                            "updated10" => $updated,
+                            "updated10" => $upd,
                         ]
                     );
                 })

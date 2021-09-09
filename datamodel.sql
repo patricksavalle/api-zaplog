@@ -59,12 +59,14 @@ CREATE TABLE channels
                                IF(tagscount / (postscount + 1) > 3 AND tagscount / (postscount + 1) < 8, 5, 0) +
                                FLOOR(LOG(viewscount + 1))
                        ),
-    reputation     INT                DEFAULT 0,
+    prevscore      INT                DEFAULT 0,
+    -- score with a half life / decay
+    reputation     FLOAT              DEFAULT 0.0,
     PRIMARY KEY (id),
     UNIQUE INDEX (userid),
     UNIQUE INDEX (name),
     UNIQUE INDEX (feedurl),
-    INDEX (score)
+    INDEX (reputation)
 );
 
 -- -----------------------------------------------------
@@ -407,8 +409,8 @@ DELIMITER ;
 -- -----------------------------------------------------
 
 CREATE VIEW activeusers AS
-    SELECT DISTINCT channels_public_view.*
-    FROM channels_public_view JOIN interactions ON interactions.channelid=channels_public_view.id
+    SELECT DISTINCT channels.*
+    FROM channels_public_view AS channels JOIN interactions ON interactions.channelid=channels.id
     WHERE interactions.datetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 HOUR);
 
 -- -----------------------------------------------------
@@ -427,10 +429,22 @@ SELECT (SELECT COUNT(*) FROM links WHERE createdatetime > SUBDATE(CURRENT_TIMEST
 -- -----------------------------------------------------
 
 DELIMITER //
+CREATE EVENT apply_reputation_decay
+    ON SCHEDULE EVERY 24 HOUR
+    DO
+    BEGIN
+        -- apply half life decay to current channel reputations and add delta score,
+        -- 0.9981 every day halfs the reputation in a year
+        UPDATE channels SET reputation = reputation * 0.9981 + score - prevscore, prevscore = score;
+    END//
+DELIMITER ;
+
+DELIMITER //
 CREATE EVENT expire_interactions
     ON SCHEDULE EVERY 1 HOUR
     DO
     BEGIN
+        -- remove interactions
         DELETE FROM interactions WHERE datetime < SUBDATE(CURRENT_TIMESTAMP, INTERVAL 24 HOUR);
     END//
 DELIMITER ;

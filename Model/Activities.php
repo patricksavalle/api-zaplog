@@ -27,17 +27,17 @@ namespace Zaplog\Model {
                     ":offset" => $offset,
                 ])->fetchAll();
 
-            // postprocessing, group consequtive rows by same channel, same type, same link
-            // o(n) inefficiency
+            // postprocessing, group same channel + type except when new link
 
             $compare = function (stdClass $item1, stdClass $item2): bool {
-                return $item1->channelid === $item2->channelid
-                    and $item1->linkid === $item2->linkid
+                // this function controls how interactions are grouped
+                return  $item1->type !== 'on_insert_link'
+                    and $item1->channelid === $item2->channelid
                     and $item1->type === $item2->type;
             };
 
-            $find = function(stdClass $item, iterable $iterable, callable $compare): bool {
-                foreach ($iterable as $check) {
+            $find = function (stdClass $item, array $array, callable $compare): bool {
+                foreach ($array as $check) {
                     if ($compare($check, $item)) {
                         return true;
                     }
@@ -47,7 +47,7 @@ namespace Zaplog\Model {
 
             $stream2 = [];
             foreach ($stream as $value) {
-                if (!$find($value,$stream2, $compare)) {
+                if (!$find($value, $stream2, $compare)) {
                     $stream2[] = $value;
                 }
             }
