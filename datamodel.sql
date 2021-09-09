@@ -97,7 +97,7 @@ CREATE TABLE links
     urlhash        CHAR(32) GENERATED ALWAYS AS (MD5(url)),
     url            VARCHAR(1024) NOT NULL,
     title          VARCHAR(256)  NOT NULL,
-    copyright      VARCHAR(256)  NOT NULL,
+    copyright      VARCHAR(256)           DEFAULT NULL,
     description    TEXT                   DEFAULT NULL,
     image          VARCHAR(256)           DEFAULT NULL,
     -- because this system is very read intensive we will keep totals in this table
