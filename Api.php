@@ -32,6 +32,7 @@ namespace Zaplog {
     use Psr\Http\Message\ServerRequestInterface as Request;
     use SlimRestApi\Infra\Db;
     use Zaplog\Exception\ResourceNotFoundException;
+    use Zaplog\Exception\ServerException;
     use Zaplog\Library\TwoFactorAction;
     use Zaplog\Model\Activities;
     use Zaplog\Model\FeedReader;
@@ -44,7 +45,10 @@ namespace Zaplog {
         {
             parent::__construct();
 
+            // -----------------------------------------
             // Add the two factor handler to the server
+            // -----------------------------------------
+
             $this->get("/2factor/{utoken:[[:alnum:]]{32}}", new TwoFactorAction);
 
             // -----------------------------------------
@@ -170,7 +174,7 @@ namespace Zaplog {
                         GROUP BY tag ORDER BY COUNT(tag) DESC LIMIT 10",
                         [":channelid" => $args->id])->fetchAll();
                     // TODO https://github.com/zaplogv2/api.zaplog/issues/12
-                    $relatedlinks = Db::execute("SELECT 1", [])->fetchAll();
+                    $relatedlinks = Db::execute("SELECT * FROM links LIMIT 5", [])->fetchAll();
                     $activity = Activities::get(0, 25, $args->id, NULL);
                     return $response->withJson(
                         [
@@ -196,25 +200,26 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    Db::execute("UPDATE channels SET 
-                        name=IFNULL(:name,name), 
-                        avatar=IFNULL(:avatar,avatar), 
-                        bio=IFNULL(:bio,bio), 
-                        feedurl=IFNULL(:feedurl,feedurl), 
-                        themeurl=IFNULL(:themeurl,themeurl) WHERE id=:channelid",
-                        [
-                            ":name" => $args->name,
-                            ":avatar" => $args->avatar,
-                            ":bio" => $args->bio,
-                            ":feedurl" => $args->feedurl,
-                            ":themeurl" => $args->feedurl,
-                            ":channelid" => (new MemcachedFunction)(['\Zaplog\Middleware\Authentication', 'getSession'])->id,
-                        ]);
+                    (new ServerException)(
+                        Db::execute("UPDATE channels SET 
+                            name=IFNULL(:name,name), 
+                            avatar=IFNULL(:avatar,avatar), 
+                            bio=IFNULL(:bio,bio), 
+                            feedurl=IFNULL(:feedurl,feedurl), 
+                            themeurl=IFNULL(:themeurl,themeurl) WHERE id=:channelid",
+                            [
+                                ":name" => $args->name,
+                                ":avatar" => $args->avatar,
+                                ":bio" => $args->bio,
+                                ":feedurl" => $args->feedurl,
+                                ":themeurl" => $args->feedurl,
+                                ":channelid" => (new MemcachedFunction)(['\Zaplog\Middleware\Authentication', 'getSession'])->id,
+                            ])->rowCount() > 0);
                     return $response->withJson(null);
                 })
                     ->add(new Authentication)
                     ->add(new BodyParameters([
-                        '{name:[\w+]{3,55}},null',
+                        '{name:[\w-]{3,55}},null',
                         '{feedurl:\url},null',
                         '{themeurl:\url},null',
                         '{avatar:\url},null',
@@ -229,16 +234,11 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    $top = Db::execute("SELECT * FROM channels_public_view ORDER BY reputation DESC LIMIT 10")->fetchAll();
-                    $new = Db::execute("SELECT * FROM channels_public_view ORDER BY id DESC LIMIT 10")->fetchAll();
-                    $upd = Db::execute("SELECT * FROM channels_public_view ORDER BY updatedatetime DESC LIMIT 10")->fetchAll();
-                    return $response->withJson(
-                        [
-                            "top10" => $top,
-                            "new10" => $new,
-                            "updated10" => $upd,
-                        ]
-                    );
+                    return $response->withJson([
+                        "top10" => Db::execute("SELECT * FROM channels_public_view ORDER BY reputation DESC LIMIT 10")->fetchAll(),
+                        "new10" => Db::execute("SELECT * FROM channels_public_view ORDER BY id DESC LIMIT 10")->fetchAll(),
+                        "updated10" => Db::execute("SELECT * FROM channels_public_view ORDER BY updatedatetime DESC LIMIT 10")->fetchAll(),
+                    ]);
                 })
                     ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly);
@@ -253,13 +253,11 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                return $response->withJson(
-                    [
-                        "trendinglinks" => Db::execute("SELECT * FROM frontpage")->fetchAll(),
-                        "trendingtags" => Db::execute("SELECT * FROM trendingtopics")->fetchAll(),
-                        "trendingchannels" => Db::execute("SELECT * FROM trendingchannels")->fetchAll(),
-                    ]
-                );
+                return $response->withJson([
+                    "trendinglinks" => Db::execute("SELECT * FROM frontpage")->fetchAll(),
+                    "trendingtags" => Db::execute("SELECT * FROM trendingtopics")->fetchAll(),
+                    "trendingchannels" => Db::execute("SELECT * FROM trendingchannels")->fetchAll(),
+                ]);
             })
                 ->add(new Memcaching(60/*sec*/))
                 ->add(new ReadOnly);
@@ -267,16 +265,17 @@ namespace Zaplog {
             $this->group('/links', function () {
 
                 // ------------------------------------------------------
-                // add a link, retrieve its metadata, add to user channel
+                // post from link, retrieve its metadata, add to user channel
                 // ------------------------------------------------------
 
                 $this->post("/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Links::postLinkFromUrl(
-                        (string)(new MemcachedFunction)(['\Zaplog\Middleware\Authentication', 'getSession'])->id,
-                        urldecode($args->urlencoded)));
+                    $url = urldecode($args->urlencoded);
+                    assert(filter_var($url, FILTER_VALIDATE_URL) !== false);
+                    $id = (new MemcachedFunction)(['\Zaplog\Middleware\Authentication', 'getSession'])->id;
+                    return $response->withJson(Links::postLinkFromUrl((string)$id, $url));
                 })
                     ->add(new Authentication);
 
@@ -291,6 +290,36 @@ namespace Zaplog {
                     return $response->withJson(Links::getSingleLink($args->id));
                 });
 
+                // ----------------------------------------------------------------
+                // Change channel properties of authenticated user's channel
+                // ----------------------------------------------------------------
+
+                $this->patch("/id/{id:\d{1,10}}", function (
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
+                    (new ServerException)(
+                        Db::execute("UPDATE links SET 
+                            published=IFNULL(:published,published), 
+                            title=IFNULL(:title,title), 
+                            description=IFNULL(:description,description) 
+                            WHERE id=:linkid AND channelid=:channelid",
+                            [
+                                ":published" => $args->published,
+                                ":title" => $args->title,
+                                ":description" => $args->description,
+                                "linkid" => $args->id,
+                                ":channelid" => (new MemcachedFunction)(['\Zaplog\Middleware\Authentication', 'getSession'])->id,
+                            ])->rowCount() > 0);
+                    return $response->withJson(null);
+                })
+                    ->add(new Authentication)
+                    ->add(new BodyParameters([
+                        '{title:[\w-]{3,55}},null',
+                        '{description:\xhtml,null',
+                        '{published:\boolean,null',
+                    ]));
+
                 // --------------------------------------------------
                 // delete a link by it's id
                 // --------------------------------------------------
@@ -299,12 +328,12 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    if (Db::execute("DELETE FROM links WHERE id =:id and channelid=:channelid",
+                    (new ResourceNotFoundException)(
+                        Db::execute("DELETE FROM links WHERE id =:id and channelid=:channelid",
                             [
                                 ":id" => $args->id,
                                 ":channelid" => (new MemcachedFunction)(['\Zaplog\Middleware\Authentication', 'getSession'])->id,
-                            ])->rowCount() == 0)
-                        throw new ResourceNotFoundException;
+                            ])->rowCount() > 0);
                     return $response->withJson(null);
                 })
                     ->add(new Authentication);
@@ -317,8 +346,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    $links = Db::execute("SELECT * FROM links 
-                        ORDER BY id DESC LIMIT :offset,:count",
+                    $links = Db::execute("SELECT * FROM links ORDER BY id DESC LIMIT :offset,:count",
                         [
                             ":offset" => $args->offset,
                             ":count" => $args->count,
@@ -366,8 +394,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    $links = Db::execute("SELECT * FROM links WHERE channelid = :channel
-                        ORDER BY id DESC LIMIT :offset,:count",
+                    $links = Db::execute("SELECT * FROM links WHERE channelid=:channel ORDER BY id DESC LIMIT :offset,:count",
                         [
                             ":channel" => $args->id,
                             ":offset" => $args->offset,
@@ -405,14 +432,12 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    if (Db::execute("INSERT INTO votes(linkid, channelid) VALUES(:id, :channelid)",
+                    (new ServerException)(
+                        Db::execute("INSERT INTO votes(linkid, channelid) VALUES(:id, :channelid)",
                             [
                                 ":id" => $args->id,
                                 ":channelid" => (new MemcachedFunction)(['\Zaplog\Middleware\Authentication', 'getSession'])->id,
-                            ])->rowCount() == 0
-                    ) {
-                        throw new Exception;
-                    }
+                            ])->rowCount() > 0);
                     return $response->withJson(Db::lastInsertId());
                 })
                     ->add(new Authentication);
@@ -429,15 +454,13 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    if (Db::execute("INSERT INTO tags(linkid, channelid, tag) VALUES(:id, :channelid, :tag)",
+                    (new ServerException)(
+                        Db::execute("INSERT INTO tags(linkid, channelid, tag) VALUES(:id, :channelid, :tag)",
                             [
                                 ":id" => $args->id,
                                 ":tag" => $args->tag,
                                 ":channelid" => (new MemcachedFunction)(['\Zaplog\Middleware\Authentication', 'getSession'])->id,
-                            ])->rowCount() == 0
-                    ) {
-                        throw new Exception;
-                    }
+                            ])->rowCount() > 0);
                     return $response->withJson(Db::lastInsertId());
                 })
                     ->add(new Authentication);
@@ -450,9 +473,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(
-                        Db::execute("SELECT tag, COUNT(tag) as linkscount FROM tags GROUP BY tag ORDER BY tag", [])->fetchAll()
-                    );
+                    return $response->withJson(Db::execute("SELECT * FROM tagindex")->fetchAll());
                 })
                     ->add(new Memcaching(10/*sec*/))
                     ->add(new ReadOnly);
@@ -465,13 +486,11 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(
-                        [
-                            "top" => Db::execute("SELECT * FROM trendingtopics")->fetchAll(),
-                            "new" => Db::execute("SELECT * FROM trendingtopics")->fetchAll(),
-                            "trending" => Db::execute("SELECT * FROM trendingtopics")->fetchAll(),
-                        ]
-                    );
+                    return $response->withJson([
+                        "top" => Db::execute("SELECT * FROM trendingtopics")->fetchAll(),
+                        "new" => Db::execute("SELECT * FROM trendingtopics")->fetchAll(),
+                        "trending" => Db::execute("SELECT * FROM trendingtopics")->fetchAll(),
+                    ]);
                 })
                     ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly);
@@ -484,14 +503,12 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    if (Db::execute("DELETE tags FROM tags WHERE id=:id and channelid=:channelid",
+                    (new ServerException)(
+                        Db::execute("DELETE tags FROM tags WHERE id=:id and channelid=:channelid",
                             [
                                 ":id" => $args->id,
                                 ":channelid" => (new MemcachedFunction)(['\Zaplog\Middleware\Authentication', 'getSession'])->id,
-                            ])->rowCount() == 0
-                    ) {
-                        throw new Exception;
-                    }
+                            ])->rowCount() > 0);
                     return $response->withJson(null);
                 })
                     ->add(new Authentication);

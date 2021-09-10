@@ -6,9 +6,9 @@ namespace Zaplog\Exception {
 
     use Exception;
 
-    class ResourceNotFoundException extends Exception
+    class ServerException extends Exception
     {
-        public function __construct(string $message = "", int $httpcode = 404)
+        public function __construct(string $message = "", int $httpcode = 500)
         {
             parent::__construct($message, $httpcode);
         }
