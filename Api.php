@@ -237,7 +237,8 @@ namespace Zaplog {
                     return $response->withJson([
                         "top10" => Db::execute("SELECT * FROM channels_public_view ORDER BY reputation DESC LIMIT 10")->fetchAll(),
                         "new10" => Db::execute("SELECT * FROM channels_public_view ORDER BY id DESC LIMIT 10")->fetchAll(),
-                        "updated10" => Db::execute("SELECT * FROM channels_public_view ORDER BY updatedatetime DESC LIMIT 10")->fetchAll(),
+                        // TODO query is dummy
+                        "updated10" => Db::execute("SELECT * FROM channels_public_view ORDER BY id DESC LIMIT 10")->fetchAll(),
                     ]);
                 })
                     ->add(new Memcaching(60/*sec*/))
