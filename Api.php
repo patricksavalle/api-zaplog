@@ -89,17 +89,11 @@ namespace Zaplog {
                     $loginurl = urldecode($args->loginurlencoded);
                     (new UserException)(filter_var($email, FILTER_VALIDATE_EMAIL));
                     (new UserException)(filter_var($loginurl, FILTER_VALIDATE_URL));
-                    $action = new TwoFactorAction;
-                    try {
-                        $action
+                        (new TwoFactorAction)
                             ->addAction('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'createSession'], [$email])
                             ->createToken()
                             ->sendToken($email, $loginurl, "Your single-use login link", "Press the button to login", "Login");
                         return $response->withJson(null);
-                    } catch (Exception $e) {
-                        // TODO remove in production
-                        return $response->withJson($action->utoken);
-                    }
                 });
 
                 // ----------------------------------------------------------------
@@ -280,7 +274,8 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     return $response->withJson(Links::getSingleLink($args->id));
-                });
+                })
+                    ->add(new QueryParameters(['{http_referer:\url},null']));
 
                 // ----------------------------------------------------------------
                 // Change channel properties of authenticated user's channel

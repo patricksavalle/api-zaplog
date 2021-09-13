@@ -27,19 +27,6 @@ final class Mail extends Singleton
         static::setProperty('Body', $body);
     }
 
-    static public function addAddress(string $address)
-    {
-        if (empty(Ini::get('mailgun_testmode_redirect_address'))
-            or in_array(substr($address, strpos($address, '@') + 1), Ini::get('mailgun_testmode_allowed_domain'))
-        ) {
-            parent::addAddress($address);
-        } else {
-            foreach (Ini::get('mailgun_testmode_redirect_address') as $redirect) {
-                parent::addAddress($redirect);
-            }
-        }
-    }
-
     static public function setAltBody(string $body)
     {
         static::setProperty('AltBody', $body);
