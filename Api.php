@@ -19,7 +19,6 @@ namespace Zaplog {
     require_once BASE_PATH . '/Exception/EmailException.php';
 
     use stdClass;
-    use Exception;
     use ContentSyndication\HtmlMetadata;
     use SlimRestApi\Infra\MemcachedFunction;
     use SlimRestApi\Middleware\CliRequest;
