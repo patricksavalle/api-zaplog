@@ -1,6 +1,6 @@
 <?php /** @noinspection PhpUndefinedMethodInspection */
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Zaplog\Library {
 
@@ -20,7 +20,7 @@ namespace Zaplog\Library {
             Mail::isHTML(true);
             Mail::setBody($body);
             if (Mail::send() != true) {
-                throw new EmailException(Mail::getErrorInfo(), 500);
+                throw new EmailException(Mail::getErrorInfo());
             }
         }
     }

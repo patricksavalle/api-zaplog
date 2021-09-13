@@ -52,12 +52,12 @@ CREATE TABLE channels
     uniquereactors INT                DEFAULT 0,
     tagscount      INT                DEFAULT 0,
     score          INT GENERATED ALWAYS AS (
-                               FLOOR(LN(uniquereactors + 2.71828) * reactionscount * 2) +
-                               FLOOR(LN(uniquevoters + 2.71828) * votescount * 5) +
-                               bookmarkscount * 20 +
-                               postscount * 10 +
-                               tagscount * 1 +
-                               FLOOR(LOG(viewscount + 1))
+                           FLOOR(LN(uniquereactors + 2.71828) * reactionscount * 2) +
+                           FLOOR(LN(uniquevoters + 2.71828) * votescount * 5) +
+                           bookmarkscount * 20 +
+                           postscount * 10 +
+                           tagscount * 1 +
+                           FLOOR(LOG(viewscount + 1))
                        ),
     prevscore      INT                DEFAULT 0,
     -- score with a half life / decay
@@ -77,6 +77,7 @@ CREATE VIEW channels_public_view AS
 SELECT id,
        name,
        createdatetime,
+       updatedatetime,
        bio,
        avatar,
        postscount,
@@ -96,7 +97,7 @@ CREATE TABLE links
     createdatetime TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     crawldatetime  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     channelid      INT           NOT NULL,
-    published      BOOL                   DEFAULT true,
+    published      BOOL          NOT NULL DEFAULT TRUE,
     urlhash        CHAR(32) GENERATED ALWAYS AS (MD5(url)),
     url            VARCHAR(1024) NOT NULL,
     title          VARCHAR(256)  NOT NULL,
@@ -112,16 +113,16 @@ CREATE TABLE links
     votescount     INT                    DEFAULT 0,
     tagscount      INT                    DEFAULT 0,
     score          INT GENERATED ALWAYS AS (
-                                FLOOR(LN(uniquereactors + 2.71828) * reactionscount * 2) +
-                                votescount * 5 +
-                                bookmarkscount * 20 +
-                                tagscount * 1 +
-                                FLOOR(LOG(viewscount + 1))
+                           FLOOR(LN(uniquereactors + 2.71828) * reactionscount * 2) +
+                           votescount * 5 +
+                           bookmarkscount * 20 +
+                           tagscount * 1 +
+                           FLOOR(LOG(viewscount + 1))
                        ),
     PRIMARY KEY (id),
     INDEX (channelid),
     INDEX (urlhash),
-    index (published),
+    INDEX (published),
     INDEX (createdatetime),
     INDEX (score),
     FOREIGN KEY (channelid) REFERENCES channels (id)
@@ -201,7 +202,11 @@ CREATE TRIGGER on_update_link
     ON links
     FOR EACH ROW
 BEGIN
-    IF (NEW.description<>OLD.description OR NEW.image<>OLD.image OR NEW.title<>OLD.title) THEN
+    IF (NEW.description<>OLD.description
+        OR NEW.image<>OLD.image
+        OR NEW.title<>OLD.title
+        OR NEW.image<>OLD.image
+        OR NEW.url<>OLD.url) THEN
         INSERT INTO interactions(channelid,type) VALUES(NEW.id,'on_update_link');
     END IF;
     IF (NEW.viewscount<>OLD.viewscount) THEN
@@ -216,7 +221,7 @@ CREATE TRIGGER on_delete_link
     ON links
     FOR EACH ROW
 BEGIN
-    UPDATE channels SET postscount = postscount - 1, viewscount = viewscount - OLD.viewscount WHERE id = OLD.channelid;
+    UPDATE channels SET postscount = postscount - 1 WHERE id = OLD.channelid;
 END//
 DELIMITER ;
 
@@ -265,7 +270,7 @@ CREATE TRIGGER on_delete_reaction
     FOR EACH ROW
 BEGIN
     UPDATE links
-    SET tagscount      = tagscount - 1,
+    SET reactionscount      = reactionscount - 1,
         uniquereactors = (SELECT COUNT(DISTINCT channelid) FROM reactions WHERE linkid = OLD.linkid)
     WHERE id = OLD.linkid;
     UPDATE channels SET reactionscount = reactionscount - 1 WHERE id = OLD.channelid;
@@ -413,9 +418,9 @@ DELIMITER ;
 -- -----------------------------------------------------
 
 CREATE VIEW activeusers AS
-    SELECT DISTINCT channels.*
-    FROM channels_public_view AS channels JOIN interactions ON interactions.channelid=channels.id
-    WHERE interactions.datetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 HOUR);
+SELECT DISTINCT channels.*
+FROM channels_public_view AS channels JOIN interactions ON interactions.channelid=channels.id
+WHERE interactions.datetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 HOUR);
 
 -- -----------------------------------------------------
 -- 24h Statistics
@@ -454,43 +459,60 @@ CREATE EVENT expire_interactions
 DELIMITER ;
 
 CREATE VIEW frontpage AS
-    SELECT * FROM links WHERE id IN (SELECT DISTINCT id FROM interactions)
-    -- order by score, give old posts some half life decay after 3 hours
-    ORDER BY (score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, createdatetime), 2))) DESC LIMIT 25;
+SELECT * FROM links WHERE id IN (SELECT DISTINCT id FROM interactions)
+                          -- order by score, give old posts some half life decay after 3 hours
+ORDER BY (score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, createdatetime), 2))) DESC LIMIT 25;
+
+-- --------------------------------------------------------
+-- All unique tags, alphabetical
+-- --------------------------------------------------------
+
+CREATE VIEW tagindex AS
+SELECT tag, COUNT(tag) as linkscount FROM tags GROUP BY tag ORDER BY tag;
 
 -- --------------------------------------------------------
 -- Most popular tags, this query should be cached by server
 -- --------------------------------------------------------
 
 CREATE VIEW trendingtopics AS
-    SELECT tags.* FROM tags
-             JOIN frontpage AS links ON tags.linkid = links.id
-    GROUP BY tags.tag
-    ORDER BY SUM(links.score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, links.createdatetime), 2))) DESC
-    LIMIT 25;
+SELECT tags.* FROM tags
+                       JOIN frontpage AS links ON tags.linkid = links.id
+GROUP BY tags.tag
+ORDER BY SUM(links.score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, links.createdatetime), 2))) DESC
+LIMIT 25;
 
 -- --------------------------------------------------------
 -- Most popular tags, this query should be cached by server
 -- --------------------------------------------------------
 
 CREATE VIEW trendingchannels AS
-    SELECT channels.* FROM channels_public_view AS channels
-            JOIN frontpage AS links ON channels.id = links.channelid
-    GROUP BY channels.id
-    ORDER BY SUM(links.score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, links.createdatetime), 2))) DESC
-    LIMIT 25;
+SELECT channels.* FROM channels_public_view AS channels
+                           JOIN frontpage AS links ON channels.id = links.channelid
+GROUP BY channels.id
+ORDER BY SUM(links.score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, links.createdatetime), 2))) DESC
+LIMIT 25;
+
+CREATE VIEW topchannels AS
+SELECT channels.* FROM channels_public_view AS channels ORDER BY reputation DESC LIMIT 25;
+
+CREATE VIEW newchannels AS
+SELECT channels.* FROM channels_public_view AS channels ORDER BY id DESC LIMIT 25;
+
+-- -----------------------------------------------------
+--
+-- -----------------------------------------------------
 
 CREATE VIEW activitystream AS
-    SELECT
-        interactions.*,
-        channels.name AS channelname,
-        channels.avatar AS channelavatar,
-        links.title AS linktitle,
-        links.image AS linkimage,
-        links.description AS linktext
-    FROM interactions
-        JOIN channels_public_view AS channels ON channels.id=interactions.channelid
-        LEFT JOIN links ON links.id=interactions.linkid AND interactions.type = 'on_insert_link';
+SELECT
+    interactions.*,
+    channels.name AS channelname,
+    channels.avatar AS channelavatar,
+    links.title AS linktitle,
+    links.image AS linkimage,
+    links.description AS linktext
+FROM interactions
+         JOIN channels_public_view AS channels ON channels.id=interactions.channelid
+         LEFT JOIN links ON links.id=interactions.linkid AND interactions.type = 'on_insert_link';
 
 -- -----------------------------------------------------
 -- RSS-feeds

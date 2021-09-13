@@ -63,29 +63,24 @@ namespace Zaplog\Model {
 
         static public function getRelatedLinks($id): array
         {
-            return Db::execute("SELECT GROUP_CONCAT(tags.tag SEPARATOR ',') AS tags, links.*
+            return Db::fetchAll("SELECT GROUP_CONCAT(tags.tag SEPARATOR ',') AS tags, links.*
                 FROM links JOIN tags ON tags.linkid=links.id AND links.id<>:id1
-                WHERE tag IN (
-                        SELECT tags.tag FROM links JOIN tags on tags.linkid=links.id WHERE links.id=:id2 
-                ) GROUP BY links.id ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT 5",
-                [
-                    ":id1" => $id,
-                    ":id2" => $id,
-                ]
-            )->fetchAll();
+                WHERE tag IN (SELECT tags.tag FROM links JOIN tags on tags.linkid=links.id WHERE links.id=:id2) 
+                GROUP BY links.id ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT 5",
+                [":id1" => $id, ":id2" => $id]);
         }
 
         static public function getSingleLink($id): array
         {
             // get the link itself
-            $link = Db::execute("SELECT * FROM links WHERE id=:id", [":id" => $id])->fetch();
+            $link = Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $id]);
             if (!$link) throw new ResourceNotFoundException;
 
             // get its tags
-            $tags = Db::execute("SELECT * FROM tags WHERE linkid=:id GROUP BY tag", [":id" => $id])->fetchAll();
+            $tags = Db::fetchAll("SELECT * FROM tags WHERE linkid=:id GROUP BY tag", [":id" => $id]);
 
             // get and cache the links related by tags
-            $rels = (new MemcachedFunction)([__CLASS__, 'getRelatedLinks'], [$id], 60);
+            $rels = (new MemcachedFunction)([__CLASS__, 'getRelatedLinks'], [$id]);
 
             // get all interactions on the link, like voting, tagging, bookmarking, reacting
             $interaction = Activities::get(0, 25, NULL, $id);

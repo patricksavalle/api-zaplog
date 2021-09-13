@@ -4,21 +4,11 @@ declare(strict_types = 1);
 
 namespace Zaplog\Exception {
 
-    use Exception;
-
-    class ResourceNotFoundException extends Exception
+    class ResourceNotFoundException extends AssertException
     {
-        public function __construct(string $message = "", int $httpcode = 404)
+        public function __construct(string $message = "")
         {
-            parent::__construct($message, $httpcode);
-        }
-
-        public function __invoke( $value )
-        {
-            if ($value===false) {
-                throw $this;
-            }
+            parent::__construct($message, 404);
         }
     }
-
 }

@@ -14,11 +14,11 @@ declare(strict_types = 1);
 
 namespace Zaplog\Exception {
 
-    class EmailException extends \Exception
+    class EmailException extends AssertException
     {
-        public function __construct(string $message = "", int $httpcode = 401)
+        public function __construct(string $message = "")
         {
-            parent::__construct($message, $httpcode);
+            parent::__construct($message, 500);
         }
     }
 

@@ -15,7 +15,7 @@ namespace Zaplog\Middleware {
 
         static public function getSession(): stdClass
         {
-            return Db::execute("SELECT * FROM channels WHERE userid=:userid", [":userid" => parent::getSession()->userid])->fetch();
+            return Db::fetch("SELECT * FROM channels WHERE userid=:userid", [":userid" => parent::getSession()->userid]);
         }
 
         // ----------------------------------------------

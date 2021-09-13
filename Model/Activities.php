@@ -13,7 +13,7 @@ namespace Zaplog\Model {
     {
         static public function get($offset, $count, $channelid, $linkid): array
         {
-            $stream = Db::execute("SELECT * FROM activitystream 
+            $stream = Db::fetchAll("SELECT * FROM activitystream 
                     WHERE (channelid=:channelid1 IS NULL OR channelid=:channelid2)
                     AND (linkid=:linkid1 IS NULL OR linkid=:linkid2)
                     ORDER BY id DESC
@@ -25,7 +25,7 @@ namespace Zaplog\Model {
                     ":linkid2" => $linkid,
                     ":count" => $count,
                     ":offset" => $offset,
-                ])->fetchAll();
+                ]);
 
             // for link activity no postprocessing
 
