@@ -353,7 +353,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Db::fetch("SELECT * FROM links ORDER BY id DESC LIMIT :offset,:count",
+                    return $response->withJson(Db::fetchAll("SELECT * FROM links ORDER BY id DESC LIMIT :offset,:count",
                         [":offset" => $args->offset, ":count" => $args->count]));
                 })
                     ->add(new ReadOnly)

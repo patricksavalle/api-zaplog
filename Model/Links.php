@@ -46,7 +46,7 @@ namespace Zaplog\Model {
                 try {
                     // only accept reasonable tags
                     $tag = (new NormalizedText($tag))->convertToAscii()->hyphenizeForPath()->get();
-                    assert(preg_match("/[\w-]{3,50}/", $tag) !== false);
+                    assert(preg_match("/[\w-]{3,50}/", $tag) > 0);
                     assert(substr_count($tag, "-") < 5);
                     Db::execute("INSERT INTO tags(linkid, channelid, tag) VALUES (:linkid, :channelid, :tag)",
                         [
