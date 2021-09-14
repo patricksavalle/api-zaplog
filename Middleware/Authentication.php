@@ -26,8 +26,11 @@ namespace Zaplog\Middleware {
         static public function createSession(string $userid): array
         {
             // if we see a new user, we create a new channel for him/her
-            Db::execute("INSERT IGNORE channels(userid) VALUES (MD5(:email))", [':email' => $userid]);
-            return parent::createSession($userid);
+            Db::execute("INSERT IGNORE channels(userid) VALUES (MD5(:userid))", [':userid' => $userid]);
+            return [
+                "token" => parent::createSession($userid),
+                "channel" => Db::fetch("SELECT * FROM channels WHERE userid=MD5(:userid)", [":userid" => $userid]),
+            ];
         }
     }
 }
