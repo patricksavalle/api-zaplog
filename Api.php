@@ -77,7 +77,6 @@ namespace Zaplog {
 
                 // -----------------------------------------------------
                 // send a single-use auto-expiring log-in link to email
-                // uses an email template /login.html
                 // -----------------------------------------------------
 
                 $this->post("/{emailencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}/{loginurlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
@@ -92,7 +91,7 @@ namespace Zaplog {
                             ->addAction('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'createSession'], [$email])
                             ->createToken()
                             ->sendToken($email, $loginurl, "Your single-use login link", "Press the button to login", "Login");
-                        return $response->withJson(null);
+                        return $response->withJson(true);
                 });
 
                 // ----------------------------------------------------------------
@@ -192,12 +191,14 @@ namespace Zaplog {
                             name=IFNULL(:name,name), 
                             avatar=IFNULL(:avatar,avatar), 
                             bio=IFNULL(:bio,bio), 
+                            bitcoinaddress=IFNULL(:bitcoinaddress,bitcoinaddress), 
                             feedurl=IFNULL(:feedurl,feedurl), 
                             themeurl=IFNULL(:themeurl,themeurl) WHERE id=:channelid",
                             [
                                 ":name" => $args->name,
                                 ":avatar" => $args->avatar,
                                 ":bio" => $args->bio,
+                                ":bitcoinaddress" => $args->bitcoinaddress,
                                 ":feedurl" => $args->feedurl,
                                 ":themeurl" => $args->feedurl,
                                 ":channelid" => (new MemcachedFunction)(['\Zaplog\Middleware\Authentication', 'getSession'])->id,
@@ -211,6 +212,7 @@ namespace Zaplog {
                         '{themeurl:\url},null',
                         '{avatar:\url},null',
                         '{bio:\xtext},null',
+                        '{bitcoinaddress:\bitcoinaddress},null',
                     ]));
 
                 // ----------------------------------------------------------------
@@ -364,16 +366,9 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Db::fetchAll("SELECT links.* FROM tags
-                        JOIN links ON tags.linkid=links.id 
-                        WHERE tags.tag=:tag
-                        ORDER BY links.id DESC 
-                        LIMIT :offset,:count",
-                        [
-                            ":tag" => $args->tag,
-                            ":offset" => $args->offset,
-                            ":count" => $args->count,
-                        ]));
+                    return $response->withJson(Db::fetchAll("SELECT links.* FROM tags JOIN links ON tags.linkid=links.id 
+                        WHERE tags.tag=:tag ORDER BY links.id DESC LIMIT :offset,:count",
+                        [":tag" => $args->tag, ":offset" => $args->offset, ":count" => $args->count,]));
                 })
                     ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly)

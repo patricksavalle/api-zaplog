@@ -51,6 +51,40 @@ Voor wat initiële content kun je het volgende tijdelijke endpoint aanroepen:
 
 Dit zal een handvol RSS feeds inlezen.
 
+    ; Example slim-rest-api.ini, needs to be placed in webroot
+    
+    [memcache]
+    memcache_host=localhost
+    memcache_port=11211
+    
+    [cors]
+    cors_origin[]=http://localhost:3000
+    cors_origin[]=<http://yourdomainhere.com>
+    cors_expose_headers=
+    cors_max_age=1728000
+    cors_allow_credentials=1
+    cors_allow_methods=POST,GET,PUT,DELETE,PATCH
+    cors_allow_headers=Authorization,Content-Type
+    
+    [database]
+    database_host=127.0.0.1
+    database_name=zaplog
+    database_user=root
+    database_password=<password>
+    database_charset=utf8
+    
+    [smtp]
+    smtp_host=<host>
+    smtp_login=<account>
+    smtp_password=<password>
+    smtp_secure=TLS
+    smtp_port=587
+    
+    [email]
+    email_twofactor_template=;twofactoraction.html
+    email_sender=zaplog@patricksavalle.com
+    email_sendername=Zaplog
+
 # FRONT-END
 
 Het front-end heeft een apart project op https://github.com/zaplogv2/web.zaplog

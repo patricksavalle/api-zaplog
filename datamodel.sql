@@ -40,6 +40,7 @@ CREATE TABLE channels
     avatar         VARCHAR(55)        DEFAULT NULL,
     bkgimage       VARCHAR(55)        DEFAULT NULL,
     bio            VARCHAR(255)       DEFAULT NULL,
+    bitcoinaddress CHAR(40)           DEFAULT NULL,
     -- accumulate statistics on posts of this channel
     -- because this system is very read intensive we will keep totals in this table
     -- instead of counting/joining the respective tables each time
@@ -458,6 +459,7 @@ CREATE EVENT expire_interactions
     END//
 DELIMITER ;
 
+-- TODO to be implemented as bookmarks on the 'frontpage' channel
 CREATE VIEW frontpage AS
 SELECT * FROM links WHERE id IN (SELECT DISTINCT id FROM interactions)
                           -- order by score, give old posts some half life decay after 3 hours
@@ -518,7 +520,7 @@ FROM interactions
 -- RSS-feeds
 -- -----------------------------------------------------
 
-INSERT INTO channels(name) VALUES ("system");
+INSERT INTO channels(name) VALUES ("frontpage");
 INSERT INTO channels(name, feedurl) VALUES ("Russia Today", "https://www.rt.com/rss");
 INSERT INTO channels(name, feedurl) VALUES ("Off-guardian", "https://off-guardian.org/feed");
 INSERT INTO channels(name, feedurl) VALUES ("Zero Hedge", "https://feeds.feedburner.com/zerohedge/feed");
