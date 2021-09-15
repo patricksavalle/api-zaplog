@@ -76,6 +76,13 @@ Kennis van het SLIM3 framework is handig (hoewel de code voor zich spreekt), maa
 
       GET http://localhost:8080/Api.php/2factor/<2factorcode>
 
+- Install the cronjobs, the command lines (from the root of the server) are:
+
+      php Api.php /cronjobs/minute GET
+      php Api.php /cronjobs/hour GET
+      php Api.php /cronjobs/day GET
+      php Api.php /cronjobs/month GET
+
 ## Example INI file
 
     ; Example slim-rest-api.ini, needs to be placed in webroot
@@ -112,3 +119,37 @@ Kennis van het SLIM3 framework is handig (hoewel de code voor zich spreekt), maa
     email_sender=zaplog@patricksavalle.com
     email_sendername=Zaplog
 
+## Endpoints
+
+    GET	/2factor/{utoken:[[:alnum:]]{32}}
+    GET	/payments/inaddress
+    GET	/
+    POST	/sessions/{emailencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}/{loginurlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}
+    GET	/sessions
+    DELETE	/sessions
+    GET	/channels
+    GET	/channels/id/{id:[\d]{1,10}}
+    PATCH	/channels
+    GET	/channels/active
+    GET	/frontpage
+    POST	/links/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}
+    GET	/links/id/{id:\d{1,10}}
+    POST	/links
+    PATCH	/links/id/{id:\d{1,10}}
+    DELETE	/links/id/{id:\d{1,10}}
+    GET	/links
+    GET	/links/tag/{tag:[\w-]{3,55}}
+    GET	/links/channel/{id:[\w-]{3,55}}
+    GET	/links/metadata/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}
+    POST	/votes/link/{id:\d{1,10}}
+    POST	/tags/link/{id:\d{1,10}}/tag/{tag:[\w-]{3,50}}
+    GET	/tags/index
+    GET	/tags/active
+    DELETE	/tags/id/{id:\d{1,10}}
+    GET	/activities
+    GET	/activities/channels/{id:\d{1,10}}
+    GET	/statistics
+    GET	/cronjobs/minute
+    GET	/cronjobs/hour
+    GET	/cronjobs/day
+    GET	/cronjobs/month
