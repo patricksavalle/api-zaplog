@@ -29,7 +29,7 @@ namespace Zaplog\Middleware {
             Db::execute("INSERT IGNORE channels(userid) VALUES (MD5(:userid))", [':userid' => $userid]);
             return [
                 "token" => parent::createSession($userid),
-                "channel" => Db::fetch("SELECT * FROM channels_public_view WHERE userid=MD5(:userid)", [":userid" => $userid]),
+                "channel" => Db::fetch("SELECT * FROM channels WHERE userid=MD5(:userid)", [":userid" => $userid]),
             ];
         }
     }
