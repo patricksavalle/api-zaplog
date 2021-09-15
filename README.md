@@ -1,55 +1,82 @@
-# ZAPLOG REST-API PROTOTYPE
+# ZAPLOG REST-API
 
-Zie: https://github.com/zaplogv2/doc.zaplog voor uitleg van de functionaliteit.
+See: https://github.com/zaplogv2/doc.zaplog for explanation of the functionality.
 
-Wanneer de API draait, zal deze een overzicht van endpoints tonen op: /Api.php
+Zaplog is a next-generation social-news platform. It includes:
 
-<img src="https://user-images.githubusercontent.com/701331/131680261-752bd0a1-6c15-4b4d-8111-815b144d48a6.png" width="500"/>
+- linkdumping, bookmarking, blogging, voting, tagging etc.
+- zero-knowledge participation
+- wisdom-of-the-crowd mechanisms for frontpage generation
+- Monero and Bitcoin crowd payments distributed based on user reputation
 
-Dit is een prototype en heeft nog geen unit-tests o.i.d. 
+## Contributing
 
-## Benodigde skills
+Fork it.
 
-Advanced SQL en advanced PHP. De volledige syntax van OO PHP 7.3 wordt benut en het datamodel
-heeft ingebouwde referentiele integriteit (foreign keys), events en triggers.
+- Create your feature branch (git checkout -b my-new-feature).
+- Commit your changes (git commit -am 'Added some feature').
+- Push to the branch (git push origin my-new-feature).
+- Create a new Pull Request.
+
+*Or ask to be added to our team!*
+
+## Required skills
+
+Advanced SQL and advanced PHP. We're using the full spectrum of OO PHP 7.3 syntax and the datamodel
+contains built-in referential integrity (foreign keys), events and triggers.
 
 Kennis van het SLIM3 framework is handig (hoewel de code voor zich spreekt), maar niet nodig als je aan delen van de applicatie wilt werken.
 
-## Bouwen en deployen
+## Deploying the REST-server
 
-Zorg dat de MariaDb database draait. Installeer in principe de LAMP of XAMPP stack. Clone het project vanuit Github.
-Ik heb zelf ontwikkeld op XAMP 3.2.4 (PHP 7.3, MariaDb 10.4.6)
+- Install a LAMP or XAMPP stack. Make sure MariaDb is running. I am using XAMP 3.2.4 (PHP 7.3, MariaDb 10.4.6), POSTMAN and MySQL Workbench
 
-Het resolven / ophalen van alle libraries gebeurt met composer:
 
-    php composer.phar -update
+- Clone the project from Github to your local computer
 
-Deze server is geschreven in PHP 7.4 op MariaDB en kan worden gestart met de ingebouwde PHP interpreter:
 
-    PHP -S localhost:8080
+- Run composer to fetch and update external libraries:
 
-Het base adres voor de API is:
+      php composer.phar selfupdate  
+      php composer.phar update
 
-    /Api.php
+- Set the correct values in the main INI file (see example below):
 
-De root URL genereert een quick list van beschikbare endpoints.
+      /slim-rest-api.ini 
 
-## Configuratie
+- Create the database (for instance using MySQL workbench):
 
-De configuratie kan worden aangepast in:
+      /datamodel.sql
 
-    /slim-rest-api.ini 
+- Run the built-in PHP interpreter:
 
-De server maakt gebruik van de zgn. event-scheduler van de database engine.
-Deze moet in de meeste installaties expliciet woden aangezet.
+      php -S localhost:8080
 
-De server maakt gebruik van een externe SMTP server. Deze kan in de bovenstaande .ini worden geconfigureerd.
+  Or
 
-Voor wat initiële content kun je het volgende tijdelijke endpoint aanroepen:
+      php -S 127.0.0.1:8080
 
-    /Api.php/cronjobs/hour
+- Try the homepage of the Api in a browser:
 
-Dit zal een handvol RSS feeds inlezen.
+      http://localhost:8080/Api.php
+
+- For initial content call this temporary endpoint (It will ingest some RSS feeds):
+
+      GET http://localhost:8080/Api.php/cronjobs/hour
+
+- The next call to the server must be a login (initialises some tables)
+
+      POST http://localhost:8080/Api.php/sessions/<your-urlencoded-email>/<urlencoded-loginurl>
+
+  try this: 
+
+      POST http://localhost:8080/Api.php/sessions/<your-urlencoded-email>/http%3A%2F%2Flocalhost%3A8080%2FApi.php%2F2factor%2F
+
+  if SMTP is not yet configured the method response will contain the 2-factor code for use in:
+
+      GET http://localhost:8080/Api.php/2factor/<2factorcode>
+
+## Example INI file
 
     ; Example slim-rest-api.ini, needs to be placed in webroot
     
@@ -85,6 +112,3 @@ Dit zal een handvol RSS feeds inlezen.
     email_sender=zaplog@patricksavalle.com
     email_sendername=Zaplog
 
-# FRONT-END
-
-Het front-end heeft een apart project op https://github.com/zaplogv2/web.zaplog
