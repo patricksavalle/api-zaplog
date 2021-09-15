@@ -32,6 +32,7 @@ namespace Zaplog {
     use SlimRestApi\Infra\Db;
     use Zaplog\Exception\ServerException;
     use Zaplog\Exception\UserException;
+    use Zaplog\Library\MoneroPayments;
     use Zaplog\Library\TwoFactorAction;
     use Zaplog\Model\Activities;
     use Zaplog\Model\FeedReader;
@@ -49,6 +50,17 @@ namespace Zaplog {
             // -----------------------------------------
 
             $this->get("/2factor/{utoken:[[:alnum:]]{32}}", new TwoFactorAction);
+
+            // -----------------------------------------
+            // Distribute payments
+            // -----------------------------------------
+
+            $this->get("/payments/inaddress", function (
+                Request  $request,
+                Response $response,
+                stdClass $args): Response {
+                return $response->withJson("<moneroaddress>");
+            });
 
             // -----------------------------------------
             // show the API homepage
@@ -87,11 +99,13 @@ namespace Zaplog {
                     $loginurl = urldecode($args->loginurlencoded);
                     (new UserException)(filter_var($email, FILTER_VALIDATE_EMAIL));
                     (new UserException)(filter_var($loginurl, FILTER_VALIDATE_URL));
-                        (new TwoFactorAction)
-                            ->addAction('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'createSession'], [$email])
-                            ->createToken()
-                            ->sendToken($email, $loginurl, "Your single-use login link", "Press the button to login", "Login");
-                        return $response->withJson(true);
+                    $return = (new TwoFactorAction)
+                        ->addAction('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'createSession'], [$email])
+                        ->createToken()
+                        ->sendToken($email, $loginurl, "Your single-use login link", "Press the button to login", "Login")
+                        ->utoken;
+                    // TODO remove return in production
+                    return $response->withJson($return);
                 });
 
                 // ----------------------------------------------------------------
@@ -191,14 +205,14 @@ namespace Zaplog {
                             name=IFNULL(:name,name), 
                             avatar=IFNULL(:avatar,avatar), 
                             bio=IFNULL(:bio,bio), 
-                            bitcoinaddress=IFNULL(:bitcoinaddress,bitcoinaddress), 
+                            moneroaddress=IFNULL(:moneroaddress,moneroaddress), 
                             feedurl=IFNULL(:feedurl,feedurl), 
                             themeurl=IFNULL(:themeurl,themeurl) WHERE id=:channelid",
                             [
                                 ":name" => $args->name,
                                 ":avatar" => $args->avatar,
                                 ":bio" => $args->bio,
-                                ":bitcoinaddress" => $args->bitcoinaddress,
+                                ":moneroaddress" => $args->moneroaddress,
                                 ":feedurl" => $args->feedurl,
                                 ":themeurl" => $args->feedurl,
                                 ":channelid" => (new MemcachedFunction)(['\Zaplog\Middleware\Authentication', 'getSession'])->id,
@@ -212,7 +226,7 @@ namespace Zaplog {
                         '{themeurl:\url},null',
                         '{avatar:\url},null',
                         '{bio:\xtext},null',
-                        '{bitcoinaddress:\bitcoinaddress},null',
+                        '{moneroaddress:\moneroaddress},null',
                     ]));
 
                 // ----------------------------------------------------------------
@@ -466,8 +480,8 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     return $response->withJson([
-                        "top" => Db::fetchAll("SELECT * FROM trendingtopics"),
-                        "new" => Db::fetchAll("SELECT * FROM trendingtopics"),
+                        "top" => Db::fetchAll("SELECT * FROM toptopics"),
+                        "new" => Db::fetchAll("SELECT * FROM newtopics"),
                         "trending" => Db::fetchAll("SELECT * FROM trendingtopics"),
                     ]);
                 })
@@ -541,6 +555,16 @@ namespace Zaplog {
 
             $this->group('/cronjobs', function () {
 
+                $this->get("/minute", function (
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
+                    list($amount, $numshares) = MoneroPayments::checkAndForward([]);
+                    Db::execute("INSERT INTO payments()VALUES()");
+                    return $response;
+                });
+
+                // ->add(new CliRequest(300));
                 $this->get("/hour", function (
                     Request  $request,
                     Response $response,
@@ -548,7 +572,6 @@ namespace Zaplog {
                     (new FeedReader)->refreshAllFeeds();
                     return $response;
                 });
-                // ->add(new CliRequest(300));
 
                 $this->get("/day", function (
                     Request  $request,

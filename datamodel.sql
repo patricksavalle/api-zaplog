@@ -40,7 +40,7 @@ CREATE TABLE channels
     avatar         VARCHAR(55)        DEFAULT NULL,
     bkgimage       VARCHAR(55)        DEFAULT NULL,
     bio            VARCHAR(255)       DEFAULT NULL,
-    bitcoinaddress CHAR(40)           DEFAULT NULL,
+    moneroaddress  CHAR(93)           DEFAULT NULL,
     -- accumulate statistics on posts of this channel
     -- because this system is very read intensive we will keep totals in this table
     -- instead of counting/joining the respective tables each time
@@ -152,7 +152,8 @@ CREATE TABLE interactions
         'on_insert_reaction',
         'on_insert_vote',
         'on_insert_tag',
-        'on_insert_bookmark'
+        'on_insert_bookmark',
+        'on_receive_btc'
         )                      NOT NULL,
     PRIMARY KEY (id),
     INDEX (datetime),
