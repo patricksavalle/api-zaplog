@@ -27,13 +27,13 @@ USE zaplog;
 CREATE TABLE channels
 (
     id             INT       NOT NULL AUTO_INCREMENT,
-    -- we don't store anything from the user, just an identity hash (email, phone, anything)
+    -- we don't store anything from the user, just hashed email address
     userid         CHAR(32)           DEFAULT NULL,
     name           VARCHAR(55)        DEFAULT NULL,
     language       CHAR(2)            DEFAULT NULL,
     -- automatic RSS content
-    feedurl        VARCHAR(256)       DEFAULT NULL,
-    themeurl       VARCHAR(256)       DEFAULT NULL,
+    feedurl        VARCHAR(255)       DEFAULT NULL,
+    themeurl       VARCHAR(255)       DEFAULT NULL,
     createdatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updatedatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     refeeddatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -71,22 +71,18 @@ CREATE TABLE channels
 );
 
 -- -----------------------------------------------------
+-- Posts that are place on this channel are collaborative
+-- (can be edited by any member with enough reputation)
+-- -----------------------------------------------------
+
+INSERT INTO channels(name,bio) VALUES ("Zaplog", "Next-generation social-news platform.");
+
+-- -----------------------------------------------------
 -- For public queries. Hide privacy data.
 -- -----------------------------------------------------
 
 CREATE VIEW channels_public_view AS
-SELECT id,
-       name,
-       createdatetime,
-       updatedatetime,
-       bio,
-       avatar,
-       postscount,
-       viewscount,
-       votescount,
-       score,
-       reputation
-FROM channels;
+    SELECT id,name,createdatetime,updatedatetime,bio,avatar,postscount,viewscount,votescount,score,reputation FROM channels;
 
 -- -----------------------------------------------------
 -- The links that are being shared, rated, etc.
@@ -157,6 +153,8 @@ CREATE TABLE interactions
         )                      NOT NULL,
     PRIMARY KEY (id),
     INDEX (datetime),
+    INDEX (linkid),
+    INDEX (channelid),
     FOREIGN KEY (linkid) REFERENCES links (id)
         ON DELETE CASCADE
         ON UPDATE CASCADE,
@@ -166,50 +164,41 @@ CREATE TABLE interactions
 );
 
 DELIMITER //
-CREATE TRIGGER on_insert_channel
-    AFTER INSERT
-    ON channels
-    FOR EACH ROW
+CREATE TRIGGER on_insert_channel AFTER INSERT ON channels FOR EACH ROW
 BEGIN
     INSERT INTO interactions(channelid,type) VALUES(NEW.id,'on_insert_channel');
 END//
 DELIMITER ;
 
 DELIMITER //
-CREATE TRIGGER on_update_channel
-    AFTER UPDATE
-    ON channels
-    FOR EACH ROW
+CREATE TRIGGER on_update_channel AFTER UPDATE ON channels FOR EACH ROW
 BEGIN
-    IF (NEW.bio<>OLD.bio OR NEW.name<>OLD.name OR NEW.avatar<>OLD.avatar) THEN
+    IF (NEW.bio<>OLD.bio
+        OR NEW.name<>OLD.name
+        OR NEW.moneroaddress<>OLD.moneroaddress
+        OR NEW.avatar<>OLD.avatar) THEN
         INSERT INTO interactions(channelid,type) VALUES(NEW.id,'on_update_channel');
     END IF;
 END//
 DELIMITER ;
 
 DELIMITER //
-CREATE TRIGGER on_insert_link
-    AFTER INSERT
-    ON links
-    FOR EACH ROW
+CREATE TRIGGER on_insert_link AFTER INSERT ON links FOR EACH ROW
 BEGIN
     UPDATE channels SET postscount = postscount + 1 WHERE id = NEW.channelid;
-    INSERT INTO interactions(linkid,channelid,type) VALUES(NEW.id, NEW.channelid,'on_insert_link');
+    INSERT INTO interactions(linkid, channelid, type) VALUES(NEW.id, NEW.channelid, 'on_insert_link');
 END//
 DELIMITER ;
 
 DELIMITER //
-CREATE TRIGGER on_update_link
-    AFTER UPDATE
-    ON links
-    FOR EACH ROW
+CREATE TRIGGER on_update_link AFTER UPDATE ON links FOR EACH ROW
 BEGIN
     IF (NEW.description<>OLD.description
         OR NEW.image<>OLD.image
         OR NEW.title<>OLD.title
         OR NEW.image<>OLD.image
         OR NEW.url<>OLD.url) THEN
-        INSERT INTO interactions(channelid,type) VALUES(NEW.id,'on_update_link');
+        INSERT INTO interactions(channelid, type) VALUES(NEW.id, 'on_update_link');
     END IF;
     IF (NEW.viewscount<>OLD.viewscount) THEN
         UPDATE channels SET viewscount=viewscount+(NEW.viewscount-OLD.viewscount) WHERE id=NEW.channelid;
@@ -218,10 +207,7 @@ END//
 DELIMITER ;
 
 DELIMITER //
-CREATE TRIGGER on_delete_link
-    AFTER DELETE
-    ON links
-    FOR EACH ROW
+CREATE TRIGGER on_delete_link AFTER DELETE ON links FOR EACH ROW
 BEGIN
     UPDATE channels SET postscount = postscount - 1 WHERE id = OLD.channelid;
 END//
@@ -251,25 +237,19 @@ CREATE TABLE reactions
 );
 
 DELIMITER //
-CREATE TRIGGER on_insert_reaction
-    AFTER INSERT
-    ON reactions
-    FOR EACH ROW
+CREATE TRIGGER on_insert_reaction AFTER INSERT ON reactions FOR EACH ROW
 BEGIN
-    UPDATE links
-    SET reactionscount = reactionscount + 1,
+    UPDATE links SET
+        reactionscount = reactionscount + 1,
         uniquereactors = (SELECT COUNT(DISTINCT channelid) FROM reactions WHERE linkid = NEW.linkid)
-    WHERE id = NEW.linkid;
+        WHERE id = NEW.linkid;
     UPDATE channels SET reactionscount = reactionscount + 1 WHERE id = NEW.channelid;
     INSERT INTO interactions(linkid,channelid,type) VALUES(NEW.linkid, NEW.channelid,'on_insert_reaction');
 END//
 DELIMITER ;
 
 DELIMITER //
-CREATE TRIGGER on_delete_reaction
-    AFTER DELETE
-    ON reactions
-    FOR EACH ROW
+CREATE TRIGGER on_delete_reaction AFTER DELETE ON reactions FOR EACH ROW
 BEGIN
     UPDATE links
     SET reactionscount      = reactionscount - 1,
@@ -303,10 +283,7 @@ CREATE TABLE tags
 );
 
 DELIMITER //
-CREATE TRIGGER on_insert_tag
-    AFTER INSERT
-    ON tags
-    FOR EACH ROW
+CREATE TRIGGER on_insert_tag AFTER INSERT ON tags FOR EACH ROW
 BEGIN
     UPDATE links SET tagscount = tagscount + 1 WHERE id = NEW.linkid;
     UPDATE channels SET tagscount = tagscount + 1 WHERE id = NEW.channelid;
@@ -315,10 +292,7 @@ END//
 DELIMITER ;
 
 DELIMITER //
-CREATE TRIGGER on_delete_tag
-    AFTER DELETE
-    ON tags
-    FOR EACH ROW
+CREATE TRIGGER on_delete_tag AFTER DELETE ON tags FOR EACH ROW
 BEGIN
     UPDATE links SET tagscount = tagscount - 1 WHERE id = OLD.linkid;
     UPDATE channels SET tagscount = tagscount - 1 WHERE id = OLD.channelid;
@@ -347,10 +321,7 @@ CREATE TABLE votes
 );
 
 DELIMITER //
-CREATE TRIGGER on_insert_vote
-    AFTER INSERT
-    ON votes
-    FOR EACH ROW
+CREATE TRIGGER on_insert_vote AFTER INSERT ON votes FOR EACH ROW
 BEGIN
     UPDATE links SET votescount = votescount + 1 WHERE id = NEW.linkid;
     UPDATE channels SET votescount = votescount + 1 WHERE id = NEW.channelid;
@@ -359,10 +330,7 @@ END//
 DELIMITER ;
 
 DELIMITER //
-CREATE TRIGGER on_delete_vote
-    AFTER DELETE
-    ON votes
-    FOR EACH ROW
+CREATE TRIGGER on_delete_vote AFTER DELETE ON votes FOR EACH ROW
 BEGIN
     UPDATE links SET votescount = votescount - 1 WHERE id = OLD.linkid;
     UPDATE channels SET votescount = votescount - 1 WHERE id = OLD.channelid;
@@ -392,10 +360,7 @@ CREATE TABLE bookmarks
 );
 
 DELIMITER //
-CREATE TRIGGER on_insert_bookmark
-    AFTER INSERT
-    ON bookmarks
-    FOR EACH ROW
+CREATE TRIGGER on_insert_bookmark AFTER INSERT ON bookmarks FOR EACH ROW
 BEGIN
     UPDATE links SET bookmarkscount = bookmarkscount + 1 WHERE id = NEW.linkid;
     UPDATE channels SET bookmarkscount = bookmarkscount + 1 WHERE id = NEW.channelid;
@@ -404,10 +369,7 @@ END//
 DELIMITER ;
 
 DELIMITER //
-CREATE TRIGGER on_delete_bookmark
-    AFTER DELETE
-    ON bookmarks
-    FOR EACH ROW
+CREATE TRIGGER on_delete_bookmark AFTER DELETE ON bookmarks FOR EACH ROW
 BEGIN
     UPDATE links SET bookmarkscount = bookmarkscount - 1 WHERE id = OLD.linkid;
     UPDATE channels SET bookmarkscount = bookmarkscount - 1 WHERE id = OLD.channelid;
@@ -420,9 +382,9 @@ DELIMITER ;
 -- -----------------------------------------------------
 
 CREATE VIEW activeusers AS
-SELECT DISTINCT channels.*
-FROM channels_public_view AS channels JOIN interactions ON interactions.channelid=channels.id
-WHERE interactions.datetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 HOUR);
+    SELECT DISTINCT channels.*
+    FROM channels_public_view AS channels JOIN interactions ON interactions.channelid=channels.id
+    WHERE interactions.datetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 HOUR);
 
 -- -----------------------------------------------------
 -- 24h Statistics
@@ -440,93 +402,128 @@ SELECT (SELECT COUNT(*) FROM links WHERE createdatetime > SUBDATE(CURRENT_TIMEST
 -- -----------------------------------------------------
 
 DELIMITER //
-CREATE EVENT apply_reputation_decay
-    ON SCHEDULE EVERY 24 HOUR
-    DO
-    BEGIN
-        -- apply half life decay to current channel reputations and add delta score,
-        -- 0.9981 every day halfs the reputation in a year
-        UPDATE channels SET reputation = reputation * 0.9981 + score - prevscore, prevscore = score;
-    END//
+CREATE EVENT apply_reputation_decay ON SCHEDULE EVERY 24 HOUR DO
+BEGIN
+    -- apply half life decay to current channel reputations and add delta score,
+    -- 0.9981 every day halfs the reputation in a year
+    UPDATE channels SET reputation = reputation * 0.9981 + score - prevscore, prevscore = score;
+END//
 DELIMITER ;
 
 DELIMITER //
-CREATE EVENT expire_interactions
-    ON SCHEDULE EVERY 1 HOUR
-    DO
-    BEGIN
-        -- remove interactions
-        DELETE FROM interactions WHERE datetime < SUBDATE(CURRENT_TIMESTAMP, INTERVAL 24 HOUR);
-    END//
+CREATE EVENT expire_interactions ON SCHEDULE EVERY 1 HOUR DO
+BEGIN
+    -- remove interactions
+    DELETE FROM interactions WHERE datetime < SUBDATE(CURRENT_TIMESTAMP, INTERVAL 24 HOUR);
+END//
 DELIMITER ;
 
 -- TODO to be implemented as bookmarks on the 'frontpage' channel
 CREATE VIEW frontpage AS
-SELECT * FROM links WHERE id IN (SELECT DISTINCT id FROM interactions)
-                          -- order by score, give old posts some half life decay after 3 hours
-ORDER BY (score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, createdatetime), 2))) DESC LIMIT 25;
+    SELECT * FROM links WHERE id IN (SELECT DISTINCT id FROM interactions)
+    -- order by score, give old posts some half life decay after 3 hours
+    ORDER BY (score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, createdatetime), 2))) DESC LIMIT 25;
 
 -- --------------------------------------------------------
 -- All unique tags, alphabetical
 -- --------------------------------------------------------
 
 CREATE VIEW tagindex AS
-SELECT tag, COUNT(tag) as linkscount FROM tags GROUP BY tag ORDER BY tag;
+    SELECT tag, COUNT(tag) as linkscount FROM tags GROUP BY tag ORDER BY tag;
 
 -- --------------------------------------------------------
 -- Most popular tags, this query should be cached by server
 -- --------------------------------------------------------
 
 CREATE VIEW trendingtopics AS
-SELECT tags.* FROM tags
-                       JOIN frontpage AS links ON tags.linkid = links.id
-GROUP BY tags.tag
-ORDER BY SUM(links.score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, links.createdatetime), 2))) DESC
-LIMIT 25;
+    SELECT tags.* FROM tags
+    JOIN frontpage AS links ON tags.linkid = links.id
+    GROUP BY tags.tag
+    ORDER BY SUM(links.score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, links.createdatetime), 2))) DESC
+    LIMIT 25;
+
+CREATE VIEW toptopics AS
+    SELECT tags.* FROM tags LIMIT 25;
+
+CREATE VIEW newtopics AS
+    SELECT tags.* FROM tags LIMIT 25;
 
 -- --------------------------------------------------------
--- Most popular tags, this query should be cached by server
+-- Most popular channels, this query should be cached by server
 -- --------------------------------------------------------
 
 CREATE VIEW trendingchannels AS
-SELECT channels.* FROM channels_public_view AS channels
-                           JOIN frontpage AS links ON channels.id = links.channelid
-GROUP BY channels.id
-ORDER BY SUM(links.score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, links.createdatetime), 2))) DESC
-LIMIT 25;
+    SELECT channels.* FROM channels_public_view AS channels
+    JOIN frontpage AS links ON channels.id = links.channelid
+    GROUP BY channels.id
+    ORDER BY SUM(links.score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, links.createdatetime), 2))) DESC
+    LIMIT 25;
 
 CREATE VIEW topchannels AS
-SELECT channels.* FROM channels_public_view AS channels ORDER BY reputation DESC LIMIT 25;
+    SELECT channels.* FROM channels_public_view AS channels ORDER BY reputation DESC LIMIT 25;
 
 CREATE VIEW newchannels AS
-SELECT channels.* FROM channels_public_view AS channels ORDER BY id DESC LIMIT 25;
+    SELECT channels.* FROM channels_public_view AS channels ORDER BY id DESC LIMIT 25;
 
 -- -----------------------------------------------------
---
+-- RAW activity stream, needs PHP post-processing
 -- -----------------------------------------------------
 
 CREATE VIEW activitystream AS
-SELECT
-    interactions.*,
-    channels.name AS channelname,
-    channels.avatar AS channelavatar,
-    links.title AS linktitle,
-    links.image AS linkimage,
-    links.description AS linktext
-FROM interactions
-         JOIN channels_public_view AS channels ON channels.id=interactions.channelid
-         LEFT JOIN links ON links.id=interactions.linkid AND interactions.type = 'on_insert_link';
+    SELECT
+        interactions.*,
+        channels.name AS channelname,
+        channels.avatar AS channelavatar,
+        links.title AS linktitle,
+        links.image AS linkimage,
+        links.description AS linktext
+    FROM interactions
+    JOIN channels_public_view AS channels ON channels.id=interactions.channelid
+    LEFT JOIN links ON links.id=interactions.linkid AND interactions.type = 'on_insert_link';
 
 -- -----------------------------------------------------
 -- RSS-feeds
 -- -----------------------------------------------------
 
-INSERT INTO channels(name) VALUES ("frontpage");
-INSERT INTO channels(name, feedurl) VALUES ("Russia Today", "https://www.rt.com/rss");
-INSERT INTO channels(name, feedurl) VALUES ("Off-guardian", "https://off-guardian.org/feed");
-INSERT INTO channels(name, feedurl) VALUES ("Zero Hedge", "https://feeds.feedburner.com/zerohedge/feed");
-INSERT INTO channels(name, feedurl) VALUES ("Infowars", "https://www.infowars.com/rss.xml");
-INSERT INTO channels(name, feedurl) VALUES ("Xandernieuws", "https://www.xandernieuws.net/feed");
-INSERT INTO channels(name, feedurl) VALUES ("CNET", "https://www.cnet.com/rss/all");
-INSERT INTO channels(name, feedurl) VALUES ("Gizmodo", "https://gizmodo.com/rss");
+INSERT INTO channels(name, feedurl, avatar) VALUES
+    ("AinOnline", "http://www.ainonline.com/index.php?id=5", "https://api.multiavatar.com/AinOnline"),
+    ("Wired", "http://blog.wired.com/wiredscience/atom.xml", "https://api.multiavatar.com/Wired"),
+    ("Tech Xplore", "https://techxplore.com/rss-feed/", "https://api.multiavatar.com/Tech Xplore"),
+    ("PhysOrg", "https://phys.org/rss-feed/", "https://api.multiavatar.com/PhysOrg"),
+    ("CNET", "https://www.cnet.com/rss/all", "https://api.multiavatar.com/CNET"),
+    ("Gizmodo", "https://gizmodo.com/rss", "https://api.multiavatar.com/Gizmodo");
 
+INSERT INTO channels(name, avatar) VALUES
+    ("Website Victories", "https://api.multiavatar.com/Zaplog"),
+    ("Pro Star", "https://api.multiavatar.com/Zaplog"),
+    ("Future Bright", "https://api.multiavatar.com/Zaplog"),
+    ("Pinnacle Inc", "https://api.multiavatar.com/Zaplog"),
+    ("Corinthian Designs", "https://api.multiavatar.com/Zaplog"),
+    ("Lawn N’ Order Garden Car", "https://api.multiavatar.com/Zaplog"),
+    ("Show and Tell", "https://api.multiavatar.com/Zaplog"),
+    ("Hiking Diary", "https://api.multiavatar.com/Zaplog"),
+    ("Dreamscape Garden Care", "https://api.multiavatar.com/Zaplog"),
+    ("Blogged Bliss", "https://api.multiavatar.com/Zaplog"),
+    ("Fresh Internet Services", "https://api.multiavatar.com/Zaplog"),
+    ("Mystique", "https://api.multiavatar.com/Zaplog"),
+    ("Olax Net", "https://api.multiavatar.com/Zaplog"),
+    ("Superior Interior Design", "https://api.multiavatar.com/Zaplog"),
+    ("Electric Essence", "https://api.multiavatar.com/Zaplog"),
+    ("Strength Gurus", "https://api.multiavatar.com/Zaplog"),
+    ("Will Thrill", "https://api.multiavatar.com/Zaplog"),
+    ("Custom Lawn Care", "https://api.multiavatar.com/Zaplog"),
+    ("Total Network Development", "https://api.multiavatar.com/Zaplog"),
+    ("Blogify", "https://api.multiavatar.com/Zaplog"),
+    ("Cut Rite", "https://api.multiavatar.com/Zaplog"),
+    ("Gold Leaf Garden Management", "https://api.multiavatar.com/Zaplog"),
+    ("Cupid Inc", "https://api.multiavatar.com/Zaplog"),
+    ("Omni Tech Solutions", "https://api.multiavatar.com/Zaplog"),
+    ("Locksmith", "https://api.multiavatar.com/Zaplog"),
+    ("Perisolution", "https://api.multiavatar.com/Zaplog"),
+    ("Pen And Paper", "https://api.multiavatar.com/Zaplog"),
+    ("Strawberry Inc", "https://api.multiavatar.com/Zaplog"),
+    ("Dye Hard", "https://api.multiavatar.com/Zaplog"),
+    ("Solution Answers", "https://api.multiavatar.com/Zaplog"),
+    ("Netmark", "https://api.multiavatar.com/Zaplog"),
+    ("Afforda", "https://api.multiavatar.com/Zaplog"),
+    ("The Nosh Pit", "https://api.multiavatar.com/Zaplog");

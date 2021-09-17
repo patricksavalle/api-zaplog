@@ -4,19 +4,24 @@ See: https://github.com/zaplogv2/doc.zaplog for explanation of the functionality
 
 Zaplog is a next-generation social-news platform. It includes:
 
-- linkdumping, bookmarking, blogging, voting, tagging etc.
+- collaborative linkdumping, bookmarking, blogging, voting, tagging etc.
 - zero-knowledge participation
 - wisdom-of-the-crowd mechanisms for frontpage generation
 - Monero and Bitcoin crowd payments distributed based on user reputation
 
 ## Contributing
 
-Fork it.
+Everyone is encouraged to help improve this project. Here are a few ways you can help:
 
-- Create your feature branch (git checkout -b my-new-feature).
-- Commit your changes (git commit -am 'Added some feature').
-- Push to the branch (git push origin my-new-feature).
-- Create a new Pull Request.
+- Report bugs
+- Write, clarify, or fix documentation
+- Suggest or add new features
+- Fix bugs and submit pull requests
+  - Fork it.
+  - Create your feature branch (git checkout -b my-new-feature).
+  - Commit your changes (git commit -am 'Added some feature').
+  - Push to the branch (git push origin my-new-feature).
+  - Create a new Pull Request.
 
 *Or ask to be added to our team!*
 

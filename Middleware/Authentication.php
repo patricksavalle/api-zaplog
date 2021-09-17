@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Zaplog\Middleware {
 
+    use Atrox\Haikunator;
     use SlimRestApi\Infra\Db;
     use stdClass;
 
@@ -26,7 +27,13 @@ namespace Zaplog\Middleware {
         static public function createSession(string $userid): array
         {
             // if we see a new user, we create a new channel for him/her
-            Db::execute("INSERT IGNORE channels(userid) VALUES (MD5(:userid))", [':userid' => $userid]);
+            $channelname = Haikunator::haikunate();
+            Db::execute("INSERT IGNORE channels(userid,name,) VALUES (MD5(:userid))",
+                [
+                    ':userid' => $userid,
+                    ':name' => $channelname,
+                    ':avatar' => "https://api.multiavatar.com/" . $channelname,
+                ]);
             return [
                 "token" => parent::createSession($userid),
                 "channel" => Db::fetch("SELECT * FROM channels WHERE userid=MD5(:userid)", [":userid" => $userid]),
