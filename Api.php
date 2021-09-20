@@ -102,11 +102,29 @@ namespace Zaplog {
                     $return = (new TwoFactorAction)
                         ->addAction('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'createSession'], [$email])
                         ->createToken()
-                        ->sendToken($email, $loginurl, "Your single-use login link", "Press the button to login", "Login")
-                        ->utoken;
-                    // TODO remove return in production
+                        ->sendToken($email, $loginurl, "Your single-use login link", "Press the button to login", "Login");
                     return $response->withJson($return);
                 });
+
+                // -----------------------------------------------------
+                // change authenticated email
+                // -----------------------------------------------------
+
+                $this->patch("/{emailencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}/{updateurlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
+                    $email = urldecode($args->emailencoded);
+                    $updateurl = urldecode($args->updateurlencoded);
+                    (new UserException)(filter_var($email, FILTER_VALIDATE_EMAIL));
+                    (new UserException)(filter_var($updateurl, FILTER_VALIDATE_URL));
+                    $return = (new TwoFactorAction)
+                        ->addAction('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'updateIdentity'], [$email])
+                        ->createToken()
+                        ->sendToken($email, $updateurl, "Your email confirmation link", "Press the button to confirm the new email address", "Update");
+                    return $response->withJson($return);
+                })
+                    ->add(new Authentication);
 
                 // ----------------------------------------------------------------
                 // Return the active channels (sessions) 'who's online'
@@ -174,16 +192,20 @@ namespace Zaplog {
                     $populartags = Db::fetchAll("SELECT tag, COUNT(tag) AS tagscount 
                         FROM tags JOIN links ON tags.linkid=links.id  
                         WHERE links.channelid=:channelid 
-                        GROUP BY tag ORDER BY COUNT(tag) DESC LIMIT 10",
+                        GROUP BY tag ORDER BY SUM(score) DESC LIMIT 10",
                         [":channelid" => $args->id]);
                     // TODO https://github.com/zaplogv2/api.zaplog/issues/12
-                    $relatedlinks = Db::fetchAll("SELECT * FROM links LIMIT 5", []);
+                    $relatedchannels = Db::fetchAll("SELECT * FROM links LIMIT 5", []);
                     $activity = Activities::get(0, 25, $args->id, NULL);
                     return $response->withJson([
                         "channel" => $channel,
                         "tags" => $populartags,
-                        "related" => $relatedlinks,
+                        "related" => $relatedchannels,
                         "activity" => $activity]);
+
+                    $response->withHeader("Last-Modified", "Tue, 15 Oct 2019 12:45:26 GMT");
+                    $response->withHeader("Etag", md5($response->getBody()->getContents()));
+
                 })
                     ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly)
@@ -191,6 +213,7 @@ namespace Zaplog {
                         '{offset:\int},0',
                         '{count:\int},20',
                     ]));
+
 
                 // ----------------------------------------------------------------
                 // Change channel properties of authenticated user's channel
@@ -563,8 +586,8 @@ namespace Zaplog {
                     Db::execute("INSERT INTO payments()VALUES()");
                     return $response;
                 });
-
                 // ->add(new CliRequest(300));
+
                 $this->get("/hour", function (
                     Request  $request,
                     Response $response,
