@@ -28,7 +28,10 @@ namespace Zaplog\Middleware {
         {
             Db::execute("UPDATE channels SET userid=:newuserid WHERE userid=:userid",
                 [":newuserid" => $newuserid, ":userid" => parent::getSession()->userid]);
-            return self::createSession($newuserid);
+            return [
+                "token" => parent::createSession($newuserid),
+                "channel" => Db::fetch("SELECT * FROM channels WHERE userid=MD5(:userid)", [":userid" => $newuserid]),
+            ];
         }
 
         // ----------------------------------------------
