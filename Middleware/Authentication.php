@@ -47,7 +47,7 @@ namespace Zaplog\Middleware {
                 [
                     ':userid' => $userid,
                     ':name' => $channelname,
-                    ':avatar' => "https://api.multiavatar.com/" . $channelname,
+                    ':avatar' => "https://api.multiavatar.com/" . $channelname . ".svg",
                 ]);
             return [
                 "token" => parent::createSession($userid),
