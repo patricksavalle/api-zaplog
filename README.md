@@ -34,7 +34,15 @@ Kennis van het SLIM3 framework is handig (hoewel de code voor zich spreekt), maa
 
 ## Deploying the REST-server
 
-- Install a LAMP or XAMPP stack. Make sure MariaDb is running. I am using XAMP 3.2.4 (PHP 7.3, MariaDb 10.4.6), POSTMAN and MySQL Workbench
+- Install a LAMP or XAMPP stack. Make sure MariaDb (mySQL) is running. I am using XAMP 3.2.4 (PHP 7.3, MariaDb 10.4.6), POSTMAN and MySQL Workbench. PHP needs the following extensions:
+
+      ext-json
+      ext-libxml
+      ext-dom
+      ext-simplexml
+      ext-pdo
+      ext-curl
+      ext-tidy
 
 
 - Clone the project from Github to your local computer
@@ -65,9 +73,9 @@ Kennis van het SLIM3 framework is handig (hoewel de code voor zich spreekt), maa
 
       http://localhost:8080/Api.php
 
-- For initial content call this temporary endpoint (It will ingest some RSS feeds):
+- For initial content call this temporary endpoint from the browser (It will ingest some RSS feeds):
 
-      GET http://localhost:8080/Api.php/cronjobs/hour
+      http://localhost:8080/Api.php/cronjobs/hour
 
 - The next call to the server must be a login (initialises some tables)
 
@@ -75,7 +83,7 @@ Kennis van het SLIM3 framework is handig (hoewel de code voor zich spreekt), maa
 
   try this: 
 
-      POST http://localhost:8080/Api.php/sessions/<your-urlencoded-email>/http%3A%2F%2Flocalhost%3A8080%2FApi.php%2F2factor%2F
+      POST http://localhost:8080/Api.php/sessions/your@urlencoded.email/http%3A%2F%2Flocalhost%3A8080%2FApi.php%2F2factor%2F
 
   if SMTP is not yet configured the method response will contain the 2-factor code for use in:
 
@@ -130,6 +138,7 @@ Kennis van het SLIM3 framework is handig (hoewel de code voor zich spreekt), maa
     GET	/payments/inaddress
     GET	/
     POST	/sessions/{emailencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}/{loginurlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}
+    PATCH	/sessions/{emailencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}/{updateurlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}
     GET	/sessions
     DELETE	/sessions
     GET	/channels
@@ -157,4 +166,4 @@ Kennis van het SLIM3 framework is handig (hoewel de code voor zich spreekt), maa
     GET	/cronjobs/minute
     GET	/cronjobs/hour
     GET	/cronjobs/day
-    GET	/cronjobs/month
+    GET	/cronjobs/month    
