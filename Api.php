@@ -202,10 +202,6 @@ namespace Zaplog {
                         "tags" => $populartags,
                         "related" => $relatedchannels,
                         "activity" => $activity]);
-
-                    $response->withHeader("Last-Modified", "Tue, 15 Oct 2019 12:45:26 GMT");
-                    $response->withHeader("Etag", md5($response->getBody()->getContents()));
-
                 })
                     ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly)
@@ -223,24 +219,17 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    (new ServerException)(
-                        Db::execute("UPDATE channels SET 
-                            name=IFNULL(:name,name), 
-                            avatar=IFNULL(:avatar,avatar), 
-                            bio=IFNULL(:bio,bio), 
-                            moneroaddress=IFNULL(:moneroaddress,moneroaddress), 
-                            feedurl=IFNULL(:feedurl,feedurl), 
-                            themeurl=IFNULL(:themeurl,themeurl) WHERE id=:channelid",
-                            [
-                                ":name" => $args->name,
-                                ":avatar" => $args->avatar,
-                                ":bio" => $args->bio,
-                                ":moneroaddress" => $args->moneroaddress,
-                                ":feedurl" => $args->feedurl,
-                                ":themeurl" => $args->feedurl,
-                                ":channelid" => (new MemcachedFunction)(['\Zaplog\Middleware\Authentication', 'getSession'])->id,
-                            ])->rowCount() > 0);
-                    return $response->withJson(null);
+                    return $response->withJson(Db::execute("UPDATE channels SET 
+                            name=:name, avatar=:avatar, bio=:bio, moneroaddress=:moneroaddress, feedurl=:feedurl, themeurl=:themeurl WHERE id=:channelid",
+                        [
+                            ":name" => $args->name,
+                            ":avatar" => $args->avatar,
+                            ":bio" => $args->bio,
+                            ":moneroaddress" => $args->moneroaddress,
+                            ":feedurl" => $args->feedurl,
+                            ":themeurl" => $args->feedurl,
+                            ":channelid" => (new MemcachedFunction)(['\Zaplog\Middleware\Authentication', 'getSession'])->id,
+                        ])->rowCount());
                 })
                     ->add(new Authentication)
                     ->add(new BodyParameters([
