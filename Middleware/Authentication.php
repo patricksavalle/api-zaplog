@@ -24,11 +24,22 @@ namespace Zaplog\Middleware {
         // Decorates the parent class method.
         // ----------------------------------------------
 
+        static public function updateIdentity(string $newuserid): array
+        {
+            Db::execute("UPDATE channels SET userid=:newuserid WHERE userid=:userid",
+                [":newuserid" => $newuserid, ":userid" => parent::getSession()->userid]);
+        }
+
+        // ----------------------------------------------
+        // 2FA action, creates a session token.
+        // Decorates the parent class method.
+        // ----------------------------------------------
+
         static public function createSession(string $userid): array
         {
             // if we see a new user, we create a new channel for him/her
             $channelname = Haikunator::haikunate();
-            Db::execute("INSERT IGNORE channels(userid,name,) VALUES (MD5(:userid))",
+            Db::execute("INSERT IGNORE channels(userid,name,avatar) VALUES (MD5(:userid),:name,:avatar)",
                 [
                     ':userid' => $userid,
                     ':name' => $channelname,
