@@ -5,7 +5,6 @@ See: https://github.com/zaplogv2/doc.zaplog for explanation of the functionality
 Zaplog is a next-generation social-news platform. It includes:
 
 - collaborative linkdumping, bookmarking, blogging, voting, tagging etc.
-- zero-knowledge participation
 - wisdom-of-the-crowd mechanisms for frontpage generation
 - Monero and Bitcoin crowd payments distributed based on user reputation
 
@@ -95,6 +94,12 @@ Kennis van het SLIM3 framework is handig (hoewel de code voor zich spreekt), maa
       php Api.php /cronjobs/hour GET
       php Api.php /cronjobs/day GET
       php Api.php /cronjobs/month GET
+
+- For extra performance install memcached
+
+
+- For much more performance install a reverse proxy that first checks GET 
+requests by URL in memcached (e.g. NGINX)
 
 ## Example INI file
 
