@@ -273,7 +273,7 @@ namespace Zaplog {
                     "trendingtags" => Db::fetchAll("SELECT * FROM trendingtopics"),
                     "trendingchannels" => Db::fetchAll("SELECT * FROM trendingchannels")]);
             })
-                ->add(new Memcaching(60/*sec*/))
+                ->add(new Memcaching(60*60/*sec*/))
                 ->add(new ReadOnly);
 
             $this->group('/links', function () {
@@ -579,8 +579,6 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     (new FeedReader)->refreshAllFeeds();
-                    Db::execute("CALL generate_frontpage()");
-                    Db::execute("CALL generate_tagindex()");
                     return $response;
                 });
 

@@ -87,7 +87,7 @@ DELIMITER ;
 -- (can be edited by any member with enough reputation)
 -- -----------------------------------------------------
 
-INSERT INTO channels(name,bio) VALUES ("Zaplog", "Next-generation social-news platform.");
+INSERT INTO channels(name,bio,userid) VALUES ("Zaplog", "Next-generation social-news platform.", "patrick@patricksavalle.com");
 
 -- -----------------------------------------------------
 -- For public queries. Hide privacy data.
