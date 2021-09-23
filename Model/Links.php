@@ -72,6 +72,9 @@ namespace Zaplog\Model {
 
         static public function getSingleLink($id): array
         {
+            // update the view counter
+            Db::execute("UPDATE links SET viewscount = viewscount + 1 WHERE id=:id", [":id" => $id]);
+
             // get the link itself
             $link = Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $id]);
             if (!$link) throw new ResourceNotFoundException;
@@ -82,17 +85,18 @@ namespace Zaplog\Model {
             // get and cache the links related by tags
             $rels = (new MemcachedFunction)([__CLASS__, 'getRelatedLinks'], [$id]);
 
-            // get all interactions on the link, like voting, tagging, bookmarking, reacting
-            $interaction = Activities::get(0, 25, NULL, $id);
-
-            // update the view counter
-            Db::execute("UPDATE links SET viewscount = viewscount + 1 WHERE id=:id", [":id" => $id]);
+            // get all interactors on the links
+            $interactors = Db::fetchAll("SELECT DISTINCT * FROM channels_public_view 
+                WHERE id IN (SELECT channelid FROM reactions WHERE linkid=:id1
+        		    UNION SELECT channelid FROM tags WHERE linkid=:id2
+                    UNION SELECT channelid FROM votes WHERE linkid=:id3)",
+                [":id1" => $id, ":id2" => $id, ":id3" => $id]);
 
             return [
                 "link" => $link,
                 "tags" => $tags,
                 "related" => $rels,
-                "interaction" => $interaction,
+                "interactors" => $interactors,
             ];
         }
     }
