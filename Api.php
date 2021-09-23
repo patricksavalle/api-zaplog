@@ -107,7 +107,7 @@ namespace Zaplog {
                 });
 
                 // -----------------------------------------------------
-                // change authenticated email
+                // change authenticated email, login again
                 // -----------------------------------------------------
 
                 $this->patch("/{emailencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}/{updateurlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
@@ -219,21 +219,22 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Db::execute("UPDATE channels SET 
-                            name=:name, avatar=:avatar, bio=:bio, moneroaddress=:moneroaddress, feedurl=:feedurl, themeurl=:themeurl WHERE id=:channelid",
-                        [
-                            ":name" => $args->name,
-                            ":avatar" => $args->avatar,
-                            ":bio" => $args->bio,
-                            ":moneroaddress" => $args->moneroaddress,
-                            ":feedurl" => $args->feedurl,
-                            ":themeurl" => $args->feedurl,
-                            ":channelid" => (new MemcachedFunction)(['\Zaplog\Middleware\Authentication', 'getSession'])->id,
-                        ])->rowCount());
+                    (new UserException)(Db::execute("UPDATE channels SET 
+                        name=:name, avatar=:avatar, bio=:bio, moneroaddress=:moneroaddress, feedurl=:feedurl, themeurl=:themeurl WHERE id=:channelid",
+                            [
+                                ":name" => $args->name,
+                                ":avatar" => $args->avatar,
+                                ":bio" => $args->bio,
+                                ":moneroaddress" => $args->moneroaddress,
+                                ":feedurl" => $args->feedurl,
+                                ":themeurl" => $args->feedurl,
+                                ":channelid" => (new MemcachedFunction)(['\Zaplog\Middleware\Authentication', 'getSession'])->id,
+                            ])->rowCount() > 0);
+                    return $response->withJson(null);
                 })
                     ->add(new Authentication)
                     ->add(new BodyParameters([
-                        '{name:[\w-]{3,55}},null',
+                        '{name:[.\w-]{3,55}}',
                         '{feedurl:\url},null',
                         '{themeurl:\url},null',
                         '{avatar:\url},null',
@@ -330,12 +331,9 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    (new ServerException)(
-                        Db::execute("UPDATE links SET 
-                            published=IFNULL(:published,published), 
-                            title=IFNULL(:title,title), 
-                            description=IFNULL(:description,description) 
-                            WHERE id=:linkid AND channelid=:channelid",
+                    (new UserException)(Db::execute("UPDATE links SET 
+                        published=:published, title=:title, description=:description 
+                        WHERE id=:linkid AND channelid=:channelid",
                             [
                                 ":published" => $args->published,
                                 ":title" => $args->title,
@@ -557,7 +555,7 @@ namespace Zaplog {
                 stdClass $args): Response {
                 return $response->withJson(Db::fetch("SELECT * FROM statistics"));
             })
-                ->add(new Memcaching(10/*sec*/))
+                ->add(new Memcaching(60/*sec*/))
                 ->add(new ReadOnly);
 
             // ------------------------------------------------
@@ -571,8 +569,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    list($amount, $numshares) = MoneroPayments::checkAndForward([]);
-                    Db::execute("INSERT INTO payments()VALUES()");
+                    MoneroPayments::checkAndForward();
                     return $response;
                 });
                 // ->add(new CliRequest(300));
@@ -582,6 +579,8 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     (new FeedReader)->refreshAllFeeds();
+                    Db::execute("CALL generate_frontpage()");
+                    Db::execute("CALL generate_tagindex()");
                     return $response;
                 });
 
