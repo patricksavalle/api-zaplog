@@ -498,7 +498,7 @@ INSERT INTO channels(name, feedurl, avatar, userid) VALUES
     ("CNET", "https://www.cnet.com/rss/all", "https://api.multiavatar.com/CNET", "5@abc.xyz"),
     ("Gizmodo", "https://gizmodo.com/rss", "https://api.multiavatar.com/Gizmodo", "6@abc.xyz");
 
-INSERT INTO channels(name, avatar) VALUES
+INSERT INTO channels(name, avatar, userid) VALUES
     ("Website Victories", "https://api.multiavatar.com/Zaplog", "7@abc.xyz"),
     ("Pro Star", "https://api.multiavatar.com/Zaplog", "4sssss@abc.xyz"),
     ("Future Bright", "https://api.multiavatar.com/Zaplog", "4asd@abc.xyz"),
