@@ -44,7 +44,7 @@ Kennis van het SLIM3 framework is handig (hoewel de code voor zich spreekt), maa
       ext-tidy
 
 
-- Clone the project from Github to your local computer
+- Clone the project from this Github to your local computer
 
 
 - Run composer to fetch and update external libraries:
@@ -84,7 +84,7 @@ Kennis van het SLIM3 framework is handig (hoewel de code voor zich spreekt), maa
 
       POST http://localhost:8080/Api.php/sessions/your@urlencoded.email/http%3A%2F%2Flocalhost%3A8080%2FApi.php%2F2factor%2F
 
-  if SMTP is not yet configured the method response will contain the 2-factor code for use in:
+  if SMTP is not yet configured the method response will contain the 2-factor code (unsafe) for use in:
 
       GET http://localhost:8080/Api.php/2factor/<2factorcode>
 
@@ -100,6 +100,9 @@ Kennis van het SLIM3 framework is handig (hoewel de code voor zich spreekt), maa
 
 - For much more performance install a reverse proxy that first checks GET 
 requests by URL in memcached (e.g. NGINX)
+
+
+- This server does no rate-limiting, black-listing, DDOS-mitigation or anything else that should be done by a reverse proxy 
 
 ## Example INI file
 

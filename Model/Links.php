@@ -12,13 +12,14 @@ namespace Zaplog\Model {
     use ContentSyndication\NormalizedText;
     use SlimRestApi\Infra\MemcachedFunction;
     use Zaplog\Exception\ResourceNotFoundException;
+    use Zaplog\Exception\ServerException;
 
     class Links
     {
         static public function postLinkFromUrl(string $channelid, string $url): string
         {
             $metadata = (new HtmlMetadata)($url);
-            if (Db::execute("INSERT INTO links(url, channelid, title, description, image)
+            (New ServerException)(Db::execute("INSERT INTO links(url, channelid, title, description, image)
                         VALUES (:url, :channelid, :title, :description, :image)",
                     [
                         ":url" => $metadata["url"],
@@ -26,10 +27,7 @@ namespace Zaplog\Model {
                         ":title" => $metadata["title"],
                         ":description" => $metadata["description"],
                         ":image" => $metadata["image"],
-                    ])->rowCount() === 0
-            ) {
-                throw new Exception;
-            }
+                    ])->rowCount() > 0);
 
             /** @noinspection PhpUndefinedMethodInspection */
             $linkid = Db::lastInsertId();
@@ -48,7 +46,7 @@ namespace Zaplog\Model {
                     $tag = (new NormalizedText($tag))->convertToAscii()->hyphenizeForPath()->get();
                     assert(preg_match("/[\w-]{3,50}/", $tag) > 0);
                     assert(substr_count($tag, "-") < 5);
-                    Db::execute("INSERT INTO tags(linkid, channelid, tag) VALUES (:linkid, :channelid, :tag)",
+                    Db::execute("INSERT IGNORE INTO tags(linkid, channelid, tag) VALUES (:linkid, :channelid, :tag)",
                         [
                             ":linkid" => $linkid,
                             ":channelid" => $channelid,
@@ -75,28 +73,18 @@ namespace Zaplog\Model {
             // update the view counter
             Db::execute("UPDATE links SET viewscount = viewscount + 1 WHERE id=:id", [":id" => $id]);
 
-            // get the link itself
-            $link = Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $id]);
-            if (!$link) throw new ResourceNotFoundException;
-
-            // get its tags
-            $tags = Db::fetchAll("SELECT * FROM tags WHERE linkid=:id GROUP BY tag", [":id" => $id]);
-
-            // get and cache the links related by tags
-            $rels = (new MemcachedFunction)([__CLASS__, 'getRelatedLinks'], [$id]);
-
-            // get all interactors on the links
-            $interactors = Db::fetchAll("SELECT DISTINCT * FROM channels_public_view 
-                WHERE id IN (SELECT channelid FROM reactions WHERE linkid=:id1
-        		    UNION SELECT channelid FROM tags WHERE linkid=:id2
-                    UNION SELECT channelid FROM votes WHERE linkid=:id3)",
-                [":id1" => $id, ":id2" => $id, ":id3" => $id]);
-
             return [
-                "link" => $link,
-                "tags" => $tags,
-                "related" => $rels,
-                "interactors" => $interactors,
+                "link" => (new ResourceNotFoundException)(Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $id])),
+
+                "tags" => Db::fetchAll("SELECT * FROM tags WHERE linkid=:id GROUP BY tag", [":id" => $id]),
+
+                "related" => (new MemcachedFunction)([__CLASS__, 'getRelatedLinks'], [$id]),
+
+                "interactors" => Db::fetchAll("SELECT DISTINCT * FROM channels_public_view 
+                    WHERE id IN (SELECT channelid FROM reactions WHERE linkid=:id1
+                        UNION SELECT channelid FROM tags WHERE linkid=:id2
+                        UNION SELECT channelid FROM votes WHERE linkid=:id3)",
+                    [":id1" => $id, ":id2" => $id, ":id3" => $id]),
             ];
         }
     }

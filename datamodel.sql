@@ -26,7 +26,7 @@ USE zaplog;
 
 CREATE TABLE channels
 (
-    id             INT       NOT NULL AUTO_INCREMENT,
+    id             INT                NOT NULL AUTO_INCREMENT,
     -- we don't store anything from the user, just hashed email address
     userid         CHAR(32)           NOT NULL,
     name           VARCHAR(55)        NOT NULL,
@@ -208,7 +208,7 @@ DELIMITER ;
 -- should be cached higher up in the stack
 CREATE VIEW frontpage AS
     SELECT DISTINCT links.* FROM interactions JOIN links ON interactions.linkid = links.id
-    WHERE published=true
+    WHERE published=TRUE
           -- order by score, give old posts some half life decay after 3 hours
     ORDER BY (score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, createdatetime), 2))) DESC LIMIT 25;
 
@@ -219,7 +219,7 @@ CREATE VIEW frontpage AS
 DELIMITER //
 CREATE TRIGGER on_insert_channel AFTER INSERT ON channels FOR EACH ROW
 BEGIN
-    INSERT INTO interactions(channelid,type) VALUES(NEW.id,'on_insert_channel');
+    INSERT INTO interactions(channelid,type) VALUES (NEW.id,'on_insert_channel');
 END//
 DELIMITER ;
 
@@ -234,7 +234,7 @@ BEGIN
         OR NEW.name<>OLD.name
         OR NEW.moneroaddress<>OLD.moneroaddress
         OR NEW.avatar<>OLD.avatar) THEN
-        INSERT INTO interactions(channelid,type) VALUES(NEW.id,'on_update_channel');
+        INSERT INTO interactions(channelid,type) VALUES (NEW.id,'on_update_channel');
     END IF;
 END//
 DELIMITER ;
@@ -246,7 +246,7 @@ DELIMITER ;
 DELIMITER //
 CREATE TRIGGER on_insert_link AFTER INSERT ON links FOR EACH ROW
 BEGIN
-    INSERT INTO interactions(linkid, channelid, type) VALUES(NEW.id, NEW.channelid, 'on_insert_link');
+    INSERT INTO interactions(linkid, channelid, type) VALUES (NEW.id, NEW.channelid, 'on_insert_link');
 END//
 DELIMITER ;
 
@@ -261,7 +261,7 @@ BEGIN
         OR NEW.image<>OLD.image
         OR NEW.title<>OLD.title
         OR NEW.url<>OLD.url) THEN
-        INSERT INTO interactions(channelid, type) VALUES(NEW.id, 'on_update_link');
+        INSERT INTO interactions(channelid, type) VALUES (NEW.id, 'on_update_link');
     END IF;
     -- accumulate link scores into parent channel
     IF (NEW.score<>OLD.score) THEN
@@ -292,7 +292,7 @@ CREATE TABLE reactions
     linkid         INT       NOT NULL,
     channelid      INT       NOT NULL,
     published      BOOL      NOT NULL DEFAULT TRUE,
-    comment        TEXT               DEFAULT NULL,
+    text           TEXT               DEFAULT NULL,
     PRIMARY KEY (id),
     INDEX (channelid),
     INDEX (linkid),
@@ -396,7 +396,7 @@ DELIMITER //
 CREATE TRIGGER on_insert_vote AFTER INSERT ON votes FOR EACH ROW
 BEGIN
     UPDATE links SET votescount = votescount + 1 WHERE id = NEW.linkid;
-    INSERT INTO interactions(linkid,channelid,type) VALUES(NEW.linkid, NEW.channelid,'on_insert_vote');
+    INSERT INTO interactions(linkid,channelid,type) VALUES (NEW.linkid, NEW.channelid,'on_insert_vote');
 END//
 DELIMITER ;
 
@@ -437,7 +437,7 @@ CREATE VIEW trendingtopics AS
     SELECT tags.* FROM tags
     JOIN (SELECT id, score FROM frontpage) AS links ON tags.linkid = links.id
     GROUP BY tags.tag
-    ORDER BY SUM(score) DESC;
+    ORDER BY SUM(score) DESC LIMIT 25;
 
 -- should be cached higher up in the stack
 CREATE VIEW toptopics AS
@@ -446,12 +446,8 @@ CREATE VIEW toptopics AS
     ON tags.linkid = links.id
     GROUP BY tag ORDER BY SUM(score) DESC LIMIT 25;
 
--- should be cached higher up in the stack
 CREATE VIEW newtopics AS
-    SELECT tags.* FROM tags
-    JOIN (SELECT id, score FROM links ORDER BY id DESC limit 1000) AS links
-    ON tags.linkid = links.id
-    GROUP BY tag ORDER BY MAX(linkid) DESC LIMIT 25;
+    SELECT tags.* FROM tags GROUP BY tag ORDER BY id DESC LIMIT 25;
 
 -- --------------------------------------------------------
 -- Most popular channels, this query should be cached by server
@@ -462,7 +458,7 @@ CREATE VIEW trendingchannels AS
     SELECT channels.* FROM channels_public_view AS channels
     JOIN (SELECT * FROM frontpage) AS links ON channels.id = links.channelid
     GROUP BY channels.id
-    ORDER BY SUM(score) DESC;
+    ORDER BY SUM(score) DESC LIMIT 25;
 
 CREATE VIEW topchannels AS
     SELECT channels.* FROM channels_public_view AS channels ORDER BY reputation DESC LIMIT 25;
