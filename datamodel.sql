@@ -89,7 +89,7 @@ INSERT INTO channels(name,bio,userid) VALUES ("Zaplog", "Next-generation social 
 -- -----------------------------------------------------
 
 CREATE VIEW channels_public_view AS
-    SELECT id,name,createdatetime,updatedatetime,bio,avatar,feedurl,reputation FROM channels;
+    SELECT id,name,createdatetime,updatedatetime,bio,avatar,feedurl,reputation,moneroaddress FROM channels;
 
 -- -----------------------------------------------------
 -- The links that are being shared, rated, etc.

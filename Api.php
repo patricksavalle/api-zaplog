@@ -302,23 +302,18 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    (new UserException)(Db::execute("UPDATE channels SET 
-                        name=:name, avatar=:avatar, bio=:bio, moneroaddress=:moneroaddress, feedurl=:feedurl, themeurl=:themeurl WHERE id=:channelid", [
-                            ":name" => $args->name,
-                            ":avatar" => $args->avatar,
-                            ":bio" => $args->bio,
-                            ":moneroaddress" => $args->moneroaddress,
-                            ":feedurl" => $args->feedurl,
-                            ":themeurl" => $args->feedurl,
-                            ":channelid" => Authentication::getSession()->id,
-                        ])->rowCount() > 0);
-                    return $response->withJson(null);
+                    return $response->withJson(Db::execute("UPDATE channels SET 
+                        name=:name, avatar=:avatar, bio=:bio, moneroaddress=:moneroaddress WHERE id=:channelid", [
+                        ":name" => $args->name,
+                        ":avatar" => $args->avatar,
+                        ":bio" => $args->bio,
+                        ":moneroaddress" => $args->moneroaddress,
+                        ":channelid" => Authentication::getSession()->id,
+                    ])->rowCount());
                 })
                     ->add(new Authentication)
                     ->add(new BodyParameters([
                         '{name:[.\w-]{3,55}}',
-                        '{feedurl:\url},null',
-                        '{themeurl:\url},null',
                         '{avatar:\url},null',
                         '{bio:\xtext},null',
                         '{moneroaddress:\moneroaddress},null',
@@ -378,17 +373,16 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    (new UserException)(Db::execute("UPDATE links SET 
+                    return $response->withJson(Db::execute("UPDATE links SET 
                         published=:published, title=:title, description=:description 
                         WHERE id=:linkid AND channelid=:channelid",
-                            [
-                                ":published" => $args->published,
-                                ":title" => $args->title,
-                                ":description" => $args->description,
-                                "linkid" => $args->id,
-                                ":channelid" => Authentication::getSession()->id,
-                            ])->rowCount() > 0);
-                    return $response->withJson(null);
+                        [
+                            ":published" => $args->published,
+                            ":title" => $args->title,
+                            ":description" => $args->description,
+                            ":linkid" => $args->id,
+                            ":channelid" => Authentication::getSession()->id,
+                        ])->rowCount());
                 })
                     ->add(new Authentication)
                     ->add(new BodyParameters([
