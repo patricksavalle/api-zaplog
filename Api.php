@@ -151,6 +151,93 @@ namespace Zaplog {
 
             });
 
+            // -----------------------------------------------------
+            // Returns the currently selected frontpage links
+            // -----------------------------------------------------
+
+            $this->get("/frontpage", function (
+                Request  $request,
+                Response $response,
+                stdClass $args): Response {
+                return $response->withJson([
+                    "trendinglinks" => Db::fetchAll("SELECT * FROM frontpage"),
+                    "trendingtags" => Db::fetchAll("SELECT * FROM trendingtopics"),
+                    "trendingchannels" => Db::fetchAll("SELECT * FROM trendingchannels")]);
+            })
+                ->add(new Memcaching(60 * 60/*sec*/))
+                ->add(new ReadOnly);
+
+            // ----------------------------------------------------------------
+            // Get reactions, forum style, returns the latest reactions
+            // grouped with the 2 previous in the same thread / link
+            // ----------------------------------------------------------------
+
+            $this->get("/forum", function (
+                Request  $request,
+                Response $response,
+                stdClass $args): Response {
+                return $response->withJson(Db::fetchAll("SELECT ranked_reactions.*, links.title FROM
+                         (SELECT reactions.*,
+                            @link_rank := IF(@current = linkid, @link_rank + 1, 1) AS link_rank,
+                            @current := linkid
+                            FROM reactions JOIN links ON reactions.linkid=links.id
+                            ORDER BY updatedatetime DESC, linkid, reactions.id) AS ranked_reactions
+                         LEFT JOIN links ON links.id=ranked_reactions.linkid AND link_rank=1
+                         WHERE link_rank<=3
+                         LIMIT :offset, :count",
+                    [":offset" => $args->offset, ":count" => $args->count]));
+            })
+                ->add(new Memcaching(60/*sec*/))
+                ->add(new ReadOnly)
+                ->add(new QueryParameters([
+                    '{offset:\int},0',
+                    '{count:\int},20',
+                ]));
+
+            // ------------------------------------------------
+            // get the activity stream
+            // ------------------------------------------------
+
+            $this->get("/activities", function (
+                Request  $request,
+                Response $response,
+                stdClass $args): Response {
+                return $response->withJson(Activities::get($args->offset, $args->count, $args->channel, null));
+            })
+                ->add(new Memcaching(60/*sec*/))
+                ->add(new ReadOnly)
+                ->add(new QueryParameters([
+                    '{channel:\d{1,10}},null',
+                    '{offset:\int},0',
+                    '{count:\int},250',
+                ]));
+
+            // ------------------------------------------------
+            // return all tags unique sorted
+            // ------------------------------------------------
+
+            $this->get("/index", function (
+                Request  $request,
+                Response $response,
+                stdClass $args): Response {
+                return $response->withJson(Db::fetchAll("SELECT * FROM tagindex"));
+            })
+                ->add(new Memcaching(10/*sec*/))
+                ->add(new ReadOnly);
+
+            // ------------------------------------------------
+            // get some basic statistics
+            // ------------------------------------------------
+
+            $this->get("/statistics", function (
+                Request  $request,
+                Response $response,
+                stdClass $args): Response {
+                return $response->withJson(Db::fetch("SELECT * FROM statistics"));
+            })
+                ->add(new Memcaching(60/*sec*/))
+                ->add(new ReadOnly);
+
             // ----------------------------------------------------------------
             // Channels show posts and activity for a specific user / email
             // Channels are automatically created on an email 2 factor login
@@ -255,22 +342,6 @@ namespace Zaplog {
 
             });
 
-            // -----------------------------------------------------
-            // Returns the currently selected frontpage links
-            // -----------------------------------------------------
-
-            $this->get("/frontpage", function (
-                Request  $request,
-                Response $response,
-                stdClass $args): Response {
-                return $response->withJson([
-                    "trendinglinks" => Db::fetchAll("SELECT * FROM frontpage"),
-                    "trendingtags" => Db::fetchAll("SELECT * FROM trendingtopics"),
-                    "trendingchannels" => Db::fetchAll("SELECT * FROM trendingchannels")]);
-            })
-                ->add(new Memcaching(60 * 60/*sec*/))
-                ->add(new ReadOnly);
-
             $this->group('/links', function () {
 
                 // ------------------------------------------------------
@@ -367,7 +438,7 @@ namespace Zaplog {
                     stdClass $args): Response {
                     return $response->withJson(Db::fetchAll("SELECT links.* FROM tags JOIN links ON tags.linkid=links.id 
                         WHERE tags.tag=:tag ORDER BY links.id DESC LIMIT :offset,:count",
-                        [":tag" => $args->tag, ":offset" => $args->offset, ":count" => $args->count,]));
+                        [":tag" => $args->tag, ":offset" => $args->offset, ":count" => $args->count]));
                 })
                     ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly)
@@ -476,19 +547,6 @@ namespace Zaplog {
                     ->add(new Authentication);
 
                 // ------------------------------------------------
-                // return all tags unique sorted
-                // ------------------------------------------------
-
-                $this->get("/index", function (
-                    Request  $request,
-                    Response $response,
-                    stdClass $args): Response {
-                    return $response->withJson(Db::fetchAll("SELECT * FROM tagindex"));
-                })
-                    ->add(new Memcaching(10/*sec*/))
-                    ->add(new ReadOnly);
-
-                // ------------------------------------------------
                 // get the top trending tags
                 // ------------------------------------------------
 
@@ -520,49 +578,6 @@ namespace Zaplog {
                     ->add(new Authentication);
 
             });
-
-            // ------------------------------------------------
-            // get the activity stream
-            // ------------------------------------------------
-
-            $this->get("/activities", function (
-                Request  $request,
-                Response $response,
-                stdClass $args): Response {
-                return $response->withJson(Activities::get($args->offset, $args->count, null, null));
-            })
-                ->add(new Memcaching(60/*sec*/))
-                ->add(new ReadOnly)
-                ->add(new QueryParameters([
-                    '{offset:\int},0',
-                    '{count:\int},250',
-                ]));
-
-            $this->get("/activities/channels/{id:\d{1,10}}", function (
-                Request  $request,
-                Response $response,
-                stdClass $args): Response {
-                return $response->withJson(Activities::get($args->offset, $args->count, $args->id, null));
-            })
-                ->add(new Memcaching(10/*sec*/))
-                ->add(new ReadOnly)
-                ->add(new QueryParameters([
-                    '{offset:\int},0',
-                    '{count:\int},100',
-                ]));
-
-            // ------------------------------------------------
-            // get some basic statistics
-            // ------------------------------------------------
-
-            $this->get("/statistics", function (
-                Request  $request,
-                Response $response,
-                stdClass $args): Response {
-                return $response->withJson(Db::fetch("SELECT * FROM statistics"));
-            })
-                ->add(new Memcaching(60/*sec*/))
-                ->add(new ReadOnly);
 
             // ------------------------------------------------
             // generic cronjob interfaces, not public

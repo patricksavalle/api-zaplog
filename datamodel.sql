@@ -74,20 +74,15 @@ DELIMITER ;
 -- 0.9981 every day halfs the reputation in a year (0.9981^365=0.5)
 -- -------------------------------------------------------------------------
 
-DELIMITER //
 CREATE EVENT apply_reputation_decay ON SCHEDULE EVERY 24 HOUR DO
-BEGIN
-    -- apply decay than add score for last 24h
     UPDATE channels SET reputation = reputation * 0.9981 + score - prevscore, prevscore = score;
-END//
-DELIMITER ;
 
 -- -----------------------------------------------------
 -- Posts that are place on this channel are collaborative
 -- (can be edited by any member with enough reputation)
 -- -----------------------------------------------------
 
-INSERT INTO channels(name,bio,userid) VALUES ("Zaplog", "Next-generation social-news platform.", MD5("patrick@patricksavalle.com"));
+INSERT INTO channels(name,bio,userid) VALUES ("Zaplog", "Next-generation social blogging platform.", MD5("patrick@patricksavalle.com"));
 
 -- -----------------------------------------------------
 -- For public queries. Hide privacy data.
@@ -129,9 +124,9 @@ CREATE TABLE links
                        ),
     PRIMARY KEY (id),
     INDEX (channelid),
-    INDEX (urlhash),
     INDEX (published),
     INDEX (createdatetime),
+    INDEX (updatedatetime),
     INDEX (score),
     FOREIGN KEY (channelid) REFERENCES channels (id)
         ON DELETE CASCADE
@@ -148,7 +143,9 @@ BEGIN
     IF (NEW.title<>OLD.title
         OR NEW.description<>OLD.description
         OR NEW.url<>OLD.url
-        OR NEW.image<>OLD.image) THEN
+        OR NEW.image<>OLD.image
+        -- also update on added reactions (used for 'discussion' query)
+        OR NEW.reactionscount>OLD.reactionscount) THEN
         SET NEW.updatedatetime = CURRENT_TIMESTAMP;
     END IF;
 END//
@@ -193,13 +190,8 @@ CREATE TABLE interactions
 -- Purge interactions older than 24 hours
 -- -----------------------------------------------------
 
-DELIMITER //
 CREATE EVENT purge_interactions ON SCHEDULE EVERY 1 HOUR DO
-BEGIN
-    -- remove interactions
     DELETE FROM interactions WHERE datetime < SUBDATE(CURRENT_TIMESTAMP, INTERVAL 24 HOUR);
-END//
-DELIMITER ;
 
 -- -----------------------------------------------------------
 -- Select frontpage links from all links that had interactions
@@ -216,12 +208,8 @@ CREATE VIEW frontpage AS
 --
 -- ------------------------------------------------
 
-DELIMITER //
 CREATE TRIGGER on_insert_channel AFTER INSERT ON channels FOR EACH ROW
-BEGIN
     INSERT INTO interactions(channelid,type) VALUES (NEW.id,'on_insert_channel');
-END//
-DELIMITER ;
 
 -- ------------------------------------------------
 --
@@ -243,12 +231,8 @@ DELIMITER ;
 --
 -- ------------------------------------------------
 
-DELIMITER //
 CREATE TRIGGER on_insert_link AFTER INSERT ON links FOR EACH ROW
-BEGIN
     INSERT INTO interactions(linkid, channelid, type) VALUES (NEW.id, NEW.channelid, 'on_insert_link');
-END//
-DELIMITER ;
 
 -- ------------------------------------------------
 --
@@ -274,12 +258,8 @@ DELIMITER ;
 --
 -- ------------------------------------------------
 
-DELIMITER //
 CREATE TRIGGER on_delete_link AFTER DELETE ON links FOR EACH ROW
-BEGIN
     UPDATE channels SET score = score - OLD.score WHERE id = OLD.channelid;
-END//
-DELIMITER ;
 
 -- --------------------------------------------------
 -- reactions
@@ -316,15 +296,11 @@ BEGIN
 END//
 DELIMITER ;
 
-DELIMITER //
 CREATE TRIGGER on_delete_reaction AFTER DELETE ON reactions FOR EACH ROW
-BEGIN
     UPDATE links SET
         reactionscount = reactionscount - 1,
         uniquereactors = (SELECT COUNT(DISTINCT channelid) FROM reactions WHERE linkid = OLD.linkid)
         WHERE id = OLD.linkid;
-END//
-DELIMITER ;
 
 -- --------------------------------------------------
 -- Link tags
@@ -357,12 +333,8 @@ BEGIN
 END//
 DELIMITER ;
 
-DELIMITER //
 CREATE TRIGGER on_delete_tag AFTER DELETE ON tags FOR EACH ROW
-BEGIN
     UPDATE links SET tagscount = tagscount - 1 WHERE id = OLD.linkid;
-END//
-DELIMITER ;
 
 -- --------------------------------------------------
 -- The tag index
@@ -400,12 +372,8 @@ BEGIN
 END//
 DELIMITER ;
 
-DELIMITER //
 CREATE TRIGGER on_delete_vote AFTER DELETE ON votes FOR EACH ROW
-BEGIN
     UPDATE links SET votescount = votescount - 1 WHERE id = OLD.linkid;
-END//
-DELIMITER ;
 
 -- -----------------------------------------------------
 -- Users (channels) that reacted last hour
@@ -453,7 +421,7 @@ CREATE VIEW newtopics AS
 -- Most popular channels, this query should be cached by server
 -- --------------------------------------------------------
 
--- should be cached
+-- should be cached higher up in the stack
 CREATE VIEW trendingchannels AS
     SELECT channels.* FROM channels_public_view AS channels
     JOIN (SELECT * FROM frontpage) AS links ON channels.id = links.channelid
@@ -487,7 +455,8 @@ CREATE VIEW activitystream AS
 -- -----------------------------------------------------
 
 INSERT INTO channels(name, feedurl, avatar, userid) VALUES
-    ("AinOnline", "http://www.ainonline.com/index.php?id=5", "https://api.multiavatar.com/AinOnline", "1@abc.xyz"),
+    ("NYT Science", "http://www.nytimes.com/services/xml/rss/nyt/Science.xml", "https://api.multiavatar.com/nyt", "1@ab55c.xyz"),
+    ("Breitbart", "https://feeds.feedburner.com/breitbart", "https://api.multiavatar.com/Breitbart", "1@abc.xyz"),
     ("Wired", "http://blog.wired.com/wiredscience/atom.xml", "https://api.multiavatar.com/Wired", "2@abc.xyz"),
     ("Tech Xplore", "https://techxplore.com/rss-feed/", "https://api.multiavatar.com/Tech Xplore", "3@abc.xyz"),
     ("PhysOrg", "https://phys.org/rss-feed/", "https://api.multiavatar.com/PhysOrg", "4@abc.xyz"),
