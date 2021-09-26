@@ -29,7 +29,7 @@ Everyone is encouraged to help improve this project. Here are a few ways you can
 Advanced SQL and advanced PHP. We're using the full spectrum of OO PHP 7.3 syntax and the datamodel
 contains built-in referential integrity (foreign keys), events and triggers.
 
-Kennis van het SLIM3 framework is handig (hoewel de code voor zich spreekt), maar niet nodig als je aan delen van de applicatie wilt werken.
+Knowledge of the SLIM3 framework is useful but not required. The code speaks for itself.
 
 ## Deploying the REST-server
 
@@ -149,29 +149,30 @@ requests by URL in memcached (e.g. NGINX)
     PATCH	/sessions/{emailencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}/{updateurlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}
     GET	/sessions
     DELETE	/sessions
+    GET	/frontpage
+    GET	/forum
+    GET	/activities
+    GET	/index
+    GET	/statistics
     GET	/channels
     GET	/channels/id/{id:[\d]{1,10}}
     PATCH	/channels
     GET	/channels/active
-    GET	/frontpage
     POST	/links/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}
     GET	/links/id/{id:\d{1,10}}
-    POST	/links
     PATCH	/links/id/{id:\d{1,10}}
     DELETE	/links/id/{id:\d{1,10}}
     GET	/links
     GET	/links/tag/{tag:[\w-]{3,55}}
     GET	/links/channel/{id:[\w-]{3,55}}
-    GET	/links/metadata/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}
+    POST	/comments/link/{id:\d{1,10}}
+    DELETE	/comments/link/{id:\d{1,10}}
     POST	/votes/link/{id:\d{1,10}}
+    DELETE	/votes/link/{id:\d{1,10}}
     POST	/tags/link/{id:\d{1,10}}/tag/{tag:[\w-]{3,50}}
-    GET	/tags/index
     GET	/tags/active
     DELETE	/tags/id/{id:\d{1,10}}
-    GET	/activities
-    GET	/activities/channels/{id:\d{1,10}}
-    GET	/statistics
     GET	/cronjobs/minute
     GET	/cronjobs/hour
     GET	/cronjobs/day
-    GET	/cronjobs/month    
+    GET	/cronjobs/month
