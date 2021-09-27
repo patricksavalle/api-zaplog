@@ -99,10 +99,10 @@ Knowledge of the SLIM3 framework is useful but not required. The code speaks for
 
 
 - For much more performance install a reverse proxy that first checks GET 
-requests by URL in memcached (e.g. NGINX)
+requests by full URL in memcached (e.g. NGINX)
 
 
-- This server does no rate-limiting, black-listing, DDOS-mitigation or anything else that should be done by a reverse proxy 
+- This server does not do rate-limiting, black-listing, DDOS-mitigation or anything else that should be done by a reverse proxy 
 
 ## Example INI file
 

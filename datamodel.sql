@@ -451,6 +451,20 @@ CREATE VIEW activitystream AS
     LEFT JOIN links ON links.id=interactions.linkid AND interactions.type = 'on_insert_link';
 
 -- -----------------------------------------------------
+-- Returns a channels most popular tags
+-- -----------------------------------------------------
+
+DELIMITER //
+CREATE PROCEDURE select_channel_tags(IN arg_channelid INT)
+BEGIN
+    SELECT tag, COUNT(tag) AS tagscount
+    FROM tags JOIN links ON tags.linkid=links.id
+    WHERE links.channelid=arg_channelid
+    GROUP BY tag ORDER BY SUM(score) DESC LIMIT 10;
+END //
+DELIMITER ;
+
+-- -----------------------------------------------------
 -- RSS-feeds
 -- -----------------------------------------------------
 

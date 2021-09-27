@@ -32,6 +32,7 @@ namespace Zaplog {
     use Zaplog\Exception\UserException;
     use Zaplog\Library\TwoFactorAction;
     use Zaplog\Model\Activities;
+    use Zaplog\Model\Channels;
     use Zaplog\Model\FeedReader;
     use Zaplog\Middleware\Authentication;
     use Zaplog\Model\Links;
@@ -172,7 +173,7 @@ namespace Zaplog {
             // grouped with the 2 previous in the same thread / link
             // ----------------------------------------------------------------
 
-            $this->get("/forum", function (
+            $this->get("/discussion", function (
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
@@ -253,9 +254,8 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(
-                        Db::fetchAll("SELECT * FROM channels_public_view ORDER BY name LIMIT :offset,:count",
-                            [":offset" => $args->offset, ":count" => $args->count]));
+                    return $response->withJson(Db::fetchAll("SELECT * FROM channels_public_view ORDER BY name LIMIT :offset,:count",
+                        [":offset" => $args->offset, ":count" => $args->count]));
                 })
                     ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly)
@@ -272,19 +272,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson([
-                        "channel" => Db::fetch("SELECT * FROM channels_public_view WHERE id=:id", [":id" => $args->id]),
-
-                        "tags" => Db::fetchAll("SELECT tag, COUNT(tag) AS tagscount 
-                            FROM tags JOIN links ON tags.linkid=links.id  
-                            WHERE links.channelid=:channelid 
-                            GROUP BY tag ORDER BY SUM(score) DESC LIMIT 10",
-                            [":channelid" => $args->id]),
-
-                        // TODO https://github.com/zaplogv2/api.zaplog/issues/12
-                        "related" => Db::fetchAll("SELECT * FROM links LIMIT 5"),
-
-                        "activity" => Activities::get(0, 25, $args->id, null)]);
+                    return $response->withJson(Channels::getSingleChannel($args->id));
                 })
                     ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly)

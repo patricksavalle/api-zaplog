@@ -59,16 +59,21 @@ namespace Zaplog\Model {
             return $linkid;
         }
 
-        static public function getRelatedLinks($id): array
+        static public function getRelatedLinks(string $id): array
         {
-            return Db::fetchAll("SELECT GROUP_CONCAT(tags.tag SEPARATOR ',') AS tags, links.*
-                FROM links JOIN tags ON tags.linkid=links.id AND links.id<>:id1
-                WHERE tag IN (SELECT tags.tag FROM links JOIN tags on tags.linkid=links.id WHERE links.id=:id2) 
-                GROUP BY links.id ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT 5",
+            return Db::fetchAll("SELECT GROUP_CONCAT(DISTINCT tags.tag SEPARATOR ',' LIMIT 10) AS tags, links.*
+                FROM links 
+                JOIN tags ON tags.linkid=links.id AND links.id<>:id1
+                WHERE tag IN (
+                    SELECT tags.tag FROM links JOIN tags on tags.linkid=links.id WHERE links.id=:id2
+                ) 
+                GROUP BY links.id 
+                ORDER BY COUNT(tag) DESC, SUM(links.score) DESC 
+                LIMIT 5",
                 [":id1" => $id, ":id2" => $id]);
         }
 
-        static public function getSingleLink($id): array
+        static public function getSingleLink(string $id): array
         {
             // update the view counter
             Db::execute("UPDATE links SET viewscount = viewscount + 1 WHERE id=:id", [":id" => $id]);
