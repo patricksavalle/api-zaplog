@@ -177,15 +177,7 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                return $response->withJson(Db::fetchAll("SELECT ranked_reactions.*, links.title FROM
-                         (SELECT reactions.*,
-                            @link_rank := IF(@current = linkid, @link_rank + 1, 1) AS link_rank,
-                            @current := linkid
-                            FROM reactions JOIN links ON reactions.linkid=links.id
-                            ORDER BY updatedatetime DESC, linkid, reactions.id) AS ranked_reactions
-                         LEFT JOIN links ON links.id=ranked_reactions.linkid AND link_rank=1
-                         WHERE link_rank<=3
-                         LIMIT :offset, :count",
+                return $response->withJson(Db::fetchAll("CALL select_discussion(:offset,:count)",
                     [":offset" => $args->offset, ":count" => $args->count]));
             })
                 ->add(new Memcaching(60/*sec*/))

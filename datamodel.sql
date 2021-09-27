@@ -451,7 +451,7 @@ CREATE VIEW activitystream AS
     LEFT JOIN links ON links.id=interactions.linkid AND interactions.type = 'on_insert_link';
 
 -- -----------------------------------------------------
--- Returns a channels most popular tags
+-- Returns a channel's most popular tags
 -- -----------------------------------------------------
 
 DELIMITER //
@@ -461,6 +461,25 @@ BEGIN
     FROM tags JOIN links ON tags.linkid=links.id
     WHERE links.channelid=arg_channelid
     GROUP BY tag ORDER BY SUM(score) DESC LIMIT 10;
+END //
+DELIMITER ;
+
+-- -----------------------------------------------------
+-- Returns forum style reactions, order by most recent
+-- -----------------------------------------------------
+
+DELIMITER //
+CREATE PROCEDURE select_discussion(IN arg_offset INT, IN arg_count INT)
+BEGIN
+    SELECT ranked_reactions.*, links.title FROM
+        (SELECT reactions.*,
+                @link_rank := IF(@current = linkid, @link_rank + 1, 1) AS link_rank,
+                @current := linkid
+         FROM reactions JOIN links ON reactions.linkid=links.id
+         ORDER BY updatedatetime DESC, linkid, reactions.id) AS ranked_reactions
+            LEFT JOIN links ON links.id=ranked_reactions.linkid AND link_rank=1
+    WHERE link_rank<=3
+    LIMIT arg_offset, arg_count;
 END //
 DELIMITER ;
 
