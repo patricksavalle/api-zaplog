@@ -12,8 +12,7 @@ namespace Zaplog {
 
     require_once BASE_PATH . '/vendor/autoload.php';
     require_once BASE_PATH . '/Middleware/Authentication.php';
-    require_once BASE_PATH . '/Model/Links.php';
-    require_once BASE_PATH . '/Model/FeedReader.php';
+    require_once BASE_PATH . '/Methods.php';
     require_once BASE_PATH . '/Library/TwoFactorAction.php';
     require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
     require_once BASE_PATH . '/Exception/EmailException.php';
@@ -31,11 +30,7 @@ namespace Zaplog {
     use Zaplog\Exception\ServerException;
     use Zaplog\Exception\UserException;
     use Zaplog\Library\TwoFactorAction;
-    use Zaplog\Model\Activities;
-    use Zaplog\Model\Channels;
-    use Zaplog\Model\FeedReader;
     use Zaplog\Middleware\Authentication;
-    use Zaplog\Model\Links;
 
     class Api extends SlimRestApi
     {
@@ -195,7 +190,7 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                return $response->withJson(Activities::get($args->offset, $args->count, $args->channel, null));
+                return $response->withJson(Methods::getActivityStream($args->offset, $args->count, $args->channel));
             })
                 ->add(new Memcaching(60/*sec*/))
                 ->add(new ReadOnly)
@@ -264,7 +259,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Channels::getSingleChannel($args->id));
+                    return $response->withJson(Methods::getSingleChannel($args->id));
                 })
                     ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly)
@@ -329,7 +324,7 @@ namespace Zaplog {
                     stdClass $args): Response {
                     $url = urldecode($args->urlencoded);
                     (new UserException)(filter_var($url, FILTER_VALIDATE_URL));
-                    return $response->withJson(Links::postLinkFromUrl((string)Authentication::getSession()->id, $url));
+                    return $response->withJson(Methods::postLinkFromUrl((string)Authentication::getSession()->id, $url));
                 })
                     ->add(new Authentication);
 
@@ -341,7 +336,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Links::getSingleLink($args->id));
+                    return $response->withJson(Methods::getSingleLink($args->id));
                 })
                     ->add(new QueryParameters(['{http_referer:\url},null']));
 
@@ -572,7 +567,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    (new FeedReader)->refreshAllFeeds();
+                    Methods::refreshAllFeeds();
                     return $response;
                 });
 
