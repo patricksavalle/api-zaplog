@@ -97,11 +97,11 @@ namespace Zaplog {
                     $loginurl = urldecode($args->loginurlencoded);
                     (new UserException)(filter_var($email, FILTER_VALIDATE_EMAIL));
                     (new UserException)(filter_var($loginurl, FILTER_VALIDATE_URL));
-                    $return = (new TwoFactorAction)
+                    (new TwoFactorAction)
                         ->addAction('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'createSession'], [$email])
                         ->createToken()
                         ->sendToken($email, $loginurl, "Your single-use login link", "Press the button to login", "Login");
-                    return $response->withJson($return);
+                    return $response->withJson(true);
                 });
 
                 // -----------------------------------------------------
@@ -116,11 +116,11 @@ namespace Zaplog {
                     $updateurl = urldecode($args->updateurlencoded);
                     (new UserException)(filter_var($email, FILTER_VALIDATE_EMAIL));
                     (new UserException)(filter_var($updateurl, FILTER_VALIDATE_URL));
-                    $return = (new TwoFactorAction)
+                    (new TwoFactorAction)
                         ->addAction('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'updateIdentity'], [$email])
                         ->createToken()
                         ->sendToken($email, $updateurl, "Your email confirmation link", "Press the button to confirm the new email address", "Update");
-                    return $response->withJson($return);
+                    return $response->withJson(true);
                 })
                     ->add(new Authentication);
 
