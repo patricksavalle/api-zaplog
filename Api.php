@@ -353,8 +353,7 @@ namespace Zaplog {
                     stdClass $args): Response {
                     return $response->withJson(Db::execute("UPDATE links SET 
                         published=:published, title=:title, description=:description 
-                        WHERE id=:linkid AND channelid=:channelid",
-                        [
+                        WHERE id=:linkid AND channelid=:channelid", [
                             ":published" => $args->published,
                             ":title" => $args->title,
                             ":description" => $args->description,
