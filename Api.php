@@ -114,6 +114,7 @@ namespace Zaplog {
                         ->sendToken($args->email, $args->subject, $args->template, $args);
                     return $response->withJson(true);
                 })
+                    ->add(new Authentication)
                     ->add(new BodyParameters([
                         '{email:\email}',
                         '{subject:.{10,100}},Your email confirmation link',
