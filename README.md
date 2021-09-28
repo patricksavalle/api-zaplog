@@ -136,7 +136,6 @@ requests by full URL in memcached (e.g. NGINX)
     smtp_port=587
     
     [email]
-    email_twofactor_template=;twofactoraction.html
     email_sender=zaplog@patricksavalle.com
     email_sendername=Zaplog
 
@@ -145,12 +144,12 @@ requests by full URL in memcached (e.g. NGINX)
     GET	/2factor/{utoken:[[:alnum:]]{32}}
     GET	/payments/inaddress
     GET	/
-    POST	/sessions/{emailencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}/{loginurlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}
-    PATCH	/sessions/{emailencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}/{updateurlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}
+    POST	/sessions
+    PATCH	/sessions
     GET	/sessions
     DELETE	/sessions
     GET	/frontpage
-    GET	/forum
+    GET	/discussion
     GET	/activities
     GET	/index
     GET	/statistics
