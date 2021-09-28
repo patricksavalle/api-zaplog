@@ -83,40 +83,43 @@ namespace Zaplog {
                 // send a single-use auto-expiring log-in link to email
                 // -----------------------------------------------------
 
-                $this->post("/{emailencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}/{loginurlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
+                $this->post("", function (
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    $email = urldecode($args->emailencoded);
-                    $loginurl = urldecode($args->loginurlencoded);
-                    (new UserException)(filter_var($email, FILTER_VALIDATE_EMAIL));
-                    (new UserException)(filter_var($loginurl, FILTER_VALIDATE_URL));
                     (new TwoFactorAction)
-                        ->addAction('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'createSession'], [$email])
+                        ->addAction('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'createSession'], [$args->email])
                         ->createToken()
-                        ->sendToken($email, $loginurl, "Your single-use login link", "Press the button to login", "Login");
+                        ->sendToken2($args->email, $args->subject, $args->template, $args);
                     return $response->withJson(true);
-                });
+                })
+                    ->add(new BodyParameters([
+                        '{email:\email}',
+                        '{subject:.{10,100}},Your single-use login link',
+                        '{template:\url},null',
+                        '{*}' /* all {{variables}} used in template */,
+                    ]));
 
                 // -----------------------------------------------------
                 // change authenticated email, login again
                 // -----------------------------------------------------
 
-                $this->patch("/{emailencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}/{updateurlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
+                $this->patch("", function (
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    $email = urldecode($args->emailencoded);
-                    $updateurl = urldecode($args->updateurlencoded);
-                    (new UserException)(filter_var($email, FILTER_VALIDATE_EMAIL));
-                    (new UserException)(filter_var($updateurl, FILTER_VALIDATE_URL));
                     (new TwoFactorAction)
-                        ->addAction('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'updateIdentity'], [$email])
+                        ->addAction('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'updateIdentity'], [$args->email])
                         ->createToken()
-                        ->sendToken($email, $updateurl, "Your email confirmation link", "Press the button to confirm the new email address", "Update");
+                        ->sendToken2($args->email, $args->subject, $args->template, $args);
                     return $response->withJson(true);
                 })
-                    ->add(new Authentication);
+                    ->add(new BodyParameters([
+                        '{email:\email}',
+                        '{subject:.{10,100}},Your email confirmation link',
+                        '{template:\url},null',
+                        '{*}' /* all {{variables}} used in template */,
+                    ]));
 
                 // ----------------------------------------------------------------
                 // Return the active channels (sessions) 'who's online'
