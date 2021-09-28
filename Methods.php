@@ -12,7 +12,6 @@ namespace Zaplog {
     use ContentSyndication\XmlFeed;
     use Exception;
     use SlimRestApi\Infra\Db;
-    use SlimRestApi\Infra\MemcachedFunction;
     use stdClass;
     use Zaplog\Exception\ResourceNotFoundException;
     use Zaplog\Exception\ServerException;
@@ -67,47 +66,29 @@ namespace Zaplog {
         //
         // ----------------------------------------------------------
 
-        static public function getChannelTags(string $id): array
-        {
-            return Db::fetchAll("SELECT tag, COUNT(tag) AS tagscount 
-                FROM tags JOIN links ON tags.linkid=links.id  
-                WHERE links.channelid=:channelid 
-                GROUP BY tag ORDER BY SUM(score) DESC LIMIT 10",
-                [":channelid" => $id]);
-        }
-
-        // ----------------------------------------------------------
-        //
-        // ----------------------------------------------------------
-
-        static public function getRelatedChannels(string $id): array
-        {
-            return Db::fetchAll("SELECT GROUP_CONCAT(DISTINCT tags.tag SEPARATOR ',' LIMIT 10) AS tags, channels.*
-                FROM links 
-                JOIN tags ON tags.linkid=links.id
-                JOIN channels_public_view AS channels ON links.channelid=channels.id 
-                WHERE tag IN (
-                    SELECT tag FROM tags 
-                    JOIN links on tags.linkid=links.id 
-                    JOIN channels ON links.channelid=channels.id
-                    WHERE channels.id=:channelid1
-                ) AND channels.id<>:channelid2
-                GROUP BY channels.id ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT 5",
-                ["channelid1" => $id, "channelid2" => $id]);
-        }
-
-        // ----------------------------------------------------------
-        //
-        // ----------------------------------------------------------
-
         static public function getSingleChannel(string $id): array
         {
             return [
                 "channel" => Db::fetch("SELECT * FROM channels_public_view WHERE id=:id", [":id" => $id]),
 
-                "tags" => (new MemcachedFunction)([__CLASS__, 'getChannelTags'], [$id], 60 * 60),
+                "tags" => Db::fetchAll("SELECT tag, COUNT(tag) AS tagscount 
+                    FROM tags JOIN links ON tags.linkid=links.id  
+                    WHERE links.channelid=:channelid 
+                    GROUP BY tag ORDER BY SUM(score) DESC LIMIT 10",
+                    [":channelid" => $id], 60 * 60),
 
-                "related" => (new MemcachedFunction)([__CLASS__, 'getRelatedChannels'], [$id], 60 * 60),
+                "related" => Db::fetchAll("SELECT GROUP_CONCAT(DISTINCT tags.tag SEPARATOR ',' LIMIT 10) AS tags, channels.*
+                    FROM links 
+                    JOIN tags ON tags.linkid=links.id
+                    JOIN channels_public_view AS channels ON links.channelid=channels.id 
+                    WHERE tag IN (
+                        SELECT tag FROM tags 
+                        JOIN links on tags.linkid=links.id 
+                        JOIN channels ON links.channelid=channels.id
+                        WHERE channels.id=:channelid1
+                    ) AND channels.id<>:channelid2
+                    GROUP BY channels.id ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT 5",
+                    ["channelid1" => $id, "channelid2" => $id], 60 * 60),
 
                 "activity" => self::getActivityStream(0, 25, $id),
             ];
@@ -153,28 +134,11 @@ namespace Zaplog {
                             ":tag" => $tag,
                         ]);
                 } catch (Exception $e) {
+                    // ignore on error
                     error_log($e->getMessage() . " @ " . __METHOD__ . "(" . __LINE__ . ") " . $tag);
                 }
             }
             return $linkid;
-        }
-
-        // ----------------------------------------------------------
-        //
-        // ----------------------------------------------------------
-
-        static public function getRelatedLinks(string $id): array
-        {
-            return Db::fetchAll("SELECT GROUP_CONCAT(DISTINCT tags.tag SEPARATOR ',' LIMIT 10) AS tags, links.*
-                FROM links 
-                JOIN tags ON tags.linkid=links.id AND links.id<>:id1
-                WHERE tag IN (
-                    SELECT tags.tag FROM links JOIN tags on tags.linkid=links.id WHERE links.id=:id2
-                ) 
-                GROUP BY links.id 
-                ORDER BY COUNT(tag) DESC, SUM(links.score) DESC 
-                LIMIT 5",
-                [":id1" => $id, ":id2" => $id]);
         }
 
         // ----------------------------------------------------------
@@ -190,7 +154,11 @@ namespace Zaplog {
 
                 "tags" => Db::fetchAll("SELECT * FROM tags WHERE linkid=:id GROUP BY tag", [":id" => $id]),
 
-                "related" => (new MemcachedFunction)([__CLASS__, 'getRelatedLinks'], [$id]),
+                "related" => Db::fetchAll("SELECT GROUP_CONCAT(DISTINCT tags.tag SEPARATOR ',' LIMIT 10) AS tags, links.*
+                    FROM links JOIN tags ON tags.linkid=links.id AND links.id<>:id1
+                    WHERE tag IN (SELECT tags.tag FROM links JOIN tags on tags.linkid=links.id WHERE links.id=:id2)
+                    GROUP BY links.id ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT 5",
+                    [":id1" => $id, ":id2" => $id], 60),
 
                 "interactors" => Db::fetchAll("SELECT DISTINCT * FROM channels_public_view 
                     WHERE id IN (SELECT channelid FROM reactions WHERE linkid=:id1
@@ -204,7 +172,7 @@ namespace Zaplog {
         static public function refreshSingleFeed(string $channelid, string $feedurl)
         {
             $content = (new XmlFeed)($feedurl);
-            $link    = null;
+            $link = null;
             foreach ($content["item"] as $item) {
 
                 try {

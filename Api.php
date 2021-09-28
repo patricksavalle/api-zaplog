@@ -27,7 +27,6 @@ namespace Zaplog {
     use Psr\Http\Message\ResponseInterface as Response;
     use Psr\Http\Message\ServerRequestInterface as Request;
     use SlimRestApi\Infra\Db;
-    use Zaplog\Exception\ServerException;
     use Zaplog\Exception\UserException;
     use Zaplog\Library\TwoFactorAction;
     use Zaplog\Middleware\Authentication;
@@ -446,8 +445,8 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
-                    (new ServerException)(Db::execute("INSERT INTO reactions(linkid,channelid,text) VALUES (:linkid,:channelid,:text)",
-                            [":linkid" => $args->id, ":channelid" => $channelid, ":text" => $args->text])->rowCount() > 0);
+                    Db::execute("INSERT INTO reactions(linkid,channelid,text) VALUES (:linkid,:channelid,:text)",
+                            [":linkid" => $args->id, ":channelid" => $channelid, ":text" => $args->text]);
                     return $response->withJson(Db::lastInsertId());
                 })
                     ->add(new BodyParameters(['{text:\xtext},null']))
@@ -480,8 +479,8 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
-                    (new ServerException)(Db::execute("INSERT INTO votes(linkid,channelid) VALUES (:linkid,:channelid)",
-                            [":linkid" => $args->id, ":channelid" => $channelid])->rowCount() > 0);
+                    Db::execute("INSERT IGNORE INTO votes(linkid,channelid) VALUES (:linkid,:channelid)",
+                            [":linkid" => $args->id, ":channelid" => $channelid]);
                     return $response->withJson(Db::lastInsertId());
                 })
                     ->add(new Authentication);
@@ -509,8 +508,8 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
-                    (new ServerException)(Db::execute("INSERT INTO tags(linkid,channelid,tag) VALUES(:id,:channelid,:tag)",
-                            [":id" => $args->id, ":tag" => $args->tag, ":channelid" => $channelid,])->rowCount() > 0);
+                    Db::execute("INSERT IGNORE INTO tags(linkid,channelid,tag) VALUES(:id,:channelid,:tag)",
+                        [":id" => $args->id, ":tag" => $args->tag, ":channelid" => $channelid,])->rowCount();
                     return $response->withJson(Db::lastInsertId());
                 })
                     ->add(new Authentication);
@@ -541,7 +540,7 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
-                    return $response->withJson((new ServerException)(Db::execute("DELETE tags FROM tags WHERE id=:id and channelid=:channelid",
+                    return $response->withJson((new UserException)(Db::execute("DELETE tags FROM tags WHERE id=:id and channelid=:channelid",
                             [":id" => $args->id, ":channelid" => $channelid])->rowCount() > 0));
                 })
                     ->add(new Authentication);
