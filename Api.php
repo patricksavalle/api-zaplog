@@ -90,7 +90,7 @@ namespace Zaplog {
                     (new TwoFactorAction)
                         ->addAction('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'createSession'], [$args->email])
                         ->createToken()
-                        ->sendToken2($args->email, $args->subject, $args->template, $args);
+                        ->sendToken($args->email, $args->subject, $args->template, $args);
                     return $response->withJson(true);
                 })
                     ->add(new BodyParameters([
@@ -111,7 +111,7 @@ namespace Zaplog {
                     (new TwoFactorAction)
                         ->addAction('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'updateIdentity'], [$args->email])
                         ->createToken()
-                        ->sendToken2($args->email, $args->subject, $args->template, $args);
+                        ->sendToken($args->email, $args->subject, $args->template, $args);
                     return $response->withJson(true);
                 })
                     ->add(new BodyParameters([
