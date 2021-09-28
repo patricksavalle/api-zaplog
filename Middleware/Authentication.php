@@ -24,7 +24,7 @@ namespace Zaplog\Middleware {
         // Decorates the parent class method.
         // ----------------------------------------------
 
-        static public function updateIdentity(string $newuserid)
+        static public function updateIdentity(string $newuserid): array
         {
             Db::execute("UPDATE channels SET userid=:newuserid WHERE userid=:userid",
                 [":newuserid" => $newuserid, ":userid" => parent::getSession()->userid]);
