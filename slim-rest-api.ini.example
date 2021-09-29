@@ -27,10 +27,6 @@ smtp_password=
 smtp_secure=TLS
 smtp_port=587
 
-[crawler]
-user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36 OPR/78.0.4093.112"
-
 [email]
-email_twofactor_template=;twofactoraction.html
 email_sender=
 email_sendername=Zaplog
