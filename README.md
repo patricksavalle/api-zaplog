@@ -68,25 +68,13 @@ Knowledge of the SLIM3 framework is useful but not required. The code speaks for
 
       php -S 127.0.0.1:8080
 
-- Try the homepage of the Api in a browser:
+- Open the homepage of the Api in a browser to initialize (you should see a list of endpoints):
 
       http://localhost:8080/Api.php
 
 - For initial content call this temporary endpoint from the browser (It will ingest some RSS feeds):
 
       http://localhost:8080/Api.php/cronjobs/hour
-
-- The next call to the server must be a login (initialises some tables)
-
-      POST http://localhost:8080/Api.php/sessions/<your-urlencoded-email>/<urlencoded-loginurl>
-
-  try this: 
-
-      POST http://localhost:8080/Api.php/sessions/your@urlencoded.email/http%3A%2F%2Flocalhost%3A8080%2FApi.php%2F2factor%2F
-
-  if SMTP is not yet configured the method response will contain the 2-factor code (unsafe) for use in:
-
-      GET http://localhost:8080/Api.php/2factor/<2factorcode>
 
 - Install the cronjobs, the command lines (from the root of the server) are:
 
@@ -95,14 +83,15 @@ Knowledge of the SLIM3 framework is useful but not required. The code speaks for
       php Api.php /cronjobs/day GET
       php Api.php /cronjobs/month GET
 
-- For extra performance install memcached
+- For extra performance install memcached and edit the INI accordingly, it will be automatically used, see https://www.memcached.org/
 
 
 - For much more performance install a reverse proxy that first checks GET 
-requests by full URL in memcached (e.g. NGINX)
+requests by full URL in memcached (e.g. NGINX http://nginx.org/en/docs/http/ngx_http_memcached_module.html)
 
 
-- This server does not do rate-limiting, black-listing, DDOS-mitigation or anything else that should be done by a reverse proxy 
+- This server does not do rate-limiting, DDOS-mitigation or anything else that should be done by a reverse proxy
+  (e.g. NGINX https://www.nginx.com/blog/rate-limiting-nginx/ and https://www.nginx.com/blog/mitigating-ddos-attacks-with-nginx-and-nginx-plus/)
 
 ## Example INI file
 

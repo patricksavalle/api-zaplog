@@ -17,6 +17,7 @@ namespace Zaplog {
     require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
     require_once BASE_PATH . '/Exception/EmailException.php';
 
+    use SlimRestApi\Infra\Memcache;
     use stdClass;
     use SlimRestApi\Middleware\CliRequest;
     use SlimRestApi\Middleware\Memcaching;
@@ -38,6 +39,32 @@ namespace Zaplog {
             parent::__construct();
 
             // -----------------------------------------
+            // show the API homepage
+            // -----------------------------------------
+
+            $this->get("/", function ($rq, $rp, $args): Response {
+
+                // Initialization
+                Authentication::createSession("dummy");
+
+                echo "<p>Repositories: https://gitlab.com/zaplog/api-zaplog</p>";
+                echo "<h1>" . __CLASS__ . "</h1>";
+                echo "<table>";
+                /** @noinspection PhpUndefinedFieldInspection */
+                foreach ($this->router->getRoutes() as $route) {
+                    foreach ($route->getMethods() as $method) {
+                        echo "<tr><td>$method</td><td>{$route->getPattern()}</td></tr>";
+                    }
+                }
+                echo "</table>";
+
+                echo "<p>Memcached status: ";
+                var_dump(Memcache::getStats());
+                echo "</p>";
+                return $rp;
+            });
+
+            // -----------------------------------------
             // Add the two factor handler to the server
             // -----------------------------------------
 
@@ -52,24 +79,6 @@ namespace Zaplog {
                 Response $response,
                 stdClass $args): Response {
                 return $response->withJson("<moneroaddress>");
-            });
-
-            // -----------------------------------------
-            // show the API homepage
-            // -----------------------------------------
-
-            $this->get("/", function ($rq, $rp, $args): Response {
-                echo "<p>See: <a href='https://github.com/zaplogv2/api.zaplog'>Github repository</a></p>";
-                echo "<h1>" . __CLASS__ . "</h1>";
-                echo "<table>";
-                /** @noinspection PhpUndefinedFieldInspection */
-                foreach ($this->router->getRoutes() as $route) {
-                    foreach ($route->getMethods() as $method) {
-                        echo "<tr><td>$method</td><td>{$route->getPattern()}</td></tr>";
-                    }
-                }
-                echo "</table>";
-                return $rp;
             });
 
             // -----------------------------------------------------
