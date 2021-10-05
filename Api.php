@@ -17,7 +17,6 @@ namespace Zaplog {
     require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
     require_once BASE_PATH . '/Exception/EmailException.php';
 
-    use SlimRestApi\Infra\Memcache;
     use stdClass;
     use SlimRestApi\Middleware\CliRequest;
     use SlimRestApi\Middleware\Memcaching;
@@ -57,10 +56,6 @@ namespace Zaplog {
                     }
                 }
                 echo "</table>";
-
-                echo "<p>Memcached status: ";
-                var_dump(Memcache::getStats());
-                echo "</p>";
                 return $rp;
             });
 
@@ -202,7 +197,7 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                return $response->withJson(Methods::getActivityStream($args->offset, $args->count, $args->channel));
+                return $response->withJson(Methods::getActivityStream($args->offset, $args->count, $args->channel, $args->grouped));
             })
                 ->add(new Memcaching(60/*sec*/))
                 ->add(new ReadOnly)
@@ -210,6 +205,7 @@ namespace Zaplog {
                     '{channel:\d{1,10}},null',
                     '{offset:\int},0',
                     '{count:\int},250',
+                    '{grouped:\boolean},true',
                 ]));
 
             // ------------------------------------------------
@@ -279,7 +275,6 @@ namespace Zaplog {
                         '{offset:\int},0',
                         '{count:\int},20',
                     ]));
-
 
                 // ----------------------------------------------------------------
                 // Change channel properties of authenticated user's channel
@@ -370,7 +365,7 @@ namespace Zaplog {
                             ":channelid" => Authentication::getSession()->id,
                         ])->rowCount());
                 })
-                    ->add(new Authentication)
+                    //->add(new Authentication)
                     ->add(new BodyParameters([
                         '{title:[\w-]{3,55}},null',
                         '{description:\xtext},null',
@@ -438,6 +433,7 @@ namespace Zaplog {
                     return $response->withJson(Db::fetchAll("SELECT * FROM links WHERE channelid=:channel ORDER BY id DESC LIMIT :offset,:count",
                         [":channel" => $args->id, ":offset" => $args->offset, ":count" => $args->count]));
                 })
+                    ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly)
                     ->add(new QueryParameters([
                         '{offset:\int},0',

@@ -22,7 +22,7 @@ namespace Zaplog {
         //
         // ----------------------------------------------------------
 
-        static public function getActivityStream($offset, $count, $channelid): array
+        static public function getActivityStream(int $offset, int $count, $channelid, bool $grouped = true): array
         {
             $stream = Db::fetchAll("SELECT * FROM activitystream 
                     WHERE (channelid=:channelid1 IS NULL OR channelid=:channelid2)
@@ -34,6 +34,10 @@ namespace Zaplog {
                     ":count" => $count,
                     ":offset" => $offset,
                 ]);
+
+            if (!$grouped) {
+                return $stream;
+            }
 
             // postprocessing: group same channel + type except when new link
 
