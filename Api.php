@@ -464,13 +464,13 @@ namespace Zaplog {
                 // Delete a reaction
                 // ----------------------------------------------------------------
 
-                $this->delete("/link/{id:\d{1,10}}", function (
+                $this->delete("/{id:\d{1,10}}", function (
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
-                    return $response->withJson((new UserException)(Db::execute("DELETE FROM reactions WHERE linkid=:linkid AND channelid=:channelid",
-                            [":linkid" => $args->id, ":channelid" => $channelid])->rowCount() > 0));
+                    return $response->withJson((new UserException)(Db::execute("DELETE FROM reactions WHERE id=:id AND channelid=:channelid",
+                            [":id" => $args->id, ":channelid" => $channelid])->rowCount() > 0));
                 })
                     ->add(new Authentication);
 
