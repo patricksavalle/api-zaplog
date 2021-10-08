@@ -7,11 +7,14 @@ namespace Zaplog {
     require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
 
     use ContentSyndication\HtmlMetadata;
+    use ContentSyndication\HttpFireAndForgetRequest;
+    use ContentSyndication\HttpRequest;
     use ContentSyndication\NormalizedText;
     use ContentSyndication\Url;
     use ContentSyndication\XmlFeed;
     use Exception;
     use SlimRestApi\Infra\Db;
+    use SlimRestApi\Infra\Ini;
     use stdClass;
     use Zaplog\Exception\ResourceNotFoundException;
     use Zaplog\Exception\ServerException;
@@ -142,6 +145,14 @@ namespace Zaplog {
                     error_log($e->getMessage() . " @ " . __METHOD__ . "(" . __LINE__ . ") " . $tag);
                 }
             }
+
+            // store link in archive.org
+            try {
+                (new HttpFireAndForgetRequest)(Ini::get("webarchive_save_link") . $metadata["url"]);
+            } catch (\Throwable $e) {
+                // silently ignore
+            }
+
             return $linkid;
         }
 
