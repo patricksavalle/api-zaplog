@@ -17,6 +17,8 @@ namespace Zaplog {
     require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
     require_once BASE_PATH . '/Exception/EmailException.php';
 
+    use ContentSyndication\HtmlMetadata;
+    use ContentSyndication\NormalizedText;
     use stdClass;
     use SlimRestApi\Middleware\CliRequest;
     use SlimRestApi\Middleware\Memcaching;
@@ -286,7 +288,7 @@ namespace Zaplog {
                     stdClass $args): Response {
                     return $response->withJson(Db::execute("UPDATE channels SET 
                         name=:name, avatar=:avatar, bio=:bio, moneroaddress=:moneroaddress WHERE id=:channelid", [
-                        ":name" => $args->name,
+                        ":name" => (new NormalizedText($args->name))->hyphenizeForPath()->convertToAscii()->get(),
                         ":avatar" => $args->avatar,
                         ":bio" => $args->bio,
                         ":moneroaddress" => $args->moneroaddress,
@@ -348,6 +350,18 @@ namespace Zaplog {
                     ->add(new QueryParameters(['{http_referer:\url},null']));
 
                 // ----------------------------------------------------------------
+                // Return a link's metadata
+                // ----------------------------------------------------------------
+
+                $this->get("/metadata/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
+                    return $response->withJson((new HtmlMetadata)(urldecode($args->urlencoded)));
+                })
+                    ->add(new Authentication);
+
+                // ----------------------------------------------------------------
                 // Change post
                 // ----------------------------------------------------------------
 
@@ -358,12 +372,12 @@ namespace Zaplog {
                     return $response->withJson(Db::execute("UPDATE links SET 
                         published=:published, title=:title, description=:description 
                         WHERE id=:linkid AND channelid=:channelid", [
-                            ":published" => $args->published,
-                            ":title" => $args->title,
-                            ":description" => $args->description,
-                            ":linkid" => $args->id,
-                            ":channelid" => Authentication::getSession()->id,
-                        ])->rowCount());
+                        ":published" => $args->published,
+                        ":title" => $args->title,
+                        ":description" => $args->description,
+                        ":linkid" => $args->id,
+                        ":channelid" => Authentication::getSession()->id,
+                    ])->rowCount());
                 })
                     //->add(new Authentication)
                     ->add(new BodyParameters([
@@ -454,7 +468,7 @@ namespace Zaplog {
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
                     Db::execute("INSERT INTO reactions(linkid,channelid,text) VALUES (:linkid,:channelid,:text)",
-                            [":linkid" => $args->id, ":channelid" => $channelid, ":text" => $args->text]);
+                        [":linkid" => $args->id, ":channelid" => $channelid, ":text" => $args->text]);
                     return $response->withJson(Db::lastInsertId());
                 })
                     ->add(new BodyParameters(['{text:\xtext},null']))
@@ -488,7 +502,7 @@ namespace Zaplog {
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
                     Db::execute("INSERT IGNORE INTO votes(linkid,channelid) VALUES (:linkid,:channelid)",
-                            [":linkid" => $args->id, ":channelid" => $channelid]);
+                        [":linkid" => $args->id, ":channelid" => $channelid]);
                     return $response->withJson(Db::lastInsertId());
                 })
                     ->add(new Authentication);
