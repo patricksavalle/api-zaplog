@@ -1,8 +1,8 @@
 ; Example ini, needs to be placed in webroot
 
 [memcache]
-memcache_host=${MEMCACHED}
-memcache_port=11211
+memcache_host=${MEMCACHED_HOST}
+memcache_port=${MEMCACHED_PORT}
 
 [cors]
 cors_origin[]=
