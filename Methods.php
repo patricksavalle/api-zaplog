@@ -7,7 +7,6 @@ namespace Zaplog {
     require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
 
     use ContentSyndication\HtmlMetadata;
-    use ContentSyndication\HttpFireAndForgetRequest;
     use ContentSyndication\HttpRequest;
     use ContentSyndication\NormalizedText;
     use ContentSyndication\Url;
@@ -18,6 +17,7 @@ namespace Zaplog {
     use stdClass;
     use Zaplog\Exception\ResourceNotFoundException;
     use Zaplog\Exception\ServerException;
+    use Zaplog\Library\TwoFactorAction;
 
     class Methods
     {
@@ -146,14 +146,36 @@ namespace Zaplog {
                 }
             }
 
-            // store link in archive.org
+            // store url in wayback-machine, use asynchronous self-call
             try {
-                (new HttpFireAndForgetRequest)(Ini::get("webarchive_save_link") . $metadata["url"]);
-            } catch (\Throwable $e) {
-                // silently ignore
-            }
+                (new TwoFactorAction)
+                    ->createToken()
+                    ->addAction('/Methods.php', ['\Zaplog\Methods', 'storeWebArchive'], [$linkid, $metadata["url"]])
+                    ->handleAsync();
+            } catch (Exception $e) {
+                // async call will only work with reverese proxy in front of PHP interpreter
+                error_log(__METHOD__ . " " . $e->getMessage());
+                error_log("Restarting as synchronous call");
+                self::storeWebArchive($linkid, $metadata["url"]);
+             }
 
             return $linkid;
+        }
+
+        // ----------------------------------------------------------
+        // This method is called asynchronously
+        // ----------------------------------------------------------
+
+        static public function storeWebArchive(string $linkid, string $url)
+        {
+            // store in webarchive.com and get archived url
+            $waybackurl = Ini::get("webarchive_save_link") . $url;
+            (new HttpRequest)($waybackurl);
+
+            // store with link
+            if (filter_var($waybackurl, FILTER_VALIDATE_URL)) {
+                Db::execute("UPDATE links SET waybackurl=:url WHERE id=:id", [":id" => $linkid, ":url" => $waybackurl]);
+            }
         }
 
         // ----------------------------------------------------------

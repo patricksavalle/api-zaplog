@@ -6,6 +6,8 @@ namespace Zaplog\Library {
 
     require_once BASE_PATH . '/Library/Mail.php';
 
+    use ContentSyndication\HttpFireAndForgetRequest;
+    use SlimRestApi\Infra\Ini;
     use Zaplog\Exception\EmailException;
 
     class TwoFactorAction extends \SlimRestApi\Infra\TwoFactorAction
@@ -23,5 +25,16 @@ namespace Zaplog\Library {
                 throw new EmailException(Mail::getErrorInfo());
             }
         }
+
+        // --------------------------------------------------------------------------------
+        // Send the two factor code to own endpoint (async server self call)
+        // --------------------------------------------------------------------------------
+
+        public function handleAsync()
+        {
+            error_log("asynchronous request initiated: " . Ini::get("api_domain") . "/Api.php/2factor/" . $this->utoken);
+            (new HttpFireAndForgetRequest)(Ini::get("api_domain") . "/Api.php/2factor/" . $this->utoken);
+        }
+
     }
 }

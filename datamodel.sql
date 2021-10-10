@@ -33,13 +33,13 @@ CREATE TABLE channels
     language       CHAR(2)            DEFAULT NULL,
     -- automatic RSS content
     feedurl        VARCHAR(255)       DEFAULT NULL,
-    themeurl       VARCHAR(255)       DEFAULT NULL,
+    theme          VARCHAR(255)       DEFAULT NULL,
     createdatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updatedatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     refeeddatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     avatar         VARCHAR(255)       DEFAULT NULL,
-    bkgimage       VARCHAR(55)        DEFAULT NULL,
-    bio            VARCHAR(255)       DEFAULT NULL,
+    header         VARCHAR(255)       DEFAULT NULL,
+    description    VARCHAR(255)       DEFAULT NULL,
     moneroaddress  CHAR(93)           DEFAULT NULL,
     -- sum of all related link scores
     score          INT                DEFAULT 0,
@@ -69,20 +69,12 @@ BEGIN
 END//
 DELIMITER ;
 
--- -------------------------------------------------------------------------
--- apply half life decay to current channel reputations and add delta score,
--- 0.9981 every day halfs the reputation in a year (0.9981^365=0.5)
--- -------------------------------------------------------------------------
-
-CREATE EVENT apply_reputation_decay ON SCHEDULE EVERY 24 HOUR DO
-    UPDATE channels SET reputation = reputation * 0.9981 + score - prevscore, prevscore = score;
-
 -- -----------------------------------------------------
 -- Posts that are place on this channel are collaborative
 -- (can be edited by any member with enough reputation)
 -- -----------------------------------------------------
 
-INSERT INTO channels(name,bio,userid) VALUES ("Zaplog", "Next-generation social blogging platform.", MD5("patrick@patricksavalle.com"));
+INSERT INTO channels(name,bio,userid) VALUES ("Zaplog", "Next-generation social blogging platform.", MD5(SHA1("patrick@patricksavalle.com")));
 
 -- -----------------------------------------------------
 -- For public queries. Hide privacy data.
@@ -105,6 +97,7 @@ CREATE TABLE links
     published      BOOL          NOT NULL DEFAULT TRUE,
     urlhash        CHAR(32) GENERATED ALWAYS AS (MD5(url)),
     url            VARCHAR(1024) NOT NULL,
+    waybackurl     VARCHAR(1024)          DEFAULT NULL,
     title          VARCHAR(256)  NOT NULL,
     copyright      VARCHAR(256)           DEFAULT NULL,
     description    TEXT                   DEFAULT NULL,
@@ -162,7 +155,7 @@ CREATE TABLE interactions
 (
     id             INT         NOT NULL AUTO_INCREMENT,
     linkid         INT                  DEFAULT NULL,
-    channelid      INT         NOT NULL,
+    channelid      INT                  DEFAULT NULL,
     datetime       TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
     type           ENUM (
         'on_insert_channel',
@@ -172,7 +165,8 @@ CREATE TABLE interactions
         'on_insert_reaction',
         'on_insert_vote',
         'on_insert_tag',
-        'on_receive_cash'
+        'on_receive_cash',
+        'on_reputation_calculated'
         )                      NOT NULL,
     PRIMARY KEY (id),
     INDEX (datetime),
@@ -203,6 +197,19 @@ CREATE VIEW frontpage AS
     WHERE published=TRUE
           -- order by score, give old posts some half life decay after 3 hours
     ORDER BY (score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, createdatetime), 2))) DESC LIMIT 25;
+
+-- -------------------------------------------------------------------------
+-- apply half life decay to current channel reputations and add delta score,
+-- 0.9981 every day halfs the reputation in a year (0.9981^365=0.5)
+-- -------------------------------------------------------------------------
+
+DELIMITER //
+CREATE EVENT apply_reputation_decay ON SCHEDULE EVERY 24 HOUR DO
+    BEGIN
+        INSERT INTO interactions(type) VALUES('on_reputation_calculated');
+        UPDATE channels SET reputation = reputation * 0.9981 + score - prevscore, prevscore = score;
+    END//
+DELIMITER ;
 
 -- ------------------------------------------------
 --
@@ -313,6 +320,10 @@ CREATE TABLE tags
     -- channel (=user) that added the tags
     channelid      INT         NOT NULL,
     tag            VARCHAR(50) NOT NULL,
+    theme          VARCHAR(255)       DEFAULT NULL,
+    avatar         VARCHAR(255)       DEFAULT NULL,
+    header         VARCHAR(255)       DEFAULT NULL,
+    description    VARCHAR(255)       DEFAULT NULL,
     PRIMARY KEY (id),
     INDEX (linkid),
     INDEX (channelid),
@@ -488,13 +499,13 @@ DELIMITER ;
 -- -----------------------------------------------------
 
 INSERT INTO channels(name, feedurl, avatar, userid) VALUES
-    ("NYT Science", "http://www.nytimes.com/services/xml/rss/nyt/Science.xml", "https://api.multiavatar.com/nyt", "1@ab55c.xyz"),
-    ("Breitbart", "https://feeds.feedburner.com/breitbart", "https://api.multiavatar.com/Breitbart", "1@abc.xyz"),
-    ("Wired", "http://blog.wired.com/wiredscience/atom.xml", "https://api.multiavatar.com/Wired", "2@abc.xyz"),
-    ("Tech Xplore", "https://techxplore.com/rss-feed/", "https://api.multiavatar.com/Tech Xplore", "3@abc.xyz"),
-    ("PhysOrg", "https://phys.org/rss-feed/", "https://api.multiavatar.com/PhysOrg", "4@abc.xyz"),
-    ("CNET", "https://www.cnet.com/rss/all", "https://api.multiavatar.com/CNET", "5@abc.xyz"),
-    ("Gizmodo", "https://gizmodo.com/rss", "https://api.multiavatar.com/Gizmodo", "6@abc.xyz");
+    ("nyt-science", "http://www.nytimes.com/services/xml/rss/nyt/Science.xml", "https://api.multiavatar.com/nyt", "1@ab55c.xyz"),
+    ("breitbart", "https://feeds.feedburner.com/breitbart", "https://api.multiavatar.com/Breitbart", "1@abc.xyz"),
+    ("wired", "http://blog.wired.com/wiredscience/atom.xml", "https://api.multiavatar.com/Wired", "2@abc.xyz"),
+    ("tech-xplore", "https://techxplore.com/rss-feed/", "https://api.multiavatar.com/Tech Xplore", "3@abc.xyz"),
+    ("physorg", "https://phys.org/rss-feed/", "https://api.multiavatar.com/PhysOrg", "4@abc.xyz"),
+    ("cnet", "https://www.cnet.com/rss/all", "https://api.multiavatar.com/CNET", "5@abc.xyz"),
+    ("gizmodo", "https://gizmodo.com/rss", "https://api.multiavatar.com/Gizmodo", "6@abc.xyz");
 
 INSERT INTO channels(name, avatar, userid) VALUES
     ("Website Victories", "https://api.multiavatar.com/Zaplog", "7@abc.xyz"),
