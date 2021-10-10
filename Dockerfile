@@ -14,10 +14,8 @@ RUN chmod +x /usr/local/bin/install-php-extensions && \
 
 WORKDIR /var/www/html/
 
-#voeg de slim-rest.api.ini toe
-COPY php.ini /usr/local/etc/php/php.ini
-COPY api-zaplog/. /var/www/html/
-COPY slim-rest-api.ini /var/www/html/
+#COPY php.ini /usr/local/etc/php/php.ini
+COPY . /var/www/html/
 
 RUN chmod +x /var/www/html/composer.phar
 
@@ -25,11 +23,11 @@ RUN /var/www/html/composer.phar selfupdate && \
     /var/www/html/composer.phar update
 
 #wat commando's om een mariaDB te vullen en aan te maken in docker
-RUN echo "docker exec -i mariadb mysql -u root -ppass < /home/<>/Projects/api-zaplog/datamodel.sql"
-RUN echo "docker exec -it mariadb mysql -u root -ppass"
-RUN echo "CREATE USER zaplog@zaplog IDENTIFIED BY 'password';"
-RUN echo "GRANT ALL PRIVILEGES ON *.* TO 'zaplog'@'zaplog'@'zaplog.docker_default' IDENTIFIED BY 'password';"
-RUN echo "FLUSH PRIVILEGES;"
+#RUN echo "docker exec -i mariadb mysql -u root -ppass < /home/<>/Projects/api-zaplog/datamodel.sql"
+#RUN echo "docker exec -it mariadb mysql -u root -ppass"
+#RUN echo "CREATE USER zaplog@zaplog IDENTIFIED BY 'password';"
+#RUN echo "GRANT ALL PRIVILEGES ON *.* TO 'zaplog'@'zaplog'@'zaplog.docker_default' IDENTIFIED BY 'password';"
+#RUN echo "FLUSH PRIVILEGES;"
 
 EXPOSE 80
 CMD ["/usr/sbin/apache2ctl", "-D", "FOREGROUND"]
