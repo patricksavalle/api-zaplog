@@ -537,6 +537,20 @@ namespace Zaplog {
                     ->add(new Authentication);
 
                 // ------------------------------------------------
+                // get related tags
+                // ------------------------------------------------
+
+                $this->get("/related/{tag:[\w-]{3,50}}", function (
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
+                    // dummy
+                    return $response->withJson(Db::fetchAll("SELECT tag FROM tags LIMIT 25"));
+                })
+                    ->add(new Memcaching(60/*sec*/))
+                    ->add(new ReadOnly);
+
+                // ------------------------------------------------
                 // get the top trending tags
                 // ------------------------------------------------
 

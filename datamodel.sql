@@ -74,7 +74,7 @@ DELIMITER ;
 -- (can be edited by any member with enough reputation)
 -- -----------------------------------------------------
 
-INSERT INTO channels(name,bio,userid) VALUES ("Zaplog", "Next-generation social blogging platform.", MD5(SHA1("patrick@patricksavalle.com")));
+INSERT INTO channels(name,bio,userid) VALUES ("zaplog", "Next-generation social blogging platform.", MD5(SHA1("patrick@patricksavalle.com")));
 
 -- -----------------------------------------------------
 -- For public queries. Hide privacy data.
