@@ -147,17 +147,17 @@ namespace Zaplog {
             }
 
             // store url in wayback-machine, use asynchronous self-call
-            try {
-                (new TwoFactorAction)
-                    ->createToken()
-                    ->addAction('/Methods.php', ['\Zaplog\Methods', 'storeWebArchive'], [$linkid, $metadata["url"]])
-                    ->handleAsync();
-            } catch (Exception $e) {
-                // async call will only work with reverese proxy in front of PHP interpreter
-                error_log(__METHOD__ . " " . $e->getMessage());
-                error_log("Restarting as synchronous call");
-                self::storeWebArchive($linkid, $metadata["url"]);
-             }
+//            try {
+//                (new TwoFactorAction)
+//                    ->createToken()
+//                    ->addAction('/Methods.php', ['\Zaplog\Methods', 'storeWebArchive'], [$linkid, $metadata["url"]])
+//                    ->handleAsync();
+//            } catch (Exception $e) {
+//                // async call will only work with reverese proxy in front of PHP interpreter
+//                error_log(__METHOD__ . " " . $e->getMessage());
+//                error_log("Restarting as synchronous call");
+//                self::storeWebArchive($linkid, $metadata["url"]);
+//             }
 
             return $linkid;
         }
