@@ -248,5 +248,17 @@ namespace Zaplog {
             }
         }
 
+        static public function getRelatedTags(string $tag): array
+        {
+            return Db::fetchAll("SELECT tag, COUNT(tag) AS link_count FROM tags
+                JOIN links ON tags.linkid=links.id
+                WHERE links.id IN (SELECT links.id 
+                    FROM links JOIN tags ON tags.linkid=links.id 
+                    WHERE tag=:tag1)
+                AND tag<>:tag1
+                GROUP BY tag ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT 25",
+                ["tag1" => $tag, "tag2" => $tag]);
+        }
+
     }
 }

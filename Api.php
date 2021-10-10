@@ -544,8 +544,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    // dummy
-                    return $response->withJson(Db::fetchAll("SELECT tag FROM tags LIMIT 25"));
+                    return $response->withJson(Methods::getRelatedTags($args->tag));
                 })
                     ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly);
