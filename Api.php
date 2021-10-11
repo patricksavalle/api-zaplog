@@ -493,7 +493,7 @@ namespace Zaplog {
             $this->group('/votes', function () {
 
                 // ------------------------------------------------
-                // add a reaction
+                // add a vote, cannot vote own articles
                 // ------------------------------------------------
 
                 $this->post("/link/{id:\d{1,10}}", function (
@@ -501,7 +501,8 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
-                    Db::execute("INSERT IGNORE INTO votes(linkid,channelid) VALUES (:linkid,:channelid)",
+                    Db::execute("INSERT IGNORE INTO votes(linkid,channelid) 
+                        SELECT id, channelid FROM links WHERE channelid<>:channelid AND id=:linkid",
                         [":linkid" => $args->id, ":channelid" => $channelid]);
                     return $response->withJson(Db::lastInsertId());
                 })
