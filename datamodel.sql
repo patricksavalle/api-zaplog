@@ -26,27 +26,28 @@ USE zaplog;
 
 CREATE TABLE channels
 (
-    id             INT                NOT NULL AUTO_INCREMENT,
+    id               INT                NOT NULL AUTO_INCREMENT,
     -- we don't store anything from the user, just hashed email address
-    userid         CHAR(32)           NOT NULL,
-    name           VARCHAR(55)        NOT NULL,
-    language       CHAR(2)            DEFAULT NULL,
+    userid           CHAR(32)           NOT NULL,
+    name             VARCHAR(55)        NOT NULL,
+    language         CHAR(2)            DEFAULT NULL,
     -- automatic RSS content
-    feedurl        VARCHAR(255)       DEFAULT NULL,
-    theme          VARCHAR(255)       DEFAULT NULL,
-    createdatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updatedatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    refeeddatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    avatar         VARCHAR(255)       DEFAULT NULL,
-    header         VARCHAR(255)       DEFAULT NULL,
-    description    VARCHAR(255)       DEFAULT NULL,
-    moneroaddress  CHAR(93)           DEFAULT NULL,
+    feedurl          VARCHAR(255)       DEFAULT NULL,
+    theme            VARCHAR(255)       DEFAULT NULL,
+    createdatetime   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updatedatetime   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    refeeddatetime   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    lastseendatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    avatar           VARCHAR(255)       DEFAULT NULL,
+    header           VARCHAR(255)       DEFAULT NULL,
+    description      VARCHAR(255)       DEFAULT NULL,
+    moneroaddress    CHAR(93)           DEFAULT NULL,
     -- sum of all related link scores
-    score          INT                DEFAULT 0,
+    score            INT                DEFAULT 0,
     -- for internal bookkeeping during reputation calculations
-    prevscore      INT                DEFAULT 0,
+    prevscore        INT                DEFAULT 0,
     -- score with a half life / decay
-    reputation     FLOAT              NOT NULL DEFAULT 1.0,
+    reputation       FLOAT              NOT NULL DEFAULT 1.0,
     PRIMARY KEY (id),
     UNIQUE INDEX (userid),
     UNIQUE INDEX (name),
@@ -70,11 +71,11 @@ END//
 DELIMITER ;
 
 -- -----------------------------------------------------
--- Posts that are place on this channel are collaborative
+-- Posts that are placed on this channel are collaborative
 -- (can be edited by any member with enough reputation)
 -- -----------------------------------------------------
 
-INSERT INTO channels(name,bio,userid) VALUES ("zaplog", "Next-generation social blogging platform.", MD5(SHA1("patrick@patricksavalle.com")));
+INSERT INTO channels(name,bio,userid) VALUES ("zaplog", "Next-generation social blogging platform.", MD5("patrick@patricksavalle.com"));
 
 -- -----------------------------------------------------
 -- For public queries. Hide privacy data.
