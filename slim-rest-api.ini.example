@@ -19,6 +19,8 @@ database_name=zaplog
 database_user=
 database_password=
 database_charset=utf8
+#enable = 1 disable = 0
+database_query_logging=0
 
 [smtp]
 smtp_host=
