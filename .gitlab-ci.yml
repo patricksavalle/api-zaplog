@@ -1,0 +1,35 @@
+image: docker:18-git
+
+services:
+  - docker:18.09-dind
+
+stages:
+  - build
+ # - package
+ # - release
+ # - deploy
+
+variables:
+  DOCKER_DRIVER: overlay2
+  CONTAINER_TEST_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  CONTAINER_RELEASE_IMAGE: $CI_REGISTRY_IMAGE:latest
+  # from https://storage.googleapis.com/kubernetes-release/release/stable.txt
+  K8S_STABLE_VERSION_URL: https://storage.googleapis.com/kubernetes-release/release/v1.14.1/bin/linux/amd64/kubectl
+  OTAP: prod.leukermakkelijker.nl
+  DOCKER_TLS_CERTDIR: ""
+
+build-docker:
+  stage: build
+  script:
+    - export DOCKER_HOST="tcp://localhost:2375"
+    - mkdir -p manifest/target
+    - ls -l
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - echo $DOCKER_HOST
+    - echo $CI_REGISTRY_IMAGE
+    - echo $CI_PROJECT_PATH
+    - echo "$CI_PROJECT_PATH" | awk -F"/" '{print $2}'
+    - docker build -t $CONTAINER_TEST_IMAGE . --build-arg CI_PROJECT_NAME=$CI_PROJECT_PATH
+    - docker push $CONTAINER_TEST_IMAGE
+  only:
+    - master
