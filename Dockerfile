@@ -16,18 +16,14 @@ WORKDIR /var/www/html/
 
 #COPY php.ini /usr/local/etc/php/php.ini
 COPY . /var/www/html/
+COPY slim-rest-api.ini.docker.example /var/www/html/slim-rest-api.ini
 
 RUN chmod +x /var/www/html/composer.phar
 
 RUN /var/www/html/composer.phar selfupdate && \
     /var/www/html/composer.phar update
 
-#wat commando's om een mariaDB te vullen en aan te maken in docker
-#RUN echo "docker exec -i mariadb mysql -u root -ppass < /home/<>/Projects/api-zaplog/datamodel.sql"
-#RUN echo "docker exec -it mariadb mysql -u root -ppass"
-#RUN echo "CREATE USER zaplog@zaplog IDENTIFIED BY 'password';"
-#RUN echo "GRANT ALL PRIVILEGES ON *.* TO 'zaplog'@'zaplog'@'zaplog.docker_default' IDENTIFIED BY 'password';"
-#RUN echo "FLUSH PRIVILEGES;"
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
 EXPOSE 80
 CMD ["/usr/sbin/apache2ctl", "-D", "FOREGROUND"]

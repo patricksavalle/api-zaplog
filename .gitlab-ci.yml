@@ -21,13 +21,7 @@ variables:
 build-docker:
   stage: build
   script:
-    - export DOCKER_HOST="tcp://localhost:2375"
-    - mkdir -p manifest/target
-    - ls -l
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - echo $DOCKER_HOST
-    - echo $CI_REGISTRY_IMAGE
-    - echo $CI_PROJECT_PATH
     - echo "$CI_PROJECT_PATH" | awk -F"/" '{print $2}'
     - docker build -t $CONTAINER_TEST_IMAGE . --build-arg CI_PROJECT_NAME=$CI_PROJECT_PATH
     - docker push $CONTAINER_TEST_IMAGE
