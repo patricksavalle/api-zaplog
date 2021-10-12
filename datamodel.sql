@@ -103,7 +103,7 @@ CREATE TABLE links
     copyright      ENUM (
         'No Rights Apply / Linkdump',
         'All Rights Reserved',
-        'No Rights Reserved (CC0 1.0)'
+        'No Rights Reserved (CC0 1.0)',
         'Some Rights Reserved (CC BY-NC-SA 4.0)' ) DEFAULT NULL,
     description    TEXT                   DEFAULT NULL,
     image          VARCHAR(256)           DEFAULT NULL,
