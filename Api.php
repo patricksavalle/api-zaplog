@@ -165,7 +165,7 @@ namespace Zaplog {
                 Response $response,
                 stdClass $args): Response {
                 return $response->withJson([
-                    "trendinglinks" => Db::fetchAll("SELECT * FROM frontpage"),
+                    "trendinglinks" => Methods::getBlurbifiedLinks("SELECT * FROM frontpage"),
                     "trendingtags" => Db::fetchAll("SELECT * FROM trendingtopics"),
                     "trendingchannels" => Db::fetchAll("SELECT * FROM trendingchannels")]);
             })
@@ -408,7 +408,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Db::fetchAll("SELECT * FROM links ORDER BY id DESC LIMIT :offset,:count",
+                    return $response->withJson(Methods::getBlurbifiedLinks("SELECT * FROM links ORDER BY id DESC LIMIT :offset,:count",
                         [":offset" => $args->offset, ":count" => $args->count]));
                 })
                     ->add(new ReadOnly)
@@ -425,7 +425,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Db::fetchAll("SELECT links.* FROM tags JOIN links ON tags.linkid=links.id 
+                    return $response->withJson(Methods::getBlurbifiedLinks("SELECT links.* FROM tags JOIN links ON tags.linkid=links.id 
                         WHERE tags.tag=:tag ORDER BY links.id DESC LIMIT :offset,:count",
                         [":tag" => $args->tag, ":offset" => $args->offset, ":count" => $args->count]));
                 })
@@ -444,7 +444,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Db::fetchAll("SELECT * FROM links WHERE channelid=:channel ORDER BY id DESC LIMIT :offset,:count",
+                    return $response->withJson(Methods::getBlurbifiedLinks("SELECT * FROM links WHERE channelid=:channel ORDER BY id DESC LIMIT :offset,:count",
                         [":channel" => $args->id, ":offset" => $args->offset, ":count" => $args->count]));
                 })
                     ->add(new Memcaching(60/*sec*/))

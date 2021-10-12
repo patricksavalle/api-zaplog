@@ -17,6 +17,7 @@ namespace Zaplog {
     use stdClass;
     use Zaplog\Exception\ResourceNotFoundException;
     use Zaplog\Exception\ServerException;
+
 //    use Zaplog\Library\TwoFactorAction;
 
     class Methods
@@ -179,6 +180,17 @@ namespace Zaplog {
         }
 
         // ----------------------------------------------------------
+        // Return blurbs instead of complete XHTML descriptions
+        // ----------------------------------------------------------
+
+        static public function getBlurbifiedLinks(string $sql, array $args = []): array
+        {
+            $links = Db::fetchAll($sql, $args);
+            foreach ($links as $link) $link->description = substr(strip_tags($link->description), 1, Ini::get("blurbsize"));
+            return $links;
+        }
+
+        // ----------------------------------------------------------
         //
         // ----------------------------------------------------------
 
@@ -198,9 +210,9 @@ namespace Zaplog {
                     [":id1" => $id, ":id2" => $id], 60),
 
                 "interactors" => Db::fetchAll("SELECT DISTINCT * FROM channels_public_view 
-                    WHERE id IN (SELECT channelid FROM reactions WHERE linkid=:id1
-                        UNION SELECT channelid FROM tags WHERE linkid=:id2
-                        UNION SELECT channelid FROM votes WHERE linkid=:id3)",
+                    WHERE id IN (SELECT channelid FROM reactions WHERE linkid=:id1)
+                        OR id IN (SELECT channelid FROM tags WHERE linkid=:id2)
+                        OR id IN (SELECT channelid FROM votes WHERE linkid=:id3)",
                     [":id1" => $id, ":id2" => $id, ":id3" => $id]),
             ];
         }

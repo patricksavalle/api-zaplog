@@ -426,13 +426,13 @@ CREATE VIEW trendingtopics AS
 
 -- should be cached higher up in the stack
 CREATE VIEW toptopics AS
-    SELECT tags.* FROM tags
+    SELECT DISTINCT tag FROM tags
     JOIN (SELECT id, score FROM links ORDER BY score DESC limit 1000) AS links
     ON tags.linkid = links.id
-    GROUP BY tag ORDER BY SUM(score) DESC LIMIT 25;
+    ORDER BY SUM(score) DESC LIMIT 25;
 
 CREATE VIEW newtopics AS
-    SELECT tags.* FROM tags GROUP BY tag ORDER BY id DESC LIMIT 25;
+    SELECT DISTINCT tag FROM tags ORDER BY id DESC LIMIT 25;
 
 -- --------------------------------------------------------
 -- Most popular channels, this query should be cached by server
