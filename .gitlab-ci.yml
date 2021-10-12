@@ -21,8 +21,6 @@ variables:
 build-docker:
   stage: build
   script:
-    - export DOCKER_HOST="tcp://localhost:2375"
-    - mkdir -p manifest/target
     - ls -l
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - echo $DOCKER_HOST
