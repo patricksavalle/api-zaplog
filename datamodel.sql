@@ -100,7 +100,11 @@ CREATE TABLE links
     url            VARCHAR(1024) NOT NULL,
     waybackurl     VARCHAR(1024)          DEFAULT NULL,
     title          VARCHAR(256)  NOT NULL,
-    copyright      VARCHAR(256)           DEFAULT NULL,
+    copyright      ENUM (
+        'No Rights Apply / Linkdump',
+        'All Rights Reserved',
+        'No Rights Reserved (CC0 1.0)'
+        'Some Rights Reserved (CC BY-NC-SA 4.0)' ) DEFAULT NULL,
     description    TEXT                   DEFAULT NULL,
     image          VARCHAR(256)           DEFAULT NULL,
     -- because this system is very read intensive we will keep totals in this table
