@@ -16,6 +16,7 @@ WORKDIR /var/www/html/
 
 #COPY php.ini /usr/local/etc/php/php.ini
 COPY . /var/www/html/
+COPY slim-rest-api.ini.docker.example /var/www/html/slim-rest-api.ini
 
 RUN chmod +x /var/www/html/composer.phar
 
