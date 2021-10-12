@@ -17,7 +17,7 @@ namespace Zaplog {
     use stdClass;
     use Zaplog\Exception\ResourceNotFoundException;
     use Zaplog\Exception\ServerException;
-    use Zaplog\Library\TwoFactorAction;
+//    use Zaplog\Library\TwoFactorAction;
 
     class Methods
     {
@@ -204,7 +204,6 @@ namespace Zaplog {
                     [":id1" => $id, ":id2" => $id, ":id3" => $id]),
             ];
         }
-
 
         static public function refreshSingleFeed(string $channelid, string $feedurl)
         {

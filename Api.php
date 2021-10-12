@@ -475,7 +475,7 @@ namespace Zaplog {
                     ->add(new Authentication);
 
                 // ----------------------------------------------------------------
-                // Delete a reaction
+                // Delete a reaction, only your own reactions
                 // ----------------------------------------------------------------
 
                 $this->delete("/{id:\d{1,10}}", function (
@@ -507,6 +507,10 @@ namespace Zaplog {
                     return $response->withJson(Db::lastInsertId());
                 })
                     ->add(new Authentication);
+
+                // ------------------------------------------------
+                // delete a vote
+                // ------------------------------------------------
 
                 $this->delete("/link/{id:\d{1,10}}", function (
                     Request  $request,

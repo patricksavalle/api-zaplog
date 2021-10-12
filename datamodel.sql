@@ -40,7 +40,7 @@ CREATE TABLE channels
     lastseendatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     avatar           VARCHAR(255)       DEFAULT NULL,
     header           VARCHAR(255)       DEFAULT NULL,
-    description      VARCHAR(255)       DEFAULT NULL,
+    bio              VARCHAR(255)       DEFAULT NULL,
     moneroaddress    CHAR(93)           DEFAULT NULL,
     -- sum of all related link scores
     score            INT                DEFAULT 0,
@@ -197,7 +197,7 @@ CREATE VIEW frontpage AS
     SELECT DISTINCT links.* FROM interactions JOIN links ON interactions.linkid = links.id
     WHERE published=TRUE
           -- order by score, give old posts some half life decay after 3 hours
-    ORDER BY (score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, createdatetime), 2))) DESC LIMIT 25;
+    ORDER BY (score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, createdatetime), 2))) DESC LIMIT 18;
 
 -- -------------------------------------------------------------------------
 -- apply half life decay to current channel reputations and add delta score,
@@ -415,9 +415,10 @@ SELECT (SELECT COUNT(*) FROM links WHERE createdatetime > SUBDATE(CURRENT_TIMEST
 -- should be cached higher up in the stack
 CREATE VIEW trendingtopics AS
     SELECT tags.* FROM tags
-    JOIN (SELECT id, score FROM frontpage) AS links ON tags.linkid = links.id
-    GROUP BY tags.tag
-    ORDER BY SUM(score) DESC LIMIT 25;
+    JOIN links ON tags.linkid=links.id
+    WHERE tags.linkid in (SELECT id FROM frontpage)
+    GROUP BY tag
+    ORDER BY SUM(score) DESC LIMIT 50;
 
 -- should be cached higher up in the stack
 CREATE VIEW toptopics AS
@@ -478,6 +479,7 @@ DELIMITER ;
 
 -- -----------------------------------------------------
 -- Returns forum style reactions, order by most recent
+-- TODO why not just a view?
 -- -----------------------------------------------------
 
 DELIMITER //
