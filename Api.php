@@ -418,6 +418,24 @@ namespace Zaplog {
                     ]));
 
                 // -----------------------------------------------------
+                // Returns links for a given channel
+                // -----------------------------------------------------
+
+                $this->get("/channel/{id:\d{1,10}}", function (
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
+                    return $response->withJson(Methods::getBlurbifiedLinks("SELECT * FROM links WHERE channelid=:channel ORDER BY id DESC LIMIT :offset,:count",
+                        [":channel" => $args->id, ":offset" => $args->offset, ":count" => $args->count]));
+                })
+                    ->add(new Memcaching(60/*sec*/))
+                    ->add(new ReadOnly)
+                    ->add(new QueryParameters([
+                        '{offset:\int},0',
+                        '{count:\int},20',
+                    ]));
+
+                // -----------------------------------------------------
                 // Returns the top scoring links for a given tag
                 // -----------------------------------------------------
 
@@ -428,24 +446,6 @@ namespace Zaplog {
                     return $response->withJson(Methods::getBlurbifiedLinks("SELECT links.* FROM tags JOIN links ON tags.linkid=links.id 
                         WHERE tags.tag=:tag ORDER BY links.id DESC LIMIT :offset,:count",
                         [":tag" => $args->tag, ":offset" => $args->offset, ":count" => $args->count]));
-                })
-                    ->add(new Memcaching(60/*sec*/))
-                    ->add(new ReadOnly)
-                    ->add(new QueryParameters([
-                        '{offset:\int},0',
-                        '{count:\int},20',
-                    ]));
-
-                // -----------------------------------------------------
-                // Returns links for a given channel
-                // -----------------------------------------------------
-
-                $this->get("/channel/{id:[\w-]{3,55}}", function (
-                    Request  $request,
-                    Response $response,
-                    stdClass $args): Response {
-                    return $response->withJson(Methods::getBlurbifiedLinks("SELECT * FROM links WHERE channelid=:channel ORDER BY id DESC LIMIT :offset,:count",
-                        [":channel" => $args->id, ":offset" => $args->offset, ":count" => $args->count]));
                 })
                     ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly)

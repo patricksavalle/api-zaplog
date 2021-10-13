@@ -430,7 +430,7 @@ SELECT (SELECT COUNT(*) FROM links WHERE createdatetime > SUBDATE(CURRENT_TIMEST
 -- --------------------------------------------------------
 
 -- should be cached higher up in the stack
--- TODO slow query
+-- (optimized)
 CREATE VIEW trendingtopics AS
     SELECT tags.* FROM tags
     JOIN links ON tags.linkid=links.id
@@ -456,7 +456,7 @@ CREATE VIEW newtopics AS
 -- --------------------------------------------------------
 
 -- should be cached higher up in the stack
--- TODO slow query
+-- (optimized)
 CREATE VIEW trendingchannels AS
     SELECT channels.* FROM channels_public_view AS channels
     JOIN (SELECT * FROM frontpage) AS links ON channels.id = links.channelid
