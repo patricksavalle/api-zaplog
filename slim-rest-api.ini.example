@@ -1,5 +1,13 @@
 ; Example ini, needs to be placed in webroot
 
+[general]
+api_domain=http://127.0.0.1:8080
+webarchive_save_link=https://web.archive.org/save/
+admins[]=
+
+[content]
+blurbsize=500
+
 [memcache]
 memcache_host=localhost
 memcache_port=11211
@@ -19,6 +27,7 @@ database_name=zaplog
 database_user=
 database_password=
 database_charset=utf8
+database_query_logging=1
 
 [smtp]
 smtp_host=
