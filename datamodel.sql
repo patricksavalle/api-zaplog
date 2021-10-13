@@ -196,12 +196,23 @@ CREATE EVENT purge_interactions ON SCHEDULE EVERY 1 HOUR DO
 -- Select frontpage links from all links that had interactions
 -- -----------------------------------------------------------
 
--- should be cached higher up in the stack
-CREATE VIEW frontpage AS
-    SELECT DISTINCT links.* FROM interactions JOIN links ON interactions.linkid = links.id
-    WHERE published=TRUE
-          -- order by score, give old posts some half life decay after 3 hours
-    ORDER BY (score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, createdatetime), 2))) DESC LIMIT 18;
+CREATE TABLE frontpage LIKE links;
+
+DELIMITER //
+CREATE PROCEDURE calculate_frontpage()
+BEGIN
+    START TRANSACTION;
+    TRUNCATE TABLE frontpage;
+    INSERT INTO frontpage SELECT DISTINCT links.* FROM interactions
+        JOIN links ON interactions.linkid = links.id
+        WHERE published=TRUE
+        -- order by score, give old posts some half life decay after 3 hours
+        ORDER BY (score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, createdatetime), 2))) DESC LIMIT 18;
+    COMMIT;
+END //
+DELIMITER ;
+
+CREATE EVENT calculate_frontpage ON SCHEDULE EVERY 1 HOUR DO CALL calculate_frontpage();
 
 -- -------------------------------------------------------------------------
 -- apply half life decay to current channel reputations and add delta score,
@@ -356,6 +367,7 @@ CREATE TRIGGER on_delete_tag AFTER DELETE ON tags FOR EACH ROW
 -- The tag index
 -- --------------------------------------------------
 
+-- optimal/profiled
 CREATE VIEW tagindex AS
     SELECT tag, COUNT(tag) as linkscount FROM tags GROUP BY tag ORDER BY tag;
 
@@ -395,6 +407,7 @@ CREATE TRIGGER on_delete_vote AFTER DELETE ON votes FOR EACH ROW
 -- Users (channels) that reacted last hour
 -- -----------------------------------------------------
 
+-- optimal/profiled
 CREATE VIEW activeusers AS
     SELECT DISTINCT channels.*
     FROM channels_public_view AS channels JOIN interactions ON interactions.channelid=channels.id
@@ -417,6 +430,7 @@ SELECT (SELECT COUNT(*) FROM links WHERE createdatetime > SUBDATE(CURRENT_TIMEST
 -- --------------------------------------------------------
 
 -- should be cached higher up in the stack
+-- TODO slow query
 CREATE VIEW trendingtopics AS
     SELECT tags.* FROM tags
     JOIN links ON tags.linkid=links.id
@@ -425,12 +439,15 @@ CREATE VIEW trendingtopics AS
     ORDER BY SUM(score) DESC LIMIT 50;
 
 -- should be cached higher up in the stack
+-- (optimized/profiled)
 CREATE VIEW toptopics AS
     SELECT DISTINCT tag FROM tags
     JOIN (SELECT id, score FROM links ORDER BY score DESC limit 1000) AS links
     ON tags.linkid = links.id
+    GROUP BY tag
     ORDER BY SUM(score) DESC LIMIT 25;
 
+-- (optimized/profiled)
 CREATE VIEW newtopics AS
     SELECT DISTINCT tag FROM tags ORDER BY id DESC LIMIT 25;
 
@@ -439,15 +456,18 @@ CREATE VIEW newtopics AS
 -- --------------------------------------------------------
 
 -- should be cached higher up in the stack
+-- TODO slow query
 CREATE VIEW trendingchannels AS
     SELECT channels.* FROM channels_public_view AS channels
     JOIN (SELECT * FROM frontpage) AS links ON channels.id = links.channelid
     GROUP BY channels.id
     ORDER BY SUM(score) DESC LIMIT 25;
 
+-- optimal/profiled
 CREATE VIEW topchannels AS
     SELECT channels.* FROM channels_public_view AS channels ORDER BY reputation DESC LIMIT 25;
 
+-- optimal/profiled
 CREATE VIEW newchannels AS
     SELECT channels.* FROM channels_public_view AS channels ORDER BY id DESC LIMIT 25;
 
