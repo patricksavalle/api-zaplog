@@ -2,6 +2,7 @@
 
 [general]
 api_domain=
+blurbsize=${BLURBSIZE}
 webarchive_save_link=https://web.archive.org/save/
 admins[]=
 
@@ -28,6 +29,7 @@ database_user=${ZAPLOG_DB_USER}
 database_password=${ZAPLOG_DB_PASSWORD}
 database_charset=utf8
 database_query_logging=${ZAPLOG_DB_QUERY_LOGGING}
+
 
 [smtp]
 smtp_host=
