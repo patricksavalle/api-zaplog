@@ -27,7 +27,7 @@ database_name=${ZAPLOG_DB_NAME}
 database_user=${ZAPLOG_DB_USER}
 database_password=${ZAPLOG_DB_PASSWORD}
 database_charset=utf8
-database_query_logging=1
+database_query_logging=${ZAPLOG_DB_QUERY_LOGGING}
 
 [smtp]
 smtp_host=
