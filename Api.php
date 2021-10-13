@@ -279,6 +279,28 @@ namespace Zaplog {
                     ]));
 
                 // ----------------------------------------------------------------
+                // Return top channels for given tag
+                // ----------------------------------------------------------------
+
+                $this->get("/tag/{tag:[\w-]{3,55}}", function (
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
+                    return $response->withJson(Db::fetchAll("SELECT channels.* FROM channels_public_view AS channels
+                        JOIN tags ON tags.channelid=channels.id
+                        JOIN links ON tags.linkid=links.id
+                        WHERE tag=:tag
+                        GROUP BY channels.id
+                        ORDER BY SUM(score) DESC LIMIT :count",
+                        [":tag" => $args->tag, ":count" => $args->count]));
+                })
+                    ->add(new Memcaching(60/*sec*/))
+                    ->add(new ReadOnly)
+                    ->add(new QueryParameters([
+                        '{count:\int},20',
+                    ]));
+
+                // ----------------------------------------------------------------
                 // Change channel properties of authenticated user's channel
                 // ----------------------------------------------------------------
 
