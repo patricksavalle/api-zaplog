@@ -186,7 +186,7 @@ namespace Zaplog {
         static public function getBlurbifiedLinks(string $sql, array $args = []): array
         {
             $links = Db::fetchAll($sql, $args);
-            foreach ($links as $link) $link->description = substr(strip_tags($link->description), 1, Ini::get("blurbsize"));
+            foreach ($links as $link) $link->description = substr(strip_tags($link->description), 0, Ini::get("blurbsize"));
             return $links;
         }
 
