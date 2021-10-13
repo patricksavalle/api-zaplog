@@ -447,7 +447,8 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Methods::getBlurbifiedLinks("SELECT * FROM links WHERE channelid=:channel ORDER BY id DESC LIMIT :offset,:count",
+                    return $response->withJson(Methods::getBlurbifiedLinks("SELECT * FROM links WHERE channelid=:channel AND published=TRUE 
+                        ORDER BY id DESC LIMIT :offset,:count",
                         [":channel" => $args->id, ":offset" => $args->offset, ":count" => $args->count]));
                 })
                     ->add(new Memcaching(60/*sec*/))
@@ -466,7 +467,7 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     return $response->withJson(Methods::getBlurbifiedLinks("SELECT links.* FROM tags JOIN links ON tags.linkid=links.id 
-                        WHERE tags.tag=:tag ORDER BY links.id DESC LIMIT :offset,:count",
+                        WHERE tags.tag=:tag AND published=TRUE ORDER BY links.id DESC LIMIT :offset,:count",
                         [":tag" => $args->tag, ":offset" => $args->offset, ":count" => $args->count]));
                 })
                     ->add(new Memcaching(60/*sec*/))
@@ -515,7 +516,7 @@ namespace Zaplog {
             $this->group('/votes', function () {
 
                 // ------------------------------------------------
-                // add a vote, cannot vote own articles
+                // toggle a vote
                 // ------------------------------------------------
 
                 $this->post("/link/{id:\d{1,10}}", function (
@@ -523,8 +524,7 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
-                    Db::execute("INSERT IGNORE INTO votes(linkid,channelid)VALUES(:linkid,:channelid)",
-                        [":linkid" => $args->id, ":channelid" => $channelid]);
+                    Db::execute("CALL toggle_vote(:linkid,:channelid)", [":linkid" => $args->id, ":channelid" => $channelid]);
                     return $response->withJson(Db::lastInsertId());
                 })
                     ->add(new Authentication);

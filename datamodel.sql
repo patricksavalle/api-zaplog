@@ -169,6 +169,7 @@ CREATE TABLE interactions
         'on_update_link',
         'on_insert_reaction',
         'on_insert_vote',
+        'on_delete_vote',
         'on_insert_tag',
         'on_receive_cash',
         'on_reputation_calculated'
@@ -196,14 +197,14 @@ CREATE EVENT purge_interactions ON SCHEDULE EVERY 1 HOUR DO
 -- Select frontpage links from all links that had interactions
 -- -----------------------------------------------------------
 
-CREATE TABLE frontpage LIKE links;
-
 DELIMITER //
 CREATE PROCEDURE calculate_frontpage()
 BEGIN
     START TRANSACTION;
-    TRUNCATE TABLE frontpage;
-    INSERT INTO frontpage SELECT DISTINCT links.* FROM interactions
+    DROP TABLE IF EXISTS frontpage;
+    CREATE TABLE frontpage
+        SELECT DISTINCT links.*
+        FROM interactions
         JOIN links ON interactions.linkid = links.id
         WHERE published=TRUE
         -- order by score, give old posts some half life decay after 3 hours
@@ -400,8 +401,24 @@ BEGIN
 END//
 DELIMITER ;
 
+DELIMITER //
 CREATE TRIGGER on_delete_vote AFTER DELETE ON votes FOR EACH ROW
+BEGIN
     UPDATE links SET votescount = votescount - 1 WHERE id = OLD.linkid;
+    INSERT INTO interactions(linkid,channelid,type) VALUES (OLD.linkid, OLD.channelid,'on_delete_vote');
+END //
+DELIMITER ;
+
+DELIMITER //
+CREATE PROCEDURE toggle_vote(IN arg_channelid INT, IN arg_linkid INT)
+BEGIN
+    IF (SELECT COUNT(*) FROM votes WHERE channelid=arg_channelid AND linkid=arg_linkid)>0 THEN
+        DELETE FROM votes WHERE channelid=arg_channelid AND linkid=arg_linkid;
+    ELSE
+        INSERT INTO votes(channelid,linkid)VALUES(arg_channelid,arg_linkid);
+    END IF;
+END //
+DELIMITER ;
 
 -- -----------------------------------------------------
 -- Users (channels) that reacted last hour
