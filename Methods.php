@@ -257,6 +257,7 @@ namespace Zaplog {
                     error_log($e->getMessage() . " @ " . __METHOD__ . "(" . __LINE__ . ") " . $channel->feedurl);
                 }
             }
+            Db::execute("CALL calculate_frontpage()");
         }
 
         static public function getRelatedTags(string $tag): array
@@ -266,7 +267,7 @@ namespace Zaplog {
                 WHERE links.id IN (SELECT links.id 
                     FROM links JOIN tags ON tags.linkid=links.id 
                     WHERE tag=:tag1)
-                AND tag<>:tag1
+                AND tag<>:tag2
                 GROUP BY tag ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT 25",
                 ["tag1" => $tag, "tag2" => $tag]);
         }
