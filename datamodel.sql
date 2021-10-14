@@ -99,7 +99,10 @@ CREATE TABLE links
     published      BOOL          NOT NULL DEFAULT TRUE,
     urlhash        CHAR(32) GENERATED ALWAYS AS (MD5(url)),
     url            VARCHAR(1024) NOT NULL,
-    waybackurl     VARCHAR(1024)          DEFAULT NULL,
+    waybackurl     VARCHAR(1024) NULL     DEFAULT NULL,
+    location       VARCHAR(256)  NULL     DEFAULT NULL,
+    latitude       FLOAT         NULL     DEFAULT NULL,
+    longitude      FLOAT         NULL     DEFAULT NULL,
     title          VARCHAR(256)  NOT NULL,
     copyright      ENUM (
         'No Rights Apply / Linkdump',
@@ -270,7 +273,7 @@ BEGIN
         OR NEW.image<>OLD.image
         OR NEW.title<>OLD.title
         OR NEW.url<>OLD.url) THEN
-        INSERT INTO interactions(channelid, type) VALUES (NEW.id, 'on_update_link');
+        INSERT INTO interactions(channelid, linkid, type) VALUES (NEW.channelid, NEW.id, 'on_update_link');
     END IF;
     -- accumulate link scores into parent channel
     IF (NEW.score<>OLD.score) THEN
@@ -439,6 +442,7 @@ CREATE VIEW statistics AS
 SELECT (SELECT COUNT(*) FROM links WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 DAY))      AS numposts24h,
        (SELECT COUNT(*) FROM links WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 MONTH))    AS numposts1m,
        (SELECT COUNT(*) FROM channels)                                                                     AS numchannels,
+       (SELECT COUNT(*) FROM links)                                                                        AS numposts,
        (SELECT COUNT(*) FROM channels WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 MONTH)) AS newchannels1m,
        (SELECT COUNT(*) FROM tags)                                                                         AS numtags,
        (SELECT COUNT(*) FROM votes)                                                                        AS numvotes;

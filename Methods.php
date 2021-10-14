@@ -212,8 +212,9 @@ namespace Zaplog {
                 "interactors" => Db::fetchAll("SELECT DISTINCT * FROM channels_public_view 
                     WHERE id IN (SELECT channelid FROM reactions WHERE linkid=:id1)
                         OR id IN (SELECT channelid FROM tags WHERE linkid=:id2)
-                        OR id IN (SELECT channelid FROM votes WHERE linkid=:id3)",
-                    [":id1" => $id, ":id2" => $id, ":id3" => $id]),
+                        OR id IN (SELECT channelid FROM votes WHERE linkid=:id3)
+                        OR id=(SELECT channelid FROM links WHERE id=:id4)",
+                    [":id1" => $id, ":id2" => $id, ":id3" => $id, ":id4" => $id]),
             ];
         }
 
