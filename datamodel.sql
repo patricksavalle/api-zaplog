@@ -13,6 +13,7 @@
 
 -- we need the event scheduler!!!
 SET GLOBAL event_scheduler = ON;
+SET GLOBAL TRANSACTION ISOLATION LEVEL READ UNCOMMITTED ;
 
 DROP SCHEMA IF EXISTS zaplog;
 CREATE SCHEMA zaplog
@@ -462,11 +463,11 @@ CREATE VIEW toptopics AS
     JOIN (SELECT id, score FROM links ORDER BY score DESC limit 1000) AS links
     ON tags.linkid = links.id
     GROUP BY tag
-    ORDER BY SUM(score) DESC LIMIT 25;
+    ORDER BY SUM(score) DESC LIMIT 50;
 
 -- (optimized/profiled)
 CREATE VIEW newtopics AS
-    SELECT DISTINCT tag FROM tags ORDER BY id DESC LIMIT 25;
+    SELECT DISTINCT tag FROM tags ORDER BY id DESC LIMIT 50;
 
 -- --------------------------------------------------------
 -- Most popular channels, this query should be cached by server
@@ -478,15 +479,15 @@ CREATE VIEW trendingchannels AS
     SELECT channels.* FROM channels_public_view AS channels
     JOIN (SELECT * FROM frontpage) AS links ON channels.id = links.channelid
     GROUP BY channels.id
-    ORDER BY SUM(score) DESC LIMIT 25;
+    ORDER BY SUM(score) DESC LIMIT 50;
 
 -- optimal/profiled
 CREATE VIEW topchannels AS
-    SELECT channels.* FROM channels_public_view AS channels ORDER BY reputation DESC LIMIT 25;
+    SELECT channels.* FROM channels_public_view AS channels ORDER BY reputation DESC LIMIT 50;
 
 -- optimal/profiled
 CREATE VIEW newchannels AS
-    SELECT channels.* FROM channels_public_view AS channels ORDER BY id DESC LIMIT 25;
+    SELECT channels.* FROM channels_public_view AS channels ORDER BY id DESC LIMIT 50;
 
 -- -----------------------------------------------------
 -- RAW activity stream, needs PHP post-processing
@@ -514,7 +515,7 @@ BEGIN
     SELECT tag, COUNT(tag) AS tagscount
     FROM tags JOIN links ON tags.linkid=links.id
     WHERE links.channelid=arg_channelid
-    GROUP BY tag ORDER BY SUM(score) DESC LIMIT 10;
+    GROUP BY tag ORDER BY SUM(score) DESC LIMIT 20;
 END //
 DELIMITER ;
 

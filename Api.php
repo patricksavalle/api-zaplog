@@ -166,11 +166,14 @@ namespace Zaplog {
                 stdClass $args): Response {
                 return $response->withJson([
                     "trendinglinks" => Methods::getBlurbifiedLinks("SELECT * FROM frontpage"),
-                    "trendingtags" => Db::fetchAll("SELECT * FROM trendingtopics"),
-                    "trendingchannels" => Db::fetchAll("SELECT * FROM trendingchannels")]);
+                    "trendingtags" => Db::fetchAll("SELECT * FROM trendingtopics LIMIT :count", [":count" => $args->count]),
+                    "trendingchannels" => Db::fetchAll("SELECT * FROM trendingchannels LIMIT :count", [":count" => $args->count])]);
             })
                 ->add(new Memcaching(60 * 60/*sec*/))
-                ->add(new ReadOnly);
+                ->add(new ReadOnly)
+                ->add(new QueryParameters([
+                    '{count:\int},25',
+                ]));
 
             // ----------------------------------------------------------------
             // Get reactions, forum style, returns the latest reactions
@@ -184,7 +187,6 @@ namespace Zaplog {
                 return $response->withJson(Db::fetchAll("CALL select_discussion(:offset,:count)",
                     [":offset" => $args->offset, ":count" => $args->count]));
             })
-                ->add(new Memcaching(60/*sec*/))
                 ->add(new ReadOnly)
                 ->add(new QueryParameters([
                     '{offset:\int},0',
@@ -334,12 +336,16 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     return $response->withJson([
-                        "top10" => Db::fetchAll("SELECT * FROM topchannels"),
-                        "new10" => Db::fetchAll("SELECT * FROM newchannels"),
-                        "updated10" => Db::fetchAll("SELECT * FROM trendingchannels")]);
+                        "top10" => Db::fetchAll("SELECT * FROM topchannels LIMIT :count", [":count" => $args->count]),
+                        "new10" => Db::fetchAll("SELECT * FROM newchannels LIMIT :count", [":count" => $args->count]),
+                        "updated10" => Db::fetchAll("SELECT * FROM trendingchannels LIMIT :count", [":count" => $args->count])
+                    ]);
                 })
                     ->add(new Memcaching(60/*sec*/))
-                    ->add(new ReadOnly);
+                    ->add(new ReadOnly)
+                    ->add(new QueryParameters([
+                        '{count:\int},20',
+                    ]));
 
             });
 
@@ -584,13 +590,16 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     return $response->withJson([
-                        "top" => Db::fetchAll("SELECT * FROM toptopics"),
-                        "new" => Db::fetchAll("SELECT * FROM newtopics"),
-                        "trending" => Db::fetchAll("SELECT * FROM trendingtopics"),
+                        "top" => Db::fetchAll("SELECT * FROM toptopics LIMIT :count", [":count" => $args->count]),
+                        "new" => Db::fetchAll("SELECT * FROM newtopics LIMIT :count", [":count" => $args->count]),
+                        "trending" => Db::fetchAll("SELECT * FROM trendingtopics LIMIT :count", [":count" => $args->count]),
                     ]);
                 })
                     ->add(new Memcaching(60/*sec*/))
-                    ->add(new ReadOnly);
+                    ->add(new ReadOnly)
+                    ->add(new QueryParameters([
+                        '{count:\int},20',
+                    ]));
 
                 // ------------------------------------------------
                 // delete a tag, only delete your own tags
