@@ -22,12 +22,11 @@ namespace Zaplog {
 
     class Methods
     {
-        static $blurbsize = -1;
-
         static protected function blurb(string $text): string
         {
-            if (self::$blurbsize === -1) self::$blurbsize = Ini::get("blurbsize");
-            return substr(strip_tags($text), 0, self::$blurbsize);
+            static $blurbsize = -1;
+            if ($blurbsize === -1) $blurbsize = Ini::get("blurbsize");
+            return substr(strip_tags($text), 0, $blurbsize);
         }
 
         // ----------------------------------------------------------

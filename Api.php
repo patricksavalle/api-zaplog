@@ -19,6 +19,7 @@ namespace Zaplog {
 
     use ContentSyndication\HtmlMetadata;
     use ContentSyndication\NormalizedText;
+    use Parsedown;
     use stdClass;
     use SlimRestApi\Middleware\CliRequest;
     use SlimRestApi\Middleware\Memcaching;
@@ -238,6 +239,23 @@ namespace Zaplog {
                 ->add(new Memcaching(60/*sec*/))
                 ->add(new ReadOnly);
 
+            // --------------------------------------------------------
+            // Preview comment or post text after parsing and filtering
+            // --------------------------------------------------------
+
+            $this->post("/textpreview", function (
+                Request  $request,
+                Response $response,
+                stdClass $args): Response {
+                return $response->withJson([
+                    "markdown.in" => $args->text,
+                    "link.xtext" => (new Parsedown())->setSafeMode(true)->setBreaksEnabled(true)->text($args->text),
+                    "reaction.xtext" => (new Parsedown())->setSafeMode(true)->setBreaksEnabled(true)->line($args->text)
+                ]);
+            })
+                ->add(new BodyParameters(['{*}']))
+                ->add(new Authentication);
+
             // ----------------------------------------------------------------
             // Channels show posts and activity for a specific user / email
             // Channels are automatically created on an email 2 factor login
@@ -338,7 +356,7 @@ namespace Zaplog {
                     return $response->withJson([
                         "top10" => Db::fetchAll("SELECT * FROM topchannels LIMIT :count", [":count" => $args->count]),
                         "new10" => Db::fetchAll("SELECT * FROM newchannels LIMIT :count", [":count" => $args->count]),
-                        "updated10" => Db::fetchAll("SELECT * FROM trendingchannels LIMIT :count", [":count" => $args->count])
+                        "updated10" => Db::fetchAll("SELECT * FROM trendingchannels LIMIT :count", [":count" => $args->count]),
                     ]);
                 })
                     ->add(new Memcaching(60/*sec*/))
@@ -488,7 +506,7 @@ namespace Zaplog {
             $this->group('/comments', function () {
 
                 // ----------------------------------------------------------------
-                // Add a reaction
+                // Add a reaction, reactions can not be updated only deleted
                 // ----------------------------------------------------------------
 
                 $this->post("/link/{id:\d{1,10}}", function (
@@ -496,11 +514,12 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
-                    Db::execute("INSERT INTO reactions(linkid,channelid,text) VALUES (:linkid,:channelid,:text)",
-                        [":linkid" => $args->id, ":channelid" => $channelid, ":text" => $args->text]);
+                    $xtext = (new Parsedown())->setSafeMode(true)->setBreaksEnabled(true)->line($args->xtext);
+                    Db::execute("INSERT INTO reactions(linkid,channelid,xtext) VALUES (:linkid,:channelid,:text)",
+                        [":linkid" => $args->id, ":channelid" => $channelid, ":text" => $xtext]);
                     return $response->withJson(Db::lastInsertId());
                 })
-                    ->add(new BodyParameters(['{text:\xtext},null']))
+                    ->add(new BodyParameters(['{*}']))
                     ->add(new Authentication);
 
                 // ----------------------------------------------------------------

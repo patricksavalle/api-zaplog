@@ -300,7 +300,8 @@ CREATE TABLE reactions
     linkid         INT       NOT NULL,
     channelid      INT       NOT NULL,
     published      BOOL      NOT NULL DEFAULT TRUE,
-    text           TEXT               DEFAULT NULL,
+    -- Purified xhtml
+    xtext          TEXT               DEFAULT NULL,
     PRIMARY KEY (id),
     INDEX (channelid),
     INDEX (linkid),
