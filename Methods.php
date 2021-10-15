@@ -22,6 +22,14 @@ namespace Zaplog {
 
     class Methods
     {
+        static $blurbsize = -1;
+
+        static protected function blurb(string $text): string
+        {
+            if (self::$blurbsize === -1) self::$blurbsize = Ini::get("blurbsize");
+            return substr(strip_tags($text), 0, self::$blurbsize);
+        }
+
         // ----------------------------------------------------------
         //
         // ----------------------------------------------------------
@@ -64,6 +72,9 @@ namespace Zaplog {
             $stream2 = [];
             foreach ($stream as $value) {
                 if (!$find($value, $stream2, $compare)) {
+                    if (isset($value->linktext)) {
+                        $value->linktext = self::blurb($value->linktext);
+                    }
                     $stream2[] = $value;
                 }
             }
@@ -186,7 +197,7 @@ namespace Zaplog {
         static public function getBlurbifiedLinks(string $sql, array $args = []): array
         {
             $links = Db::fetchAll($sql, $args);
-            foreach ($links as $link) $link->description = substr(strip_tags($link->description), 0, Ini::get("blurbsize"));
+            foreach ($links as $link) $link->description = self::blurb($link->description);
             return $links;
         }
 
