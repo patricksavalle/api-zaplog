@@ -32,9 +32,9 @@ database_query_logging=${ZAPLOG_DB_QUERY_LOGGING}
 
 
 [smtp]
-smtp_host=
-smtp_login=
-smtp_password=
+smtp_host=${ZAPLOG_MAIL_HOST}
+smtp_login=${ZAPLOG_MAIL_LOGIN}
+smtp_password=${ZAPLOG_MAIL_PASSWORD}
 smtp_secure=TLS
 smtp_port=587
 
