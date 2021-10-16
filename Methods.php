@@ -103,35 +103,57 @@ namespace Zaplog {
             ];
         }
 
+        static public function postLinkFromUrl(string $channelid, string $url): string
+        {
+            $metadata = (new HtmlMetadata)($url);
+            return self::postLink(
+                $channelid,
+                $metadata["url"],
+                $metadata["title"],
+                $metadata["description"],
+                $metadata["image"],
+                $metadata["keywords"]
+            );
+        }
+
         // ----------------------------------------------------------
         //
         // ----------------------------------------------------------
 
-        static public function postLinkFromUrl(string $channelid, string $url): string
+        static public function postLink(
+            string $channelid,
+            string $url,
+            string $title,
+            string $markdown,
+            string $image,
+            array $keywords = []): string
         {
-            $metadata = (new HtmlMetadata)($url);
+            // Parse the markdown to xhtml, strip the tags, limit the lenght
+            $description = substr(strip_tags((new Parsedown())->setSafeMode(true)->setBreaksEnabled(true)->line($markdown)), 0, 256);
+
+            // Insert into database
             (new ServerException)(Db::execute("INSERT INTO links(url, channelid, title, markdown, description, image)
-                        VALUES (:url, :channelid, :title, :markdown, :description, :image)",
+                    VALUES (:url, :channelid, :title, :markdown, :description, :image)",
                     [
-                        ":url" => $metadata["url"],
+                        ":url" => $url,
                         ":channelid" => $channelid,
-                        ":title" => $metadata["title"],
-                        ":markdown" => $metadata["description"],
-                        ":description" => substr($metadata["description"], 0, 256),
-                        ":image" => $metadata["image"],
+                        ":title" => $title,
+                        ":markdown" => $markdown,
+                        ":description" => $description,
+                        ":image" => $image,
                     ])->rowCount() > 0);
 
             $linkid = Db::lastInsertId();
 
             // remove duplicate keywords after normalisation
-            $keywords = [];
-            foreach ($metadata['keywords'] as $tag) {
-                $keywords[] = (new NormalizedText($tag))->convertToAscii()->hyphenizeForPath()->get();
+            $keywords2 = [];
+            foreach ($keywords as $tag) {
+                $keywords2[] = (new NormalizedText($tag))->convertToAscii()->hyphenizeForPath()->get();
             }
-            $metadata['keywords'] = array_unique($keywords);
+            $keywords2 = array_unique($keywords2);
 
             // insert keywords into database
-            foreach ($metadata['keywords'] as $tag) {
+            foreach ($keywords2 as $tag) {
                 try {
                     // only accept reasonable tags
                     $tag = (new NormalizedText($tag))->convertToAscii()->hyphenizeForPath()->get();
@@ -190,10 +212,9 @@ namespace Zaplog {
             Db::execute("UPDATE links SET viewscount = viewscount + 1 WHERE id=:id", [":id" => $id]);
 
             $link = (new ResourceNotFoundException)(Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $id]));
+
             // parse and filter the original markdown into safe xhtml
             $link->description = (new Parsedown())->setSafeMode(true)->setBreaksEnabled(true)->text($link->markdown);
-
-            // TODO Parsedown
 
             return [
                 "link" => $link,
