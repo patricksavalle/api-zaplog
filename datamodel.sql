@@ -109,7 +109,10 @@ CREATE TABLE links
         'All Rights Reserved',
         'No Rights Reserved (CC0 1.0)',
         'Some Rights Reserved (CC BY-NC-SA 4.0)' ) DEFAULT NULL,
-    description    TEXT                   DEFAULT NULL,
+    -- original markdown input
+    markdown       TEXT                   DEFAULT NULL,
+    -- Clean text blurb
+    description    VARCHAR(256)           DEFAULT NULL,
     image          VARCHAR(256)           DEFAULT NULL,
     -- because this system is very read intensive we will keep totals in this table
     -- instead of counting/joining the respective tables each time
@@ -143,7 +146,7 @@ DELIMITER //
 CREATE TRIGGER on_before_update_link BEFORE UPDATE ON links FOR EACH ROW
 BEGIN
     IF (NEW.title<>OLD.title
-        OR NEW.description<>OLD.description
+        OR NEW.markdown<>OLD.markdown
         OR NEW.url<>OLD.url
         OR NEW.image<>OLD.image
         -- also update on added reactions (used for 'discussion' query)
@@ -269,7 +272,7 @@ CREATE TRIGGER on_insert_link AFTER INSERT ON links FOR EACH ROW
 DELIMITER //
 CREATE TRIGGER on_update_link AFTER UPDATE ON links FOR EACH ROW
 BEGIN
-    IF (NEW.description<>OLD.description
+    IF (NEW.markdown<>OLD.markdown
         OR NEW.image<>OLD.image
         OR NEW.title<>OLD.title
         OR NEW.url<>OLD.url) THEN
@@ -300,7 +303,7 @@ CREATE TABLE reactions
     linkid         INT       NOT NULL,
     channelid      INT       NOT NULL,
     published      BOOL      NOT NULL DEFAULT TRUE,
-    -- Purified xhtml
+    -- Purified xhtml from markdown input, no need to store original input
     xtext          TEXT               DEFAULT NULL,
     PRIMARY KEY (id),
     INDEX (channelid),
@@ -342,10 +345,6 @@ CREATE TABLE tags
     -- channel (=user) that added the tags
     channelid      INT         NOT NULL,
     tag            VARCHAR(50) NOT NULL,
-    theme          VARCHAR(255)       DEFAULT NULL,
-    avatar         VARCHAR(255)       DEFAULT NULL,
-    header         VARCHAR(255)       DEFAULT NULL,
-    description    VARCHAR(255)       DEFAULT NULL,
     PRIMARY KEY (id),
     INDEX (linkid),
     INDEX (channelid),

@@ -12,6 +12,7 @@ namespace Zaplog {
     use ContentSyndication\Url;
     use ContentSyndication\XmlFeed;
     use Exception;
+    use Parsedown;
     use SlimRestApi\Infra\Db;
     use SlimRestApi\Infra\Ini;
     use stdClass;
@@ -22,13 +23,6 @@ namespace Zaplog {
 
     class Methods
     {
-        static protected function blurb(string $text): string
-        {
-            static $blurbsize = -1;
-            if ($blurbsize === -1) $blurbsize = Ini::get("blurbsize");
-            return substr(strip_tags($text), 0, $blurbsize);
-        }
-
         // ----------------------------------------------------------
         //
         // ----------------------------------------------------------
@@ -71,9 +65,6 @@ namespace Zaplog {
             $stream2 = [];
             foreach ($stream as $value) {
                 if (!$find($value, $stream2, $compare)) {
-                    if (isset($value->linktext)) {
-                        $value->linktext = self::blurb($value->linktext);
-                    }
                     $stream2[] = $value;
                 }
             }
@@ -119,13 +110,14 @@ namespace Zaplog {
         static public function postLinkFromUrl(string $channelid, string $url): string
         {
             $metadata = (new HtmlMetadata)($url);
-            (new ServerException)(Db::execute("INSERT INTO links(url, channelid, title, description, image)
-                        VALUES (:url, :channelid, :title, :description, :image)",
+            (new ServerException)(Db::execute("INSERT INTO links(url, channelid, title, markdown, description, image)
+                        VALUES (:url, :channelid, :title, :markdown, :description, :image)",
                     [
                         ":url" => $metadata["url"],
                         ":channelid" => $channelid,
                         ":title" => $metadata["title"],
-                        ":description" => $metadata["description"],
+                        ":markdown" => $metadata["description"],
+                        ":description" => substr($metadata["description"], 0, 256),
                         ":image" => $metadata["image"],
                     ])->rowCount() > 0);
 
@@ -190,17 +182,6 @@ namespace Zaplog {
         }
 
         // ----------------------------------------------------------
-        // Return blurbs instead of complete XHTML descriptions
-        // ----------------------------------------------------------
-
-        static public function getBlurbifiedLinks(string $sql, array $args = []): array
-        {
-            $links = Db::fetchAll($sql, $args);
-            foreach ($links as $link) $link->description = self::blurb($link->description);
-            return $links;
-        }
-
-        // ----------------------------------------------------------
         //
         // ----------------------------------------------------------
 
@@ -208,8 +189,14 @@ namespace Zaplog {
         {
             Db::execute("UPDATE links SET viewscount = viewscount + 1 WHERE id=:id", [":id" => $id]);
 
+            $link = (new ResourceNotFoundException)(Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $id]));
+            // parse and filter the original markdown into safe xhtml
+            $link->description = (new Parsedown())->setSafeMode(true)->setBreaksEnabled(true)->text($link->markdown);
+
+            // TODO Parsedown
+
             return [
-                "link" => (new ResourceNotFoundException)(Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $id])),
+                "link" => $link,
 
                 "tags" => Db::fetchAll("SELECT * FROM tags WHERE linkid=:id GROUP BY tag", [":id" => $id]),
 

@@ -166,7 +166,7 @@ namespace Zaplog {
                 Response $response,
                 stdClass $args): Response {
                 return $response->withJson([
-                    "trendinglinks" => Methods::getBlurbifiedLinks("SELECT * FROM frontpage"),
+                    "trendinglinks" => Db::fetchAll("SELECT * FROM frontpage"),
                     "trendingtags" => Db::fetchAll("SELECT * FROM trendingtopics LIMIT :count", [":count" => $args->count]),
                     "trendingchannels" => Db::fetchAll("SELECT * FROM trendingchannels LIMIT :count", [":count" => $args->count])]);
             })
@@ -454,7 +454,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Methods::getBlurbifiedLinks("SELECT * FROM links ORDER BY id DESC LIMIT :offset,:count",
+                    return $response->withJson(Db::fetchAll("SELECT * FROM links ORDER BY id DESC LIMIT :offset,:count",
                         [":offset" => $args->offset, ":count" => $args->count]));
                 })
                     ->add(new ReadOnly)
@@ -471,7 +471,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Methods::getBlurbifiedLinks("SELECT * FROM links WHERE channelid=:channel AND published=TRUE 
+                    return $response->withJson(Db::fetchAll("SELECT * FROM links WHERE channelid=:channel AND published=TRUE 
                         ORDER BY id DESC LIMIT :offset,:count",
                         [":channel" => $args->id, ":offset" => $args->offset, ":count" => $args->count]));
                 })
@@ -490,7 +490,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Methods::getBlurbifiedLinks("SELECT links.* FROM tags JOIN links ON tags.linkid=links.id 
+                    return $response->withJson(Db::fetchAll("SELECT links.* FROM tags JOIN links ON tags.linkid=links.id 
                         WHERE tags.tag=:tag AND published=TRUE ORDER BY links.id DESC LIMIT :offset,:count",
                         [":tag" => $args->tag, ":offset" => $args->offset, ":count" => $args->count]));
                 })
@@ -503,7 +503,7 @@ namespace Zaplog {
 
             });
 
-            $this->group('/comments', function () {
+            $this->group('/reactions', function () {
 
                 // ----------------------------------------------------------------
                 // Add a reaction, reactions can not be updated only deleted
