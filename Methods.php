@@ -112,9 +112,9 @@ namespace Zaplog {
                 $channelid,
                 $metadata["url"],
                 $metadata["title"],
-                $metadata["description"],
-                $metadata["image"],
-                $metadata["keywords"]
+                $metadata["description"] ?? "",
+                $metadata["image"] ?? "https://cdn.pixabay.com/photo/2018/06/24/08/01/dark-background-3494082_1280.jpg",
+                $metadata["keywords"] ?? []
             );
         }
 

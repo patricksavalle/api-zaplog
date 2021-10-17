@@ -376,7 +376,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    $url = urldecode($args->urlencoded);
+                    $url = trim(urldecode($args->urlencoded));
                     (new UserException)(filter_var($url, FILTER_VALIDATE_URL));
                     return $response->withJson(Methods::postLinkFromUrl((string)Authentication::getSession()->id, $url));
                 })
@@ -426,7 +426,9 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson((new HtmlMetadata)(urldecode($args->urlencoded)));
+                    $url = trim(urldecode($args->urlencoded));
+                    (new UserException)(filter_var($url, FILTER_VALIDATE_URL));
+                    return $response->withJson((new HtmlMetadata)($url));
                 })
                     ->add(new Authentication);
 
