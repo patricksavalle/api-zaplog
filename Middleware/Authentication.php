@@ -10,6 +10,11 @@ namespace Zaplog\Middleware {
 
     class Authentication extends \SlimRestApi\Middleware\Authentication
     {
+        static public function getSessionTtl() : int
+        {
+            return 24;
+        }
+
         // ---------------------------------------------------------------------------------------
         // Override of the parent calls, decorates the original call. Returns logged in channel
         // ---------------------------------------------------------------------------------------
