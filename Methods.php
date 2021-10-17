@@ -17,8 +17,7 @@ namespace Zaplog {
     use stdClass;
     use Zaplog\Exception\ResourceNotFoundException;
     use Zaplog\Exception\ServerException;
-
-//    use Zaplog\Library\TwoFactorAction;
+    use Zaplog\Library\TwoFactorAction;
 
     class Methods
     {
@@ -102,6 +101,10 @@ namespace Zaplog {
             ];
         }
 
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
         static public function postLinkFromUrl(string $channelid, string $url): string
         {
             $metadata = (new HtmlMetadata)($url);
@@ -119,68 +122,20 @@ namespace Zaplog {
         //
         // ----------------------------------------------------------
 
-        static public function postLink(
-            string $channelid,
-            string $url,
-            string $title,
-            string $markdown,
-            string $image,
-            array $keywords = []): string
+        static public function archiveLink(string $linkid, string $url)
         {
-            // Insert into database
-            (new ServerException)(Db::execute("INSERT INTO links(url, channelid, title, markdown, description, image)
-                    VALUES (:url, :channelid, :title, :markdown, :description, :image)",
-                    [
-                        ":url" => $url,
-                        ":channelid" => $channelid,
-                        ":title" => $title,
-                        ":markdown" => $markdown,
-                        ":description" => (new Text($markdown))->parseDown()->blurbify()->get(),
-                        ":image" => $image,
-                    ])->rowCount() > 0);
-
-            $linkid = Db::lastInsertId();
-
-            // remove duplicate keywords after normalisation
-            $keywords2 = [];
-            foreach ($keywords as $tag) {
-                $keywords2[] = (new Text($tag))->convertToAscii()->hyphenizeForPath()->get();
-            }
-            $keywords2 = array_unique($keywords2);
-
-            // insert keywords into database
-            foreach ($keywords2 as $tag) {
-                try {
-                    // only accept reasonable tags
-                    $tag = (new Text($tag))->convertToAscii()->hyphenizeForPath()->get();
-                    assert(preg_match("/[\w-]{3,50}/", $tag) > 0);
-                    assert(substr_count($tag, "-") < 5);
-                    Db::execute("INSERT IGNORE INTO tags(linkid, channelid, tag) VALUES (:linkid, :channelid, :tag)",
-                        [
-                            ":linkid" => $linkid,
-                            ":channelid" => $channelid,
-                            ":tag" => $tag,
-                        ]);
-                } catch (Exception $e) {
-                    // ignore on error
-                    error_log($e->getMessage() . " @ " . __METHOD__ . "(" . __LINE__ . ") " . $tag);
-                }
-            }
-
             // store url in wayback-machine, use asynchronous self-call
-//            try {
-//                (new TwoFactorAction)
-//                    ->createToken()
-//                    ->addAction('/Methods.php', ['\Zaplog\Methods', 'storeWebArchive'], [$linkid, $metadata["url"]])
-//                    ->handleAsync();
-//            } catch (Exception $e) {
-//                // async call will only work with reverese proxy in front of PHP interpreter
-//                error_log(__METHOD__ . " " . $e->getMessage());
-//                error_log("Restarting as synchronous call");
-//                self::storeWebArchive($linkid, $metadata["url"]);
-//             }
-
-            return $linkid;
+            try {
+                (new TwoFactorAction)
+                    ->createToken()
+                    ->addAction('/Methods.php', ['\Zaplog\Methods', 'storeWebArchive'], [$linkid, $url])
+                    ->handleAsync();
+            } catch (Exception $e) {
+                // async call will only work with reverese proxy in front of PHP interpreter
+                error_log(__METHOD__ . " " . $e->getMessage());
+                error_log("Restarting as synchronous call");
+                self::storeWebArchive($linkid, $url);
+            }
         }
 
         // ----------------------------------------------------------
@@ -197,6 +152,67 @@ namespace Zaplog {
             if (filter_var($waybackurl, FILTER_VALIDATE_URL)) {
                 Db::execute("UPDATE links SET waybackurl=:url WHERE id=:id", [":id" => $linkid, ":url" => $waybackurl]);
             }
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function postTags(string $channelid, string $linkid, array $keywords)
+        {
+            $tags = [];
+            foreach ($keywords as $tag) {
+                // sanitize tags
+                $tag = (new Text($tag))->convertToAscii()->hyphenizeForPath()->get();
+                // only accept reasonable tags
+                if (preg_match("/^[\w][\w-]{48}[\w]$/", $tag) > 0 and substr_count($tag, "-") < 5) {
+                    $tags[] = $tag;
+                }
+            }
+
+            // remove duplicate keywords after normalisation
+            $tags = array_unique($tags);
+
+            // insert keywords into database;
+            foreach ($tags as $tag) {
+                try {
+                    Db::execute("INSERT IGNORE INTO tags(linkid, channelid, tag) VALUES (:linkid, :channelid, :tag)",
+                        [":linkid" => $linkid, ":channelid" => $channelid, ":tag" => $tag]);
+                } catch (Exception $e) {
+                    // ignore on error
+                    error_log($e->getMessage() . " @ " . __METHOD__ . "(" . __LINE__ . ") " . $tag);
+                }
+            }
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function postLink(string $channelid, $url, string $title, string $markdown, $image, array $keywords = []): string
+        {
+            assert(filter_var($url, FILTER_VALIDATE_URL) !== false);
+            assert(filter_var($image, FILTER_VALIDATE_URL) !== false);
+
+            // Insert into database
+            (new ServerException)(Db::execute("INSERT INTO links(url, channelid, title, markdown, description, image)
+                    VALUES (:url, :channelid, :title, :markdown, :description, :image)",
+                    [
+                        ":url" => $url,
+                        ":channelid" => $channelid,
+                        ":title" => $title,
+                        ":markdown" => $markdown,
+                        ":description" => (new Text($markdown))->parseDown()->blurbify()->get(),
+                        ":image" => $image,
+                    ])->rowCount() > 0);
+
+            $linkid = Db::lastInsertId();
+
+            self::postTags($channelid, $linkid, $keywords);
+
+            // self::archiveLink($linkid, $url);
+
+            return $linkid;
         }
 
         // ----------------------------------------------------------

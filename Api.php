@@ -252,8 +252,8 @@ namespace Zaplog {
                     "reactions.xtext" => (new Text($args->text))->parseDownLine()->get(),
                 ]);
             })
-                ->add(new BodyParameters(['{*}']))
-                ->add(new Authentication);
+                ->add(new Authentication)
+                ->add(new BodyParameters(['{text:\raw}']));
 
             // ----------------------------------------------------------------
             // Channels show posts and activity for a specific user / email
@@ -382,6 +382,30 @@ namespace Zaplog {
                 })
                     ->add(new Authentication);
 
+                // ------------------------------------------------------
+                // post a blog
+                // ------------------------------------------------------
+
+                $this->post("", function (
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
+                    return $response->withJson(Methods::postLink(
+                        (string)Authentication::getSession()->id,
+                        $args->link,
+                        $args->title,
+                        $args->description,
+                        $args->image )
+                    );
+                })
+                    ->add(new Authentication)
+                    ->add(new BodyParameters([
+                        '{link:\url},null',
+                        '{title:[\w-]{3,55}}',
+                        '{description:\raw}',
+                        '{image:\url},null',
+                    ]));
+
                 // ----------------------------------------------------------------
                 // Return a link, including tags and related links
                 // ----------------------------------------------------------------
@@ -424,10 +448,10 @@ namespace Zaplog {
                         ":channelid" => Authentication::getSession()->id,
                     ])->rowCount());
                 })
-                    //->add(new Authentication)
+                    ->add(new Authentication)
                     ->add(new BodyParameters([
                         '{title:[\w-]{3,55}},null',
-                        '{description:\xtext},null',
+                        '{description:\raw},null',
                         '{published:\boolean},null',
                     ]));
 
@@ -513,12 +537,12 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
-                    $xtext = (new Text($args->xtext))->parseDown();
+                    $text = (new Text($args->text))->parseDown();
                     Db::execute("INSERT INTO reactions(linkid,channelid,xtext) VALUES (:linkid,:channelid,:text)",
-                        [":linkid" => $args->id, ":channelid" => $channelid, ":text" => $xtext]);
+                        [":linkid" => $args->id, ":channelid" => $channelid, ":text" => $text]);
                     return $response->withJson(Db::lastInsertId());
                 })
-                    ->add(new BodyParameters(['{*}']))
+                    ->add(new BodyParameters(['{text:\raw}']))
                     ->add(new Authentication);
 
                 // ----------------------------------------------------------------
