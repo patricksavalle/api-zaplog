@@ -8,11 +8,10 @@ namespace Zaplog {
 
     use ContentSyndication\HtmlMetadata;
     use ContentSyndication\HttpRequest;
-    use ContentSyndication\NormalizedText;
+    use ContentSyndication\Text;
     use ContentSyndication\Url;
     use ContentSyndication\XmlFeed;
     use Exception;
-    use Parsedown;
     use SlimRestApi\Infra\Db;
     use SlimRestApi\Infra\Ini;
     use stdClass;
@@ -128,9 +127,6 @@ namespace Zaplog {
             string $image,
             array $keywords = []): string
         {
-            // Parse the markdown to xhtml, strip the tags, limit the lenght
-            $description = substr(strip_tags((new Parsedown())->setSafeMode(true)->setBreaksEnabled(true)->line($markdown)), 0, 256);
-
             // Insert into database
             (new ServerException)(Db::execute("INSERT INTO links(url, channelid, title, markdown, description, image)
                     VALUES (:url, :channelid, :title, :markdown, :description, :image)",
@@ -139,7 +135,7 @@ namespace Zaplog {
                         ":channelid" => $channelid,
                         ":title" => $title,
                         ":markdown" => $markdown,
-                        ":description" => $description,
+                        ":description" => (new Text($markdown))->parseDown()->blurbify()->get(),
                         ":image" => $image,
                     ])->rowCount() > 0);
 
@@ -148,7 +144,7 @@ namespace Zaplog {
             // remove duplicate keywords after normalisation
             $keywords2 = [];
             foreach ($keywords as $tag) {
-                $keywords2[] = (new NormalizedText($tag))->convertToAscii()->hyphenizeForPath()->get();
+                $keywords2[] = (new Text($tag))->convertToAscii()->hyphenizeForPath()->get();
             }
             $keywords2 = array_unique($keywords2);
 
@@ -156,7 +152,7 @@ namespace Zaplog {
             foreach ($keywords2 as $tag) {
                 try {
                     // only accept reasonable tags
-                    $tag = (new NormalizedText($tag))->convertToAscii()->hyphenizeForPath()->get();
+                    $tag = (new Text($tag))->convertToAscii()->hyphenizeForPath()->get();
                     assert(preg_match("/[\w-]{3,50}/", $tag) > 0);
                     assert(substr_count($tag, "-") < 5);
                     Db::execute("INSERT IGNORE INTO tags(linkid, channelid, tag) VALUES (:linkid, :channelid, :tag)",
@@ -214,7 +210,7 @@ namespace Zaplog {
             $link = (new ResourceNotFoundException)(Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $id]));
 
             // parse and filter the original markdown into safe xhtml
-            $link->description = (new Parsedown())->setSafeMode(true)->setBreaksEnabled(true)->text($link->markdown);
+            $link->xtext = (new Text($link->markdown))->parseDownLine()->get();
 
             return [
                 "link" => $link,

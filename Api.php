@@ -18,8 +18,7 @@ namespace Zaplog {
     require_once BASE_PATH . '/Exception/EmailException.php';
 
     use ContentSyndication\HtmlMetadata;
-    use ContentSyndication\NormalizedText;
-    use Parsedown;
+    use ContentSyndication\Text;
     use stdClass;
     use SlimRestApi\Middleware\CliRequest;
     use SlimRestApi\Middleware\Memcaching;
@@ -248,9 +247,9 @@ namespace Zaplog {
                 Response $response,
                 stdClass $args): Response {
                 return $response->withJson([
-                    "markdown.in" => $args->text,
-                    "link.xtext" => (new Parsedown())->setSafeMode(true)->setBreaksEnabled(true)->text($args->text),
-                    "reaction.xtext" => (new Parsedown())->setSafeMode(true)->setBreaksEnabled(true)->line($args->text)
+                    "links.description" => (new Text($args->text))->parseDown()->blurbify()->get(),
+                    "links.xtext" => (new Text($args->text))->parseDown()->get(),
+                    "reactions.xtext" => (new Text($args->text))->parseDownLine()->get(),
                 ]);
             })
                 ->add(new BodyParameters(['{*}']))
@@ -330,7 +329,7 @@ namespace Zaplog {
                     stdClass $args): Response {
                     return $response->withJson(Db::execute("UPDATE channels SET 
                         name=:name, avatar=:avatar, bio=:bio, moneroaddress=:moneroaddress WHERE id=:channelid", [
-                        ":name" => (new NormalizedText($args->name))->hyphenizeForPath()->convertToAscii()->get(),
+                        ":name" => (new Text($args->name))->hyphenizeForPath()->convertToAscii()->get(),
                         ":avatar" => $args->avatar,
                         ":bio" => $args->bio,
                         ":moneroaddress" => $args->moneroaddress,
@@ -514,7 +513,7 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
-                    $xtext = (new Parsedown())->setSafeMode(true)->setBreaksEnabled(true)->line($args->xtext);
+                    $xtext = (new Text($args->xtext))->parseDown();
                     Db::execute("INSERT INTO reactions(linkid,channelid,xtext) VALUES (:linkid,:channelid,:text)",
                         [":linkid" => $args->id, ":channelid" => $channelid, ":text" => $xtext]);
                     return $response->withJson(Db::lastInsertId());
