@@ -165,7 +165,7 @@ namespace Zaplog {
                 // sanitize tags
                 $tag = (new Text($tag))->convertToAscii()->hyphenizeForPath()->get();
                 // only accept reasonable tags
-                if (preg_match("/^[\w][\w-]{48}[\w]$/", $tag) > 0 and substr_count($tag, "-") < 5) {
+                if (preg_match("/^[\w][\w-]{0,48}[\w]$/", $tag) > 0 and substr_count($tag, "-") < 5) {
                     $tags[] = $tag;
                 }
             }
