@@ -110,8 +110,11 @@ namespace Zaplog {
         {
             $metadata = (new HtmlMetadata)($url);
 
-            (new UserException("Empty title"))(!empty($metadata["title"]) and strlen($metadata["title"]) > 2);
-            (new UserException("Empty text"))(!empty($metadata["description"]) and strlen($metadata["description"]) > 2);
+            // external input must be validated
+            (new UserException("Invalid link"))(filter_var($metadata["url"], FILTER_VALIDATE_URL) !== false);
+            (new UserException("Invalid title"))(!empty($metadata["title"]) and strlen($metadata["title"]) > 2);
+            (new UserException("Invalid description"))(!empty($metadata["description"]) and strlen($metadata["description"]) > 2);
+            (new UserException("Invalid image"))(empty($metadata["image"]) or filter_var($metadata["image"], FILTER_VALIDATE_URL) !== false);
 
             return self::postLink(
                 $channelid,
@@ -153,7 +156,7 @@ namespace Zaplog {
             (new HttpRequest)($waybackurl);
 
             // store with link
-            if (filter_var($waybackurl, FILTER_VALIDATE_URL)) {
+            if (filter_var($waybackurl, FILTER_VALIDATE_URL) !== false) {
                 Db::execute("UPDATE links SET waybackurl=:url WHERE id=:id", [":id" => $linkid, ":url" => $waybackurl]);
             }
         }
