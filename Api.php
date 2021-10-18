@@ -574,7 +574,7 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
-                    Db::execute("CALL toggle_vote(:linkid,:channelid)", [":linkid" => $args->id, ":channelid" => $channelid]);
+                    Db::execute("CALL toggle_vote(:channelid,:linkid)", [":linkid" => $args->id, ":channelid" => $channelid]);
                     return $response->withJson(Db::lastInsertId());
                 })
                     ->add(new Authentication);
