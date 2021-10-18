@@ -17,6 +17,7 @@ namespace Zaplog {
     use stdClass;
     use Zaplog\Exception\ResourceNotFoundException;
     use Zaplog\Exception\ServerException;
+    use Zaplog\Exception\UserException;
     use Zaplog\Library\TwoFactorAction;
 
     class Methods
@@ -108,14 +109,17 @@ namespace Zaplog {
         static public function postLinkFromUrl(string $channelid, string $url): string
         {
             $metadata = (new HtmlMetadata)($url);
+
+            (new UserException("Empty title"))(!empty($metadata["title"]) and strlen($metadata["title"]) > 2);
+            (new UserException("Empty text"))(!empty($metadata["description"]) and strlen($metadata["description"]) > 2);
+
             return self::postLink(
                 $channelid,
                 $metadata["url"],
                 $metadata["title"],
-                $metadata["description"] ?? "",
+                $metadata["description"],
                 $metadata["image"] ?? Ini::get("default_post_image"),
-                $metadata["keywords"] ?? []
-            );
+                $metadata["keywords"] ?? []);
         }
 
         // ----------------------------------------------------------
@@ -189,11 +193,8 @@ namespace Zaplog {
         //
         // ----------------------------------------------------------
 
-        static public function postLink(string $channelid, $url, string $title, string $markdown, $image, array $keywords = []): string
+        static public function postLink(string $channelid, $url, $title, $markdown, $image, array $keywords = []): string
         {
-            assert(filter_var($url, FILTER_VALIDATE_URL) !== false);
-            assert(filter_var($image, FILTER_VALIDATE_URL) !== false);
-
             // Insert into database
             (new ServerException)(Db::execute("INSERT INTO links(url, channelid, title, markdown, description, image)
                     VALUES (:url, :channelid, :title, :markdown, :description, :image)",
