@@ -490,8 +490,11 @@ CREATE VIEW topchannels AS
     SELECT channels.* FROM channels_public_view AS channels ORDER BY reputation DESC LIMIT 50;
 
 -- optimal/profiled
-CREATE VIEW newchannels AS
-    SELECT channels.* FROM channels_public_view AS channels ORDER BY id DESC LIMIT 50;
+CREATE VIEW activechannels AS
+    SELECT DISTINCT channels.* FROM channels_public_view AS channels
+    JOIN interactions ON interactions.channelid=channels.id AND interactions.type IN
+        ('on_insert_channel','on_update_channel','on_insert_link','on_update_link')
+    LIMIT 50;
 
 -- -----------------------------------------------------
 -- RAW activity stream, needs PHP post-processing

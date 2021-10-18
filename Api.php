@@ -355,13 +355,13 @@ namespace Zaplog {
                     return $response->withJson([
                         "top10" => Db::fetchAll("SELECT * FROM topchannels LIMIT :count", [":count" => $args->count]),
                         "new10" => Db::fetchAll("SELECT * FROM newchannels LIMIT :count", [":count" => $args->count]),
-                        "updated10" => Db::fetchAll("SELECT * FROM trendingchannels LIMIT :count", [":count" => $args->count]),
+                        "updated10" => Db::fetchAll("SELECT * FROM activechannels LIMIT :count", [":count" => $args->count]),
                     ]);
                 })
                     ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly)
                     ->add(new QueryParameters([
-                        '{count:\int},20',
+                        '{count:\int},10',
                     ]));
 
             });
