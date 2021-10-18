@@ -132,9 +132,9 @@ requests by full URL in memcached (e.g. NGINX http://nginx.org/en/docs/http/ngx_
 
 ## Endpoints
 
+    GET	/
     GET	/2factor/{utoken:[[:alnum:]]{32}}
     GET	/payments/inaddress
-    GET	/
     POST	/sessions
     PATCH	/sessions
     GET	/sessions
@@ -144,22 +144,27 @@ requests by full URL in memcached (e.g. NGINX http://nginx.org/en/docs/http/ngx_
     GET	/activities
     GET	/index
     GET	/statistics
+    POST	/textpreview
     GET	/channels
     GET	/channels/id/{id:[\d]{1,10}}
+    GET	/channels/tag/{tag:[\w-]{3,55}}
     PATCH	/channels
     GET	/channels/active
     POST	/links/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}
+    POST	/links
     GET	/links/id/{id:\d{1,10}}
+    GET	/links/metadata/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}
     PATCH	/links/id/{id:\d{1,10}}
     DELETE	/links/id/{id:\d{1,10}}
     GET	/links
+    GET	/links/channel/{id:\d{1,10}}
     GET	/links/tag/{tag:[\w-]{3,55}}
-    GET	/links/channel/{id:[\w-]{3,55}}
-    POST	/comments/link/{id:\d{1,10}}
-    DELETE	/comments/link/{id:\d{1,10}}
+    POST	/reactions/link/{id:\d{1,10}}
+    DELETE	/reactions/{id:\d{1,10}}
     POST	/votes/link/{id:\d{1,10}}
     DELETE	/votes/link/{id:\d{1,10}}
     POST	/tags/link/{id:\d{1,10}}/tag/{tag:[\w-]{3,50}}
+    GET	/tags/related/{tag:[\w-]{3,50}}
     GET	/tags/active
     DELETE	/tags/id/{id:\d{1,10}}
     GET	/cronjobs/minute
