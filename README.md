@@ -101,7 +101,10 @@ requests by full URL in memcached (e.g. NGINX http://nginx.org/en/docs/http/ngx_
     [memcache]
     memcache_host=localhost
     memcache_port=11211
-    
+
+    [content]
+    default_post_image=https://cdn.pixabay.com/photo/2018/06/24/08/01/dark-background-3494082_1280.jpg
+
     [cors]
     cors_origin[]=http://localhost:3000
     cors_origin[]=<http://yourdomainhere.com>
