@@ -5,6 +5,9 @@ api_domain=http://127.0.0.1:8080
 webarchive_save_link=https://web.archive.org/save/
 admins[]=
 
+[content]
+default_post_image=https://cdn.pixabay.com/photo/2018/06/24/08/01/dark-background-3494082_1280.jpg
+
 [memcache]
 memcache_host=localhost
 memcache_port=11211

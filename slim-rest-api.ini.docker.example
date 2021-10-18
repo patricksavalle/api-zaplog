@@ -2,12 +2,11 @@
 
 [general]
 api_domain=
-blurbsize=${BLURBSIZE}
 webarchive_save_link=https://web.archive.org/save/
 admins[]=
 
 [content]
-blurbsize=500
+default_post_image=https://cdn.pixabay.com/photo/2018/06/24/08/01/dark-background-3494082_1280.jpg
 
 [memcache]
 memcache_host=${MEMCACHED_HOST}
