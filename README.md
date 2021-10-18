@@ -42,6 +42,7 @@ Knowledge of the SLIM3 framework is useful but not required. The code speaks for
       ext-pdo
       ext-curl
       ext-tidy
+      php-mbstring
 
 
 - Clone the project from this Github to your local computer
@@ -116,6 +117,7 @@ requests by full URL in memcached (e.g. NGINX http://nginx.org/en/docs/http/ngx_
     database_user=root
     database_password=<password>
     database_charset=utf8
+    database_query_logging=0
     
     [smtp]
     smtp_host=<host>
