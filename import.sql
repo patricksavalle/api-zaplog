@@ -23,7 +23,7 @@ SELECT member_id, entry_id FROM zaplog_site.exp_favorites;
 
 CREATE TABLE zaplog.imported_posts
 SELECT DISTINCT
-    titles.author_id,
+    titles.author_id as member_id,
     title,
     field_id_1 AS description,
     field_id_2 AS link,
@@ -36,5 +36,5 @@ FROM zaplog_site.exp_weblog_data AS data
 WHERE view_count_one>100 AND status="open" AND titles.weblog_id=1;
 
 CREATE TABLE zaplog.imported_comments
-SELECT entry_id, author_id, email, FROM_UNIXTIME(comment_date) as comment_date, comment FROM zaplog_site.exp_comments;
+SELECT entry_id, author_id as member_id, email, FROM_UNIXTIME(comment_date) as comment_date, comment FROM zaplog_site.exp_comments;
 
