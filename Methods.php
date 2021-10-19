@@ -26,6 +26,30 @@ namespace Zaplog {
         //
         // ----------------------------------------------------------
 
+        static public function getPaymentShares(): array
+        {
+            $channels = Db::fetchAll("SELECT avatar, name, reputation AS share FROM topchannels WHERE moneroaddress <> NULL");
+            if (sizeof($channels)>0) {
+                // normalize to ratio's of 1
+                $minshare = $channels[sizeof($channels) - 1]->share;
+                foreach ($channels as $channel) {
+                    $channel->share = floor($channel->share / $minshare);
+                }
+                $sumshare = 0;
+                foreach ($channels as $channel) {
+                    $sumshare += $channel->share;
+                }
+                foreach ($channels as $channel) {
+                    $channel->share = $channel->share / $sumshare / 0.5;
+                }
+            }
+            return array_merge([["avatar" => "", "name" => "Zaplog", "share" => 0.5]], $channels);
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
         static public function getActivityStream(int $offset, int $count, $channelid, bool $grouped = true): array
         {
             $stream = Db::fetchAll("SELECT * FROM activitystream 
@@ -230,8 +254,8 @@ namespace Zaplog {
 
             $link = (new ResourceNotFoundException)(Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $id]));
 
-            // parse and filter the original markdown into safe xhtml
-            $link->xtext = (new Text($link->markdown))->parseDownLine()->get();
+            // parse and filter the original markdown into safe xhtml (XSS filtering)
+            $link->xtext = (new Text($link->markdown))->parseDown()->purify()->get();
 
             return [
                 "link" => $link,

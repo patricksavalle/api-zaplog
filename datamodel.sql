@@ -109,10 +109,12 @@ CREATE TABLE links
         'All Rights Reserved',
         'No Rights Reserved (CC0 1.0)',
         'Some Rights Reserved (CC BY-NC-SA 4.0)' ) DEFAULT NULL,
-    -- original markdown input
+    -- Original raw markdown input
     markdown       TEXT                   DEFAULT NULL,
     -- Clean text blurb
     description    VARCHAR(256)           DEFAULT NULL,
+    -- Parsed and filtered XHTML output, placeholder, set on output by PHP layer
+    xtext          TEXT GENERATED ALWAYS AS (''),
     image          VARCHAR(256)           DEFAULT NULL,
     -- because this system is very read intensive we will keep totals in this table
     -- instead of counting/joining the respective tables each time
@@ -303,7 +305,7 @@ CREATE TABLE reactions
     linkid         INT       NOT NULL,
     channelid      INT       NOT NULL,
     published      BOOL      NOT NULL DEFAULT TRUE,
-    -- Purified xhtml from markdown input, no need to store original input
+    -- Purified xhtml from markdown input, no need to store original input because immutable
     xtext          TEXT               DEFAULT NULL,
     PRIMARY KEY (id),
     INDEX (channelid),

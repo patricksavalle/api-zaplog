@@ -19,6 +19,7 @@ namespace Zaplog {
 
     use ContentSyndication\HtmlMetadata;
     use ContentSyndication\Text;
+    use SlimRestApi\Infra\Ini;
     use stdClass;
     use SlimRestApi\Middleware\CliRequest;
     use SlimRestApi\Middleware\Memcaching;
@@ -71,12 +72,13 @@ namespace Zaplog {
             // Distribute payments
             // -----------------------------------------
 
-            $this->get("/payments/inaddress", function (
+            $this->get("/payments/address", function (
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                return $response->withJson("<moneroaddress>");
-            });
+                return $response->withJson(["bitcoinaddress" => Ini::get("bitcoinaddress"),"shares" => Methods::getPaymentShares()]);
+            })
+                ->add(new Memcaching(60/*sec*/));
 
             // -----------------------------------------------------
             // Authenticated methods can only be used with a session
@@ -252,7 +254,7 @@ namespace Zaplog {
                     "reactions.xtext" => (new Text($args->text))->parseDownLine()->get(),
                 ]);
             })
-                ->add(new Authentication)
+//                ->add(new Authentication)
                 ->add(new BodyParameters(['{text:\raw}']));
 
             // ----------------------------------------------------------------
@@ -538,7 +540,7 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
-                    $text = (new Text($args->text))->parseDown();
+                    $text = (new Text($args->text))->parseDown()->purify();
                     Db::execute("INSERT INTO reactions(linkid,channelid,xtext) VALUES (:linkid,:channelid,:text)",
                         [":linkid" => $args->id, ":channelid" => $channelid, ":text" => $text]);
                     return $response->withJson(Db::lastInsertId());
