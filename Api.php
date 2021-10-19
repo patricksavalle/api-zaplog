@@ -356,7 +356,7 @@ namespace Zaplog {
                     stdClass $args): Response {
                     return $response->withJson([
                         "top10" => Db::fetchAll("SELECT * FROM topchannels LIMIT :count", [":count" => $args->count]),
-                        "updated10" => Db::fetchAll("SELECT * FROM activechannels LIMIT :count", [":count" => $args->count]),
+                        "updated10" => Db::fetchAll("SELECT * FROM updatedchannels LIMIT :count", [":count" => $args->count]),
                     ]);
                 })
                     ->add(new Memcaching(60/*sec*/))
