@@ -62,6 +62,14 @@ namespace Zaplog {
                 return $rp;
             });
 
+            $this->get("/import", function (
+                Request  $request,
+                Response $response,
+                stdClass $args): Response {
+                (new ZaplogImport)();
+                return $response->withJson(null);
+            });
+
             // -----------------------------------------
             // Add the two factor handler to the server
             // -----------------------------------------
@@ -249,9 +257,9 @@ namespace Zaplog {
                 Response $response,
                 stdClass $args): Response {
                 return $response->withJson([
-                    "links.description" => (new Text($args->text))->parseDown()->blurbify()->get(),
-                    "links.xtext" => (new Text($args->text))->parseDown()->get(),
-                    "reactions.xtext" => (new Text($args->text))->parseDownLine()->get(),
+                    "links.description" => (string)(new Text($args->text))->reEncode()->parseDown()->blurbify(),
+                    "links.xtext" => (string)(new Text($args->text))->reEncode()->parseDown(),
+                    "reactions.xtext" => (string)(new Text($args->text))->reEncode()->parseDownLine(),
                 ]);
             })
 //                ->add(new Authentication)
@@ -331,7 +339,7 @@ namespace Zaplog {
                     stdClass $args): Response {
                     return $response->withJson(Db::execute("UPDATE channels SET 
                         name=:name, avatar=:avatar, bio=:bio, moneroaddress=:moneroaddress WHERE id=:channelid", [
-                        ":name" => (new Text($args->name))->hyphenizeForPath()->convertToAscii()->get(),
+                        ":name" => (new Text($args->name))->hyphenizeForPath()->convertToAscii(),
                         ":avatar" => $args->avatar,
                         ":bio" => $args->bio,
                         ":moneroaddress" => $args->moneroaddress,

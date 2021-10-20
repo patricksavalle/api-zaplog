@@ -195,7 +195,7 @@ namespace Zaplog {
             $tags = [];
             foreach ($keywords as $tag) {
                 // sanitize tags
-                $tag = (new Text($tag))->convertToAscii()->hyphenizeForPath()->get();
+                $tag = (string)(new Text($tag))->convertToAscii()->hyphenizeForPath();
                 // only accept reasonable tags
                 if (preg_match("/^[\w][\w-]{0,48}[\w]$/", $tag) > 0 and substr_count($tag, "-") < 5) {
                     $tags[] = $tag;
@@ -231,7 +231,7 @@ namespace Zaplog {
                         ":channelid" => $channelid,
                         ":title" => $title,
                         ":markdown" => $markdown,
-                        ":description" => (new Text($markdown))->parseDown()->blurbify()->get(),
+                        ":description" => (new Text($markdown))->parseDown()->blurbify(),
                         ":image" => $image,
                     ])->rowCount() > 0);
 
@@ -255,7 +255,7 @@ namespace Zaplog {
             $link = (new ResourceNotFoundException)(Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $id]));
 
             // parse and filter the original markdown into safe xhtml (XSS filtering)
-            $link->xtext = (new Text($link->markdown))->parseDown()->purify()->get();
+            $link->xtext = (new Text($link->markdown))->parseDown()->purify();
 
             return [
                 "link" => $link,
@@ -284,7 +284,7 @@ namespace Zaplog {
             foreach ($content["item"] as $item) {
 
                 try {
-                    $link = (new Url($item["link"]))->normalized()->get();
+                    $link = (string)(new Url($item["link"]))->normalized();
 
                     // check if unique for channel before we crawl the url
                     if (DB::execute("SELECT id FROM links WHERE urlhash=MD5(:url) AND channelid=:channelid LIMIT 1",
