@@ -265,7 +265,7 @@ namespace Zaplog {
             $link = (new ResourceNotFoundException)(Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $id]));
 
             // parse and filter the original markdown into safe xhtml (XSS filtering)
-            $link->xtext = (new Text($link->markdown))->parseDown()->purify();
+            $link->xtext = (string)(new Text($link->markdown))->parseDown()->purify();
 
             return [
                 "link" => $link,
