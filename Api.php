@@ -548,13 +548,13 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
-                    $text = (new Text($args->text))->parseDown()->purify();
-                    Db::execute("INSERT INTO reactions(linkid,channelid,xtext) VALUES (:linkid,:channelid,:text)",
-                        [":linkid" => $args->id, ":channelid" => $channelid, ":text" => $text]);
+                    $xtext = (new Text($args->text))->parseDown();
+                    Db::execute("CALL insert_reaction(:channelid,:linkid,:xtext)",
+                        [":linkid" => $args->id, ":channelid" => $channelid, ":xtext" => $xtext]);
                     return $response->withJson(Db::lastInsertId());
                 })
-                    ->add(new BodyParameters(['{text:\raw}']))
-                    ->add(new Authentication);
+                    ->add(new Authentication)
+                    ->add(new BodyParameters(['{text:\raw}']));
 
                 // ----------------------------------------------------------------
                 // Delete a reaction, only your own reactions

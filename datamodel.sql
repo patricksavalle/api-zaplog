@@ -103,6 +103,7 @@ CREATE TABLE links
     location       VARCHAR(256)  NULL     DEFAULT NULL,
     latitude       FLOAT         NULL     DEFAULT NULL,
     longitude      FLOAT         NULL     DEFAULT NULL,
+    language       CHAR(2)                DEFAULT NULL,
     title          VARCHAR(256)  NOT NULL,
     copyright      ENUM (
         'No Rights Apply',
@@ -184,7 +185,7 @@ CREATE TABLE interactions
         'on_reputation_calculated'
         )                      NOT NULL,
     PRIMARY KEY (id),
-    INDEX (datetime),
+    INDEX (datetime DESC),
     INDEX (linkid),
     INDEX (channelid),
     FOREIGN KEY (linkid) REFERENCES links (id)
@@ -301,6 +302,8 @@ CREATE TRIGGER on_delete_link AFTER DELETE ON links FOR EACH ROW
 CREATE TABLE reactions
 (
     id             INT       NOT NULL AUTO_INCREMENT,
+    -- optimization for forum-style display
+    threadid       INT       NULL DEFAULT NULL,
     createdatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     linkid         INT       NOT NULL,
     channelid      INT       NOT NULL,
@@ -310,6 +313,7 @@ CREATE TABLE reactions
     PRIMARY KEY (id),
     INDEX (channelid),
     INDEX (linkid),
+    INDEX (threadid),
     INDEX (createdatetime),
     FOREIGN KEY (linkid) REFERENCES links (id)
         ON DELETE CASCADE
@@ -492,26 +496,10 @@ CREATE VIEW topchannels AS
     SELECT channels.* FROM channels_public_view AS channels ORDER BY reputation DESC LIMIT 50;
 
 CREATE VIEW updatedchannels AS
-    SELECT DISTINCT channels.id, channels.name, channels.avatar, MAX(links.createdatetime) as datetime FROM channels_public_view AS channels
+    SELECT DISTINCT channels.id, channels.name, channels.avatar FROM channels_public_view AS channels
     JOIN links ON links.channelid=channels.id
     GROUP BY channels.id
     ORDER BY MAX(links.id) DESC LIMIT 50;
-
--- -----------------------------------------------------
--- RAW activity stream, needs PHP post-processing
--- -----------------------------------------------------
-
-CREATE VIEW activitystream AS
-    SELECT
-        interactions.*,
-        channels.name AS channelname,
-        channels.avatar AS channelavatar,
-        links.title AS linktitle,
-        links.image AS linkimage,
-        links.description AS linktext
-    FROM interactions
-    JOIN channels_public_view AS channels ON channels.id=interactions.channelid
-    LEFT JOIN links ON links.id=interactions.linkid AND interactions.type = 'on_insert_link';
 
 -- -----------------------------------------------------
 -- Returns a channel's most popular tags
@@ -537,13 +525,22 @@ CREATE PROCEDURE select_discussion(IN arg_offset INT, IN arg_count INT)
 BEGIN
     SELECT ranked_reactions.*, links.title FROM
         (SELECT reactions.*,
-                @link_rank := IF(@current = linkid, @link_rank + 1, 1) AS link_rank,
-                @current := linkid
-         FROM reactions JOIN links ON reactions.linkid=links.id
-         ORDER BY updatedatetime DESC, linkid, reactions.id) AS ranked_reactions
-            LEFT JOIN links ON links.id=ranked_reactions.linkid AND link_rank=1
+               @link_rank := IF(@current = linkid, @link_rank + 1, 1) AS link_rank,
+               @current := linkid
+        FROM reactions
+        ORDER BY threadid DESC, reactions.id DESC) AS ranked_reactions
+        LEFT JOIN links ON links.id=ranked_reactions.linkid AND link_rank=1
     WHERE link_rank<=3
     LIMIT arg_offset, arg_count;
 END //
 DELIMITER ;
+
+DELIMITER //
+CREATE PROCEDURE insert_reaction(IN arg_channelid INT, IN arg_linkid INT, IN arg_xtext TEXT)
+BEGIN
+    INSERT INTO reactions(channelid,linkid,xtext)VALUES(arg_channelid,arg_linkid,arg_xtext);
+    UPDATE reactions SET threadid=LAST_INSERT_ID() WHERE linkid=arg_linkid;
+END //
+DELIMITER ;
+
 

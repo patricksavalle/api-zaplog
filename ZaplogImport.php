@@ -14,6 +14,10 @@ namespace Zaplog {
     {
         public function __invoke()
         {
+
+//      [image][/image]
+//      [qoute][/quote]
+
             set_time_limit(0);
 
             // import users
@@ -38,7 +42,7 @@ namespace Zaplog {
                 error_log("post: " . $offset);
                 foreach (Db::fetchAll("SELECT channels.id AS channelid, entry_id, title, link, description, posts.createdatetime, viewscount
                     FROM imported_posts AS posts
-                    JOIN channels ON posts.userid=channels.userid                     
+                    JOIN channels ON posts.userid=channels.userid
                     ORDER BY entry_id ASC
                     LIMIT :offset, 1000", [":offset" => $offset]) as $post) {
                     $batchsize++;
@@ -63,12 +67,12 @@ namespace Zaplog {
             do {
                 $batchsize = 0;
                 error_log("tag: " . $offset);
-                foreach (Db::fetchAll("SELECT channels.id AS channelid, tag_name, links.id AS linkid FROM imported_tags AS tags
+                foreach (Db::fetchAll("SELECT DISTINCT channels.id AS channelid, tag_name, links.id AS linkid FROM imported_tags AS tags
                     JOIN channels ON channels.userid=tags.userid
                     JOIN links ON links.entryid=tags.entry_id
                     LIMIT :offset, 1000", [":offset" => $offset]) as $tag) {
                     $batchsize++;
-                    Db::execute("INSERT INTO tags(linkid,channelid,tag) VALUES(:linkid,:channelid,:tag)", [
+                    Db::execute("INSERT IGNORE INTO tags(linkid,channelid,tag) VALUES(:linkid,:channelid,:tag)", [
                         ":channelid" => $tag->channelid,
                         ":linkid" => $tag->linkid,
                         ":tag" => (new Text($tag->tag_name))->convertToAscii()->hyphenizeForPath(),
@@ -82,12 +86,12 @@ namespace Zaplog {
             do {
                 $batchsize = 0;
                 error_log("vote: " . $offset);
-                foreach (Db::fetchAll("SELECT channels.id AS channelid, links.id AS linkid FROM imported_votes AS votes
+                foreach (Db::fetchAll("SELECT DISTINCT channels.id AS channelid, links.id AS linkid FROM imported_votes AS votes
                     JOIN channels ON channels.userid=votes.userid
-                    JOIN links ON links.entryid=votes.entry_id 
+                    JOIN links ON links.entryid=votes.entry_id
                     LIMIT :offset, 1000", [":offset" => $offset]) as $vote) {
                     $batchsize++;
-                    Db::execute("INSERT INTO votes(linkid,channelid) VALUES(:linkid,:channelid)", [
+                    Db::execute("INSERT IGNORE INTO votes(linkid,channelid) VALUES(:linkid,:channelid)", [
                         ":channelid" => $vote->channelid,
                         ":linkid" => $vote->linkid,
                     ]);
@@ -106,18 +110,25 @@ namespace Zaplog {
                     ORDER BY comment_id ASC
                     LIMIT :offset, 1000", [":offset" => $offset]) as $comment) {
                     $batchsize++;
-                    Db::execute("INSERT INTO reactions(linkid,channelid,comment,createdatetime) VALUES(:linkid,:channelid,:xtext,:datetime)", [
+                    Db::execute("INSERT INTO reactions(linkid,channelid,xtext,createdatetime) VALUES(:linkid,:channelid,:xtext,:datetime)", [
                         ":channelid" => $comment->channelid,
                         ":linkid" => $comment->linkid,
-                        ":comment" => (new Text($comment->comment))->purify(),
+                        ":xtext" => (new Text($comment->comment))->purify(),
                         ":datetime" => $comment->comment_date,
                     ]);
                 }
                 $offset += 1000;
             } while ($batchsize > 0);
 
+            // update the threadid's
+            $counter = 0;
+            foreach (Db::fetchAll("SELECT id, linkid FROM reactions") as $reaction)
+            {
+                error_log( "" . $counter++ );
+                Db::execute("UPDATE reactions SET threadid=(SELECT MAX(id) FROM reactions WHERE linkid=:linkid) WHERE id=:id",
+                    [":linkid" => $reaction->linkid, ":id" => $reaction->id]);
+            }
 
-            // import tags
         }
     }
 }

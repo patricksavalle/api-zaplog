@@ -29,7 +29,7 @@ namespace Zaplog {
         static public function getPaymentShares(): array
         {
             $channels = Db::fetchAll("SELECT avatar, name, reputation AS share FROM topchannels WHERE moneroaddress <> NULL");
-            if (sizeof($channels)>0) {
+            if (sizeof($channels) > 0) {
                 // normalize to ratio's of 1
                 $minshare = $channels[sizeof($channels) - 1]->share;
                 foreach ($channels as $channel) {
@@ -260,12 +260,14 @@ namespace Zaplog {
 
         static public function getSingleLink(string $id): array
         {
+            // update view counter
             Db::execute("UPDATE links SET viewscount = viewscount + 1 WHERE id=:id", [":id" => $id]);
 
+            // get post
             $link = (new ResourceNotFoundException)(Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $id]));
 
-            // parse and filter the original markdown into safe xhtml (XSS filtering)
-            $link->xtext = (string)(new Text($link->markdown))->parseDown()->purify();
+            // parse and filter the original markdown into safe xhtml
+            $link->xtext = (string)(new Text($link->markdown))->parseDown();
 
             return [
                 "link" => $link,
@@ -281,12 +283,11 @@ namespace Zaplog {
                     [":id1" => $id, ":id2" => $id], 60),
 
                 "interactors" => Db::fetchAll("SELECT DISTINCT * FROM channels_public_view 
-                    WHERE id IN (SELECT channelid FROM links WHERE id=:id5)
-                        OR id IN (SELECT channelid FROM reactions WHERE linkid=:id1)
+                    WHERE id IN (SELECT channelid FROM reactions WHERE linkid=:id1)
                         OR id IN (SELECT channelid FROM tags WHERE linkid=:id2)
                         OR id IN (SELECT channelid FROM votes WHERE linkid=:id3)
                         OR id=(SELECT channelid FROM links WHERE id=:id4)",
-                    [":id1" => $id, ":id2" => $id, ":id3" => $id, ":id4" => $id, ":id5" => $id]),
+                    [":id1" => $id, ":id2" => $id, ":id3" => $id, ":id4" => $id]),
             ];
         }
 
