@@ -52,10 +52,19 @@ namespace Zaplog {
 
         static public function getActivityStream(int $offset, int $count, $channelid, bool $grouped = true): array
         {
-            $stream = Db::fetchAll("SELECT * FROM activitystream 
-                    WHERE (channelid=:channelid1 IS NULL OR channelid=:channelid2)
-                    ORDER BY id DESC
-                    LIMIT :offset, :count",
+            $stream = Db::fetchAll("SELECT
+                        interactions.*,
+                        channels.name AS channelname,
+                        channels.avatar AS channelavatar,
+                        links.title AS linktitle,
+                        links.image AS linkimage,
+                        links.description AS linktext
+                    FROM (SELECT * FROM interactions WHERE (:channelid1 IS NULL OR interactions.channelid=:channelid2)
+                            ORDER BY id DESC
+                            LIMIT :offset, :count) AS interactions
+                    JOIN channels_public_view AS channels ON channels.id=interactions.channelid
+                    LEFT JOIN links ON links.id=interactions.linkid AND interactions.type = 'on_insert_link' 
+                    ORDER BY interactions.id DESC",
                 [
                     ":channelid1" => $channelid,
                     ":channelid2" => $channelid,
@@ -110,16 +119,17 @@ namespace Zaplog {
                     [":channelid" => $id], 60 * 60),
 
                 "related" => Db::fetchAll("SELECT GROUP_CONCAT(DISTINCT tags.tag SEPARATOR ',' LIMIT 10) AS tags, channels.*
-                    FROM links 
-                    JOIN tags ON tags.linkid=links.id
-                    JOIN channels_public_view AS channels ON links.channelid=channels.id 
-                    WHERE tag IN (
-                        SELECT tag FROM tags 
-                        JOIN links on tags.linkid=links.id 
-                        JOIN channels ON links.channelid=channels.id
-                        WHERE channels.id=:channelid1
-                    ) AND channels.id<>:channelid2
-                    GROUP BY channels.id ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT 5",
+                    FROM (
+                        SELECT tag FROM tags
+                        WHERE channelid=:channelid1
+                        GROUP BY tag
+                        ORDER BY COUNT(tag) DESC
+                        LIMIT 50
+                    ) AS ttags
+                    JOIN tags ON ttags.tag=tags.tag 
+                    JOIN channels_public_view AS channels ON tags.channelid=channels.id
+                    AND channels.id<>:channelid2
+                    GROUP BY channels.id ORDER BY COUNT(tags.tag) DESC LIMIT 5",
                     ["channelid1" => $id, "channelid2" => $id], 60 * 60),
 
                 "activity" => self::getActivityStream(0, 25, $id),
@@ -260,6 +270,8 @@ namespace Zaplog {
             return [
                 "link" => $link,
 
+                "channel" => Db::fetch("SELECT * FROM channels_public_view WHERE id=:id", [":id" => $link->channelid]),
+
                 "tags" => Db::fetchAll("SELECT * FROM tags WHERE linkid=:id GROUP BY tag", [":id" => $id]),
 
                 "related" => Db::fetchAll("SELECT GROUP_CONCAT(DISTINCT tags.tag SEPARATOR ',' LIMIT 10) AS tags, links.*
@@ -269,11 +281,12 @@ namespace Zaplog {
                     [":id1" => $id, ":id2" => $id], 60),
 
                 "interactors" => Db::fetchAll("SELECT DISTINCT * FROM channels_public_view 
-                    WHERE id IN (SELECT channelid FROM reactions WHERE linkid=:id1)
+                    WHERE id IN (SELECT channelid FROM links WHERE id=:id5)
+                        OR id IN (SELECT channelid FROM reactions WHERE linkid=:id1)
                         OR id IN (SELECT channelid FROM tags WHERE linkid=:id2)
                         OR id IN (SELECT channelid FROM votes WHERE linkid=:id3)
                         OR id=(SELECT channelid FROM links WHERE id=:id4)",
-                    [":id1" => $id, ":id2" => $id, ":id3" => $id, ":id4" => $id]),
+                    [":id1" => $id, ":id2" => $id, ":id3" => $id, ":id4" => $id, ":id5" => $id]),
             ];
         }
 
