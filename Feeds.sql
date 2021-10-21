@@ -1,7 +1,7 @@
 -- -----------------------------------------------------
 -- RSS-feeds
 -- -----------------------------------------------------
-
+USE zaplog;
 INSERT INTO channels(name, feedurl, avatar, userid) VALUES
     ("nyt-science", "http://www.nytimes.com/services/xml/rss/nyt/Science.xml", "https://api.multiavatar.com/nyt.svg", "1@ab55c.xyz"),
     ("breitbart", "https://feeds.feedburner.com/breitbart", "https://api.multiavatar.com/Breitbart.svg", "1@abc.xyz"),
