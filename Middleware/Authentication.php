@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Zaplog\Middleware {
 
     use Atrox\Haikunator;
+    use Multiavatar;
     use SlimRestApi\Infra\Db;
     use stdClass;
 
     class Authentication extends \SlimRestApi\Middleware\Authentication
     {
-        static public function getSessionTtl() : int
+        static public function getSessionTtl(): int
         {
             return 24;
         }
@@ -48,11 +49,12 @@ namespace Zaplog\Middleware {
         {
             // if we see a new user, we create a new channel for him/her
             $channelname = Haikunator::haikunate();
+            $avatar = "data:image/svg+xml;base64," . base64_encode((new Multiavatar)($channelname, null, null));
             Db::execute("INSERT IGNORE channels(userid,name,avatar) VALUES (MD5(:userid),:name,:avatar)",
                 [
                     ':userid' => $userid,
                     ':name' => $channelname,
-                    ':avatar' => "https://api.multiavatar.com/" . $channelname . ".svg",
+                    ':avatar' => $avatar,
                 ]);
             return [
                 "token" => parent::createSession($userid),

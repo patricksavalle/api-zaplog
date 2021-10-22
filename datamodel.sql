@@ -39,7 +39,8 @@ CREATE TABLE channels
     updatedatetime   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     refeeddatetime   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     lastseendatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    avatar           VARCHAR(255)       DEFAULT NULL,
+    -- inline base64 encoded avatars
+    avatar           VARCHAR(8192)      DEFAULT NULL,
     header           VARCHAR(255)       DEFAULT NULL,
     bio              VARCHAR(255)       DEFAULT NULL,
     moneroaddress    CHAR(93)           DEFAULT NULL,
@@ -445,11 +446,9 @@ CREATE VIEW activeusers AS
 -- -----------------------------------------------------
 
 CREATE VIEW statistics AS
-SELECT (SELECT COUNT(*) FROM links WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 DAY))      AS numposts24h,
-       (SELECT COUNT(*) FROM links WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 MONTH))    AS numposts1m,
+SELECT (SELECT COUNT(*) FROM reactions)                                                                    AS numreactions,
        (SELECT COUNT(*) FROM channels)                                                                     AS numchannels,
        (SELECT COUNT(*) FROM links)                                                                        AS numposts,
-       (SELECT COUNT(*) FROM channels WHERE createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 MONTH)) AS newchannels1m,
        (SELECT COUNT(*) FROM tags)                                                                         AS numtags,
        (SELECT COUNT(*) FROM votes)                                                                        AS numvotes;
 

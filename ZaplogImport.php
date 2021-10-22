@@ -8,6 +8,7 @@ namespace Zaplog {
 
     use Atrox\Haikunator;
     use ContentSyndication\Text;
+    use Multiavatar;
     use SlimRestApi\Infra\Db;
 
     class ZaplogImport
@@ -25,11 +26,12 @@ namespace Zaplog {
             foreach (Db::fetchAll("SELECT userid, join_date, last_visit_date FROM imported_users ORDER BY member_id ASC") as $user) {
                 error_log("users: " . $counter++);
                 $channelname = Haikunator::haikunate();
+                $avatar = "data:image/svg+xml;base64," . base64_encode((new Multiavatar)($channelname, null, null));
                 Db::execute("INSERT IGNORE INTO channels(name,userid,avatar,createdatetime, updatedatetime)
                 VALUES(:name,:userid,:avatar,:createdatetime,:updatedatetime)", [
                     ":name" => $channelname,
                     ":userid" => $user->userid,
-                    ":avatar" => "https://api.multiavatar.com/$channelname.svg",
+                    ":avatar" => $avatar,
                     ":createdatetime" => $user->join_date,
                     ":updatedatetime" => $user->last_visit_date,
                 ]);
