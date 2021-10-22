@@ -280,7 +280,7 @@ namespace Zaplog {
                     FROM links JOIN tags ON tags.linkid=links.id AND links.id<>:id1
                     WHERE tag IN (SELECT tags.tag FROM links JOIN tags on tags.linkid=links.id WHERE links.id=:id2)
                     GROUP BY links.id ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT 5",
-                    [":id1" => $id, ":id2" => $id], 60),
+                    [":id1" => $id, ":id2" => $id], 60*20),
 
                 "interactors" => Db::fetchAll("SELECT DISTINCT * FROM channels_public_view 
                     WHERE id IN (SELECT channelid FROM reactions WHERE linkid=:id1)

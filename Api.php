@@ -31,6 +31,7 @@ namespace Zaplog {
     use Psr\Http\Message\ServerRequestInterface as Request;
     use SlimRestApi\Infra\Db;
     use Zaplog\Exception\UserException;
+    use Zaplog\Library\Avatar;
     use Zaplog\Library\TwoFactorAction;
     use Zaplog\Middleware\Authentication;
 
@@ -337,13 +338,10 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    $type = pathinfo($args->avatar, PATHINFO_EXTENSION);
-                    $data = file_get_contents($args->avatar);
-                    $base64 = "data:image/$type;base64," . base64_encode($data);
                     return $response->withJson(Db::execute("UPDATE channels SET 
                         name=:name, avatar=:avatar, bio=:bio, moneroaddress=:moneroaddress WHERE id=:channelid", [
                         ":name" => (new Text($args->name))->hyphenizeForPath()->convertToAscii(),
-                        ":avatar" => $base64,
+                        ":avatar" => (new Avatar($args->avatar))->inlineBase64(),
                         ":bio" => $args->bio,
                         ":moneroaddress" => $args->moneroaddress,
                         ":channelid" => Authentication::getSession()->id,
@@ -558,6 +556,18 @@ namespace Zaplog {
                 })
                     ->add(new Authentication)
                     ->add(new BodyParameters(['{text:\raw}']));
+
+                // ------------------------------------------------
+                // get reActions
+                // ------------------------------------------------
+
+                $this->get("/link/{id:\d{1,10}}", function (
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
+                    return $response->withJson("SELECT * FROM reactions WHERE linkid=:id ORDER BY id", [":id" => $args->id]);
+                })
+                    ->add(new ReadOnly);
 
                 // ----------------------------------------------------------------
                 // Delete a reaction, only your own reactions

@@ -42,6 +42,7 @@ Knowledge of the SLIM3 framework is useful but not required. The code speaks for
       ext-pdo
       ext-curl
       ext-tidy
+      ext-fileinfo
       php-mbstring
 
 
