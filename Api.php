@@ -84,7 +84,7 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                return $response->withJson(["bitcoinaddress" => Ini::get("bitcoinaddress"),"shares" => Methods::getPaymentShares()]);
+                return $response->withJson(["bitcoinaddress" => Ini::get("bitcoinaddress"), "shares" => Methods::getPaymentShares()]);
             })
                 ->add(new Memcaching(60/*sec*/));
 
@@ -337,10 +337,13 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
+                    $type = pathinfo($args->avatar, PATHINFO_EXTENSION);
+                    $data = file_get_contents($args->avatar);
+                    $base64 = "data:image/$type;base64," . base64_encode($data);
                     return $response->withJson(Db::execute("UPDATE channels SET 
                         name=:name, avatar=:avatar, bio=:bio, moneroaddress=:moneroaddress WHERE id=:channelid", [
                         ":name" => (new Text($args->name))->hyphenizeForPath()->convertToAscii(),
-                        ":avatar" => $args->avatar,
+                        ":avatar" => $base64,
                         ":bio" => $args->bio,
                         ":moneroaddress" => $args->moneroaddress,
                         ":channelid" => Authentication::getSession()->id,
