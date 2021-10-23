@@ -321,7 +321,7 @@ namespace Zaplog {
                         JOIN links ON tags.linkid=links.id
                         WHERE tag=:tag
                         GROUP BY channels.id
-                        ORDER BY SUM(score) DESC LIMIT :count",
+                        ORDER BY SUM(links.score)/COUNT(links.id) DESC LIMIT :count",
                         [":tag" => $args->tag, ":count" => $args->count]));
                 })
                     ->add(new Memcaching(60/*sec*/))
@@ -339,9 +339,9 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     return $response->withJson(Db::execute("UPDATE channels SET 
-                        name=:name, avatar=:avatar, bio=:bio, moneroaddress=:moneroaddress WHERE id=:channelid", [
+                        name=:name, avatar=IFNULL(:avatar,avatar), bio=:bio, moneroaddress=:moneroaddress WHERE id=:channelid", [
                         ":name" => (new Text($args->name))->hyphenizeForPath()->convertToAscii(),
-                        ":avatar" => (new Avatar($args->avatar))->inlineBase64(),
+                        ":avatar" => empty($args->avatar) ? null : (new Avatar($args->avatar))->inlineBase64(),
                         ":bio" => $args->bio,
                         ":moneroaddress" => $args->moneroaddress,
                         ":channelid" => Authentication::getSession()->id,
