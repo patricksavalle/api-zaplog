@@ -201,7 +201,7 @@ namespace Zaplog {
         //
         // ----------------------------------------------------------
 
-        static public function postTags(string $channelid, string $linkid, array $keywords)
+        static public function postTags(string $channelid, string $linkid, array $keywords): int
         {
             $tags = [];
             foreach ($keywords as $tag) {
@@ -217,15 +217,18 @@ namespace Zaplog {
             $tags = array_unique($tags);
 
             // insert keywords into database;
+            $count = 0;
             foreach ($tags as $tag) {
                 try {
                     Db::execute("INSERT IGNORE INTO tags(linkid, channelid, tag) VALUES (:linkid, :channelid, :tag)",
                         [":linkid" => $linkid, ":channelid" => $channelid, ":tag" => $tag]);
+                    $count++;
                 } catch (Exception $e) {
                     // ignore on error
                     error_log($e->getMessage() . " @ " . __METHOD__ . "(" . __LINE__ . ") " . $tag);
                 }
             }
+            return $count;
         }
 
         // ----------------------------------------------------------

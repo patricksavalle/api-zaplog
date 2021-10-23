@@ -627,10 +627,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    $channelid = Authentication::getSession()->id;
-                    Db::execute("INSERT IGNORE INTO tags(linkid,channelid,tag) VALUES(:id,:channelid,:tag)",
-                        [":id" => $args->id, ":tag" => $args->tag, ":channelid" => $channelid,])->rowCount();
-                    return $response->withJson(Db::lastInsertId());
+                    return $response->withJson(Methods::postTags(Authentication::getSession()->id,$args->id,[$args->tag]));
                 })
                     ->add(new Authentication);
 
