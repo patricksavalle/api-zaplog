@@ -283,7 +283,7 @@ namespace Zaplog {
                     GROUP BY links.id ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT 5",
                     [":id1" => $id, ":id2" => $id], 60 * 20),
 
-                "interactors" => Db::fetchAll("SELECT *, GROUP_CONCAT(action) FROM channels_public_view AS c JOIN
+                "interactors" => Db::fetchAll("SELECT c.id, c.name, c.avatar, GROUP_CONCAT(action) AS interactions FROM channels_public_view AS c JOIN
                     (SELECT channelid, 'links' AS action FROM links WHERE id=:id1
                     UNION SELECT channelid, 'reactions' AS action FROM reactions WHERE linkid=:id2
                     UNION SELECT channelid, 'tags' AS action  FROM tags WHERE linkid=:id3
