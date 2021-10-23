@@ -206,7 +206,7 @@ namespace Zaplog {
             $tags = [];
             foreach ($keywords as $tag) {
                 // sanitize tags
-                $tag = (string)(new Text($tag))->convertToAscii()->hyphenizeForPath();
+                $tag = (string)(new Text($tag))->convertToAscii()->hyphenize();
                 // only accept reasonable tags
                 if (preg_match("/^[\w][\w-]{0,48}[\w]$/", $tag) > 0 and substr_count($tag, "-") < 5) {
                     $tags[] = $tag;
@@ -336,16 +336,16 @@ namespace Zaplog {
             Db::execute("CALL calculate_frontpage()");
         }
 
-        static public function getRelatedTags(string $tag): array
+        static public function getRelatedTags(string $tag, int $count): array
         {
-            return Db::fetchAll("SELECT tag, COUNT(tag) AS link_count FROM tags
+            return Db::fetchAll("SELECT tag FROM tags
                 JOIN links ON tags.linkid=links.id
                 WHERE links.id IN (SELECT links.id 
                     FROM links JOIN tags ON tags.linkid=links.id 
                     WHERE tag=:tag1)
                 AND tag<>:tag2
-                GROUP BY tag ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT 25",
-                ["tag1" => $tag, "tag2" => $tag]);
+                GROUP BY tag ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT :count",
+                [":tag1" => $tag, ":tag2" => $tag, ":count" => $count]);
         }
 
     }

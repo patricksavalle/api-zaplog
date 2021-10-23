@@ -340,7 +340,7 @@ namespace Zaplog {
                     stdClass $args): Response {
                     return $response->withJson(Db::execute("UPDATE channels SET 
                         name=:name, avatar=IFNULL(:avatar,avatar), bio=:bio, moneroaddress=:moneroaddress WHERE id=:channelid", [
-                        ":name" => (new Text($args->name))->hyphenizeForPath()->convertToAscii(),
+                        ":name" => (new Text($args->name))->convertToAscii()->hyphenize(),
                         ":avatar" => empty($args->avatar) ? null : (new Avatar($args->avatar))->inlineBase64(),
                         ":bio" => $args->bio,
                         ":moneroaddress" => $args->moneroaddress,
@@ -642,10 +642,11 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Methods::getRelatedTags($args->tag));
+                    return $response->withJson(Methods::getRelatedTags($args->tag, $args->count));
                 })
                     ->add(new Memcaching(60/*sec*/))
-                    ->add(new ReadOnly);
+                    ->add(new ReadOnly)
+                    ->add(new QueryParameters(['{count:\int},20',]));
 
                 // ------------------------------------------------
                 // get the top trending tags
@@ -663,9 +664,7 @@ namespace Zaplog {
                 })
                     ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly)
-                    ->add(new QueryParameters([
-                        '{count:\int},20',
-                    ]));
+                    ->add(new QueryParameters(['{count:\int},20',]));
 
                 // ------------------------------------------------
                 // delete a tag, only delete your own tags
