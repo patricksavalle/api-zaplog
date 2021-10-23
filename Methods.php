@@ -118,13 +118,13 @@ namespace Zaplog {
                     GROUP BY tag ORDER BY SUM(score) DESC LIMIT 10",
                     [":channelid" => $id], 60 * 60),
 
-                "related" => Db::fetchAll("SELECT GROUP_CONCAT(DISTINCT tags.tag SEPARATOR ',' LIMIT 10) AS tags, channels.*
+                "related" => Db::fetchAll("SELECT channels.*
                     FROM (
                         SELECT tag FROM tags
                         WHERE channelid=:channelid1
                         GROUP BY tag
                         ORDER BY COUNT(tag) DESC
-                        LIMIT 50
+                        LIMIT 10
                     ) AS ttags
                     JOIN tags ON ttags.tag=tags.tag 
                     JOIN channels_public_view AS channels ON tags.channelid=channels.id
@@ -164,7 +164,7 @@ namespace Zaplog {
         //
         // ----------------------------------------------------------
 
-        static public function archiveLink(string $linkid, string $url)
+        static public function archiveLinkAsync(string $linkid, string $url)
         {
             // store url in wayback-machine, use asynchronous self-call
             try {
@@ -173,10 +173,7 @@ namespace Zaplog {
                     ->addAction('/Methods.php', ['\Zaplog\Methods', 'storeWebArchive'], [$linkid, $url])
                     ->handleAsync();
             } catch (Exception $e) {
-                // async call will only work with reverese proxy in front of PHP interpreter
                 error_log(__METHOD__ . " " . $e->getMessage());
-                error_log("Restarting as synchronous call");
-                self::storeWebArchive($linkid, $url);
             }
         }
 
@@ -186,14 +183,18 @@ namespace Zaplog {
 
         static public function storeWebArchive(string $linkid, string $url)
         {
-            // store in webarchive.com and get archived url
-            $waybackurl = Ini::get("webarchive_save_link") . $url;
-            (new HttpRequest)($waybackurl);
-
-            // store with link
-            if (filter_var($waybackurl, FILTER_VALIDATE_URL) !== false) {
-                Db::execute("UPDATE links SET waybackurl=:url WHERE id=:id", [":id" => $linkid, ":url" => $waybackurl]);
+            // first check the wayback-machine
+            $tmp = Ini::get("webarchive_retrieve_link") . $url;
+            $json = json_decode((new HttpRequest)($tmp));
+            $archived_url = $json->archived_snapshots->closest->url ?? false;
+            if ($archived_url === false) {
+                // store in webarchive.com and get newly archived url back
+                $archived_url = Ini::get("webarchive_save_link") . $url;
+                (new HttpRequest)($archived_url);
             }
+            // store with link
+            assert(filter_var($archived_url, FILTER_VALIDATE_URL) !== false);
+            Db::execute("UPDATE links SET waybackurl=:url WHERE id=:id", [":id" => $linkid, ":url" => $archived_url]);
         }
 
         // ----------------------------------------------------------
@@ -249,7 +250,7 @@ namespace Zaplog {
 
             self::postTags($channelid, $linkid, $keywords);
 
-            // self::archiveLink($linkid, $url);
+            self::archiveLinkAsync($linkid, $url);
 
             return $linkid;
         }
@@ -274,19 +275,20 @@ namespace Zaplog {
 
                 "channel" => Db::fetch("SELECT * FROM channels_public_view WHERE id=:id", [":id" => $link->channelid]),
 
-                "tags" => Db::fetchAll("SELECT * FROM tags WHERE linkid=:id GROUP BY tag", [":id" => $id]),
+                "tags" => Db::fetchAll("SELECT tag, channelid FROM tags WHERE linkid=:id GROUP BY tag", [":id" => $id]),
 
-                "related" => Db::fetchAll("SELECT GROUP_CONCAT(DISTINCT tags.tag SEPARATOR ',' LIMIT 10) AS tags, links.*
+                "related" => Db::fetchAll("SELECT links.id, links.description, links.createdatetime, links.channelid, links.title, links.image
                     FROM links JOIN tags ON tags.linkid=links.id AND links.id<>:id1
                     WHERE tag IN (SELECT tags.tag FROM links JOIN tags on tags.linkid=links.id WHERE links.id=:id2)
                     GROUP BY links.id ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT 5",
-                    [":id1" => $id, ":id2" => $id], 60*20),
+                    [":id1" => $id, ":id2" => $id], 60 * 20),
 
-                "interactors" => Db::fetchAll("SELECT DISTINCT * FROM channels_public_view 
-                    WHERE id IN (SELECT channelid FROM reactions WHERE linkid=:id1)
-                        OR id IN (SELECT channelid FROM tags WHERE linkid=:id2)
-                        OR id IN (SELECT channelid FROM votes WHERE linkid=:id3)
-                        OR id=(SELECT channelid FROM links WHERE id=:id4)",
+                "interactors" => Db::fetchAll("SELECT *, GROUP_CONCAT(action) FROM channels_public_view AS c JOIN
+                    (SELECT channelid, 'links' AS action FROM links WHERE id=:id1
+                    UNION SELECT channelid, 'reactions' AS action FROM reactions WHERE linkid=:id2
+                    UNION SELECT channelid, 'tags' AS action  FROM tags WHERE linkid=:id3
+                    UNION SELECT channelid, 'votes' AS action FROM votes WHERE linkid=:id4) AS i ON i.channelid=c.id
+                    GROUP BY c.id",
                     [":id1" => $id, ":id2" => $id, ":id3" => $id, ":id4" => $id]),
             ];
         }

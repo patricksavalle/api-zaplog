@@ -327,7 +327,7 @@ namespace Zaplog {
                     ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly)
                     ->add(new QueryParameters([
-                        '{count:\int},20',
+                        '{count:\int},10',
                     ]));
 
                 // ----------------------------------------------------------------
