@@ -96,6 +96,8 @@ CREATE TABLE links
     createdatetime TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updatedatetime TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     checkdatetime  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- datetime of the original publication
+    origdatetime   TIMESTAMP              DEFAULT NULL,
     channelid      INT           NOT NULL,
     published      BOOL          NOT NULL DEFAULT TRUE,
     urlhash        CHAR(32) GENERATED ALWAYS AS (MD5(url)),
@@ -526,7 +528,7 @@ DELIMITER ;
 -- ---------------------------------------------------------------------------------
 
 DELIMITER //
-CREATE PROCEDURE select_discussion(IN arg_offset INT, IN arg_count INT)
+CREATE PROCEDURE select_discussion(IN arg_channelid INT, IN arg_offset INT, IN arg_count INT)
 BEGIN
     SELECT
         reactions.id,
@@ -539,12 +541,16 @@ BEGIN
         links.title,
         links.createdatetime AS linkdatetime
     FROM (
-         SELECT id, channelid, linkid FROM (
+         SELECT id, channelid, linkid, x.threadid FROM (
             SELECT r.threadid, r.id, r.channelid, r.linkid, (@num:=if(@threadid = r.threadid, @num +1, if(@threadid := r.threadid, 1, 1))) AS row_num
             FROM reactions AS r
             ORDER BY r.threadid DESC, r.id DESC
          ) AS x
-         JOIN (SELECT threadid FROM reactions GROUP BY threadid ORDER BY threadid DESC LIMIT arg_offset, arg_count) AS t ON x.threadid=t.threadid
+         JOIN (
+            SELECT threadid FROM reactions
+            WHERE (arg_channelid IS NULL OR channelid=arg_channelid)
+            GROUP BY threadid
+            ORDER BY threadid DESC LIMIT arg_offset, arg_count) AS t ON x.threadid=t.threadid
          WHERE x.row_num <= 3
     ) AS r
     JOIN reactions ON reactions.id=r.id

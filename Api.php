@@ -73,7 +73,7 @@ namespace Zaplog {
                 Response $response,
                 stdClass $args): Response {
                 return $response->withStatus(307)->withHeader("Location",
-                    (new MemcachedFunction)(["\ContentSyndication\ArchiveOrg", "originalOrClosest"], [urldecode($args->urlencoded)], 60*60));
+                    (new MemcachedFunction)(["\ContentSyndication\ArchiveOrg", "originalOrClosest"], [urldecode($args->urlencoded)], 60 * 60));
             });
 
             $this->get("/import", function (
@@ -195,9 +195,7 @@ namespace Zaplog {
             })
                 ->add(new Memcaching(60 * 60/*sec*/))
                 ->add(new ReadOnly)
-                ->add(new QueryParameters([
-                    '{count:\int},25',
-                ]));
+                ->add(new QueryParameters(['{count:\int},25',]));
 
             // ----------------------------------------------------------------
             // Get reactions, forum style, returns the latest reactions
@@ -208,14 +206,28 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                return $response->withJson(Db::fetchAll("CALL select_discussion(:offset,:count)",
+                return $response->withJson(Db::fetchAll("CALL select_discussion(NULL,:offset,:count)",
                     [":offset" => $args->offset, ":count" => $args->count]));
             })
                 ->add(new ReadOnly)
                 ->add(new QueryParameters([
                     '{offset:\int},0',
-                    '{count:\int},20',
+                    '{count:\int},8',
                 ]));
+
+            $this->get("/discussion/channel/{id:[\d]{1,10}}", function (
+                Request  $request,
+                Response $response,
+                stdClass $args): Response {
+                return $response->withJson(Db::fetchAll("CALL select_discussion(:channel,:offset,:count)",
+                    [":channel" => $args->id, ":offset" => $args->offset, ":count" => $args->count]));
+            })
+                ->add(new ReadOnly)
+                ->add(new QueryParameters([
+                    '{offset:\int},0',
+                    '{count:\int},8',
+                ]));
+
 
             // ------------------------------------------------
             // get the activity stream
@@ -339,9 +351,7 @@ namespace Zaplog {
                 })
                     ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly)
-                    ->add(new QueryParameters([
-                        '{count:\int},10',
-                    ]));
+                    ->add(new QueryParameters(['{count:\int},10',]));
 
                 // ----------------------------------------------------------------
                 // Change channel properties of authenticated user's channel
