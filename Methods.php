@@ -110,7 +110,7 @@ namespace Zaplog {
         static public function getSingleChannel(string $id): array
         {
             return [
-                "channel" => Db::fetch("SELECT * FROM channels_public_view WHERE id=:id", [":id" => $id]),
+                "channel" => (new ResourceNotFoundException)(Db::fetch("SELECT * FROM channels_public_view WHERE id=:id", [":id" => $id])),
 
                 "tags" => Db::fetchAll("SELECT tag, COUNT(tag) AS tagscount 
                     FROM tags JOIN links ON tags.linkid=links.id  
@@ -340,7 +340,7 @@ namespace Zaplog {
                     WHERE tag=:tag1)
                 AND tag<>:tag2
                 GROUP BY tag ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT :count",
-                [":tag1" => $tag, ":tag2" => $tag, ":count" => $count]);
+                [":tag1" => $tag, ":tag2" => $tag, ":count" => $count], 60*60);
         }
 
     }

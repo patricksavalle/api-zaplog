@@ -59,7 +59,7 @@ namespace Zaplog {
                         ":entryid" => $post->entry_id,
                         ":channelid" => $post->channelid,
                         ":title" => (string)(new Text($post->title)),
-                        ":markdown" => (string)(new Text($post->description))->BBtoHTML()->purify()->parseUp(),
+                        ":markdown" => (string)(new Text($post->description))->nl2br()->BBtoHTML()->purify()->parseUp(),
                         ":description" => (string)(new Text($post->description))->blurbify(),
                         ":createdatetime" => $post->createdatetime,
                         ":viewscount" => $post->viewscount * 3,
@@ -118,7 +118,7 @@ namespace Zaplog {
                     ORDER BY comment_id ASC
                     LIMIT :offset, 1000", [":offset" => $offset]) as $comment) {
                     $batchsize++;
-                    $xtext = (string)(new Text($comment->comment))->BBtoHTML()->purify();
+                    $xtext = (string)(new Text($comment->comment))->nl2br()->BBtoHTML()->purify();
                     Db::execute("INSERT INTO reactions(linkid,channelid,xtext,createdatetime,description) VALUES(:linkid,:channelid,:xtext,:datetime,:description)", [
                         ":channelid" => $comment->channelid,
                         ":linkid" => $comment->linkid,

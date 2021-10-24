@@ -724,9 +724,9 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    Methods::refreshAllFeeds();
                     return $response;
-                });
+                })
+                    ->add(new CliRequest(300));
 
                 $this->get("/day", function (
                     Request  $request,
