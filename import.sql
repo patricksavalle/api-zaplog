@@ -26,7 +26,7 @@ ALTER TABLE zaplog.imported_tags ADD INDEX (userid), ADD INDEX(entry_id);
 
 CREATE TABLE zaplog.imported_votes
 SELECT MD5(email) AS userid, entry_id FROM zaplog_site.exp_favorites AS favorites
-                                               JOIN zaplog_site.exp_members as members ON favorites.member_id=members.member_id;
+JOIN zaplog_site.exp_members as members ON favorites.member_id=members.member_id;
 
 ALTER TABLE zaplog.imported_votes ADD INDEX (userid), ADD INDEX(entry_id);
 
@@ -43,7 +43,7 @@ SELECT DISTINCT
 FROM zaplog_site.exp_weblog_data AS data
 JOIN zaplog_site.exp_weblog_titles AS titles ON titles.entry_id=data.entry_id
 JOIN zaplog_site.exp_members as members ON titles.author_id=members.member_id
-WHERE view_count_one>100 AND status="open" AND titles.weblog_id=1;
+WHERE view_count_one>100 AND status="open" AND titles.weblog_id=1 AND LENGTH(field_id_1)>100;
 
 ALTER TABLE zaplog.imported_posts ADD INDEX (userid), ADD INDEX(entry_id);
 

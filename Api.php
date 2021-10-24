@@ -489,7 +489,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Db::fetchAll("SELECT * FROM links ORDER BY id DESC LIMIT :offset,:count",
+                    return $response->withJson(Db::fetchAll("SELECT * FROM links WHERE published=TRUE ORDER BY id DESC LIMIT :offset,:count",
                         [":offset" => $args->offset, ":count" => $args->count]));
                 })
                     ->add(new ReadOnly)
@@ -548,14 +548,16 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    $channelid = Authentication::getSession()->id;
-                    $xtext = (new Text($args->text))->parseDown();
-                    Db::execute("CALL insert_reaction(:channelid,:linkid,:xtext)",
-                        [":linkid" => $args->id, ":channelid" => $channelid, ":xtext" => $xtext]);
+                    $xtext = (string)(new Text($args->markdown))->parseDownLine();
+                    Db::execute("CALL insert_reaction(:channelid,:linkid,:xtext,:description)", [
+                        ":linkid" => $args->id,
+                        ":channelid" => 1, Authentication::getSession()->id,
+                        ":xtext" => $xtext,
+                        ":description" => (new Text($xtext))->blurbify()]);
                     return $response->withJson(Db::lastInsertId());
                 })
                     ->add(new Authentication)
-                    ->add(new BodyParameters(['{text:\raw}']));
+                    ->add(new BodyParameters(['{markdown:\raw}']));
 
                 // ------------------------------------------------
                 // get reActions
@@ -565,7 +567,8 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson("SELECT * FROM reactions WHERE linkid=:id ORDER BY id", [":id" => $args->id]);
+                    return $response->withJson("SELECT reactions.* FROM reactions JOIN links ON links.id=reactions.linkid
+                        WHERE linkid=:id AND published=TRUE ORDER BY id", [":id" => $args->id]);
                 })
                     ->add(new ReadOnly);
 
@@ -627,7 +630,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Methods::postTags(Authentication::getSession()->id,$args->id,[$args->tag]));
+                    return $response->withJson(Methods::postTags(Authentication::getSession()->id, (int)$args->id, [$args->tag]));
                 })
                     ->add(new Authentication);
 

@@ -13,12 +13,15 @@ namespace Zaplog {
 
     class ZaplogImport
     {
+        protected function SR(string $text): string
+        {
+            str_replace("http://zaplog.nl/", "https://web.archive.org/web/*/http://zaplog.nl/", $text);
+            str_replace("http://zapruder.nl/", "https://web.archive.org/web/*/http://zapruder.nl/", $text);
+            return $text;
+        }
+
         public function __invoke()
         {
-
-//      [image][/image]
-//      [qoute][/quote]
-
             set_time_limit(0);
 
             // import users
@@ -37,6 +40,8 @@ namespace Zaplog {
                 ]);
             }
 
+            Db::execute("ALTER TABLE links ADD COLUMN entryid INT NULL AFTER id, ADD INDEX (entryid);");
+
             // import posts
             $offset = 0;
             do {
@@ -48,12 +53,13 @@ namespace Zaplog {
                     ORDER BY entry_id ASC
                     LIMIT :offset, 1000", [":offset" => $offset]) as $post) {
                     $batchsize++;
+                    $post->description = $this->SR($post->description);
                     Db::execute("INSERT INTO links(entryid,channelid,title,markdown,description,createdatetime,viewscount,url, image)
                         VALUES(:entryid,:channelid,:title,:markdown,:description,:createdatetime,:viewscount,:url, :image)", [
                         ":entryid" => $post->entry_id,
                         ":channelid" => $post->channelid,
                         ":title" => (string)(new Text($post->title)),
-                        ":markdown" => (string)(new Text($post->description))->purify()->parseUp(),
+                        ":markdown" => (string)(new Text($post->description))->BBtoHTML()->purify()->parseUp(),
                         ":description" => (string)(new Text($post->description))->blurbify(),
                         ":createdatetime" => $post->createdatetime,
                         ":viewscount" => $post->viewscount * 3,
@@ -77,7 +83,7 @@ namespace Zaplog {
                     Db::execute("INSERT IGNORE INTO tags(linkid,channelid,tag) VALUES(:linkid,:channelid,:tag)", [
                         ":channelid" => $tag->channelid,
                         ":linkid" => $tag->linkid,
-                        ":tag" => (new Text($tag->tag_name))->convertToAscii()->hyphenizeForPath(),
+                        ":tag" => (new Text($tag->tag_name))->convertToAscii()->hyphenize(),
                     ]);
                 }
                 $offset += 1000;
@@ -112,11 +118,13 @@ namespace Zaplog {
                     ORDER BY comment_id ASC
                     LIMIT :offset, 1000", [":offset" => $offset]) as $comment) {
                     $batchsize++;
-                    Db::execute("INSERT INTO reactions(linkid,channelid,xtext,createdatetime) VALUES(:linkid,:channelid,:xtext,:datetime)", [
+                    $xtext = (string)(new Text($comment->comment))->BBtoHTML()->purify();
+                    Db::execute("INSERT INTO reactions(linkid,channelid,xtext,createdatetime,description) VALUES(:linkid,:channelid,:xtext,:datetime,:description)", [
                         ":channelid" => $comment->channelid,
                         ":linkid" => $comment->linkid,
-                        ":xtext" => (new Text($comment->comment))->purify(),
+                        ":xtext" => $xtext,
                         ":datetime" => $comment->comment_date,
+                        ":description" => (new Text($xtext))->blurbify(),
                     ]);
                 }
                 $offset += 1000;
@@ -130,6 +138,17 @@ namespace Zaplog {
                 Db::execute("UPDATE reactions SET threadid=(SELECT MAX(id) FROM reactions WHERE linkid=:linkid) WHERE id=:id",
                     [":linkid" => $reaction->linkid, ":id" => $reaction->id]);
             }
+
+            Db::execute("UPDATE IGNORE tags SET tag='amerika' WHERE tag='vs'");
+            Db::execute("DELETE FROM tags WHERE tag='vs'");
+            Db::execute("DELETE FROM tags WHERE tag IN ('informatie')");
+
+            Db::execute("ALTER TABLE links DROP COLUMN entryid;");
+
+            Db::execute("UPDATE links SET published=FALSE WHERE tagscount=0 OR (votescount=0 AND reactionscount=0)");
+
+            Db::execute("CALL calculate_channel_reputations()");
+            Db::execute("CALL calculate_frontpage()");
 
         }
     }

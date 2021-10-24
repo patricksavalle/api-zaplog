@@ -201,7 +201,7 @@ namespace Zaplog {
         //
         // ----------------------------------------------------------
 
-        static public function postTags(string $channelid, string $linkid, array $keywords): int
+        static public function postTags(/*int*/ $channelid, /*int*/ $linkid, array $keywords): int
         {
             $tags = [];
             foreach ($keywords as $tag) {
@@ -268,7 +268,8 @@ namespace Zaplog {
             Db::execute("UPDATE links SET viewscount = viewscount + 1 WHERE id=:id", [":id" => $id]);
 
             // get post
-            $link = (new ResourceNotFoundException)(Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $id]));
+            $link = (new ResourceNotFoundException)(Db::fetch("SELECT * FROM links 
+                WHERE id=:id AND published=TRUE", [":id" => $id]));
 
             // parse and filter the original markdown into safe xhtml
             $link->xtext = (string)(new Text($link->markdown))->parseDown();
@@ -282,7 +283,7 @@ namespace Zaplog {
 
                 "related" => Db::fetchAll("SELECT links.id, links.description, links.createdatetime, links.channelid, links.title, links.image
                     FROM links JOIN tags ON tags.linkid=links.id AND links.id<>:id1
-                    WHERE tag IN (SELECT tags.tag FROM links JOIN tags on tags.linkid=links.id WHERE links.id=:id2)
+                    WHERE tag IN (SELECT tags.tag FROM links JOIN tags on tags.linkid=links.id WHERE links.id=:id2) AND published=TRUE
                     GROUP BY links.id ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT 5",
                     [":id1" => $id, ":id2" => $id], 60 * 20),
 

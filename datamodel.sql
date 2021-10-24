@@ -77,14 +77,14 @@ DELIMITER ;
 -- (can be edited by any member with enough reputation)
 -- -----------------------------------------------------
 
-INSERT INTO channels(name,bio,userid,avatar) VALUES ("zaplog", "Next-generation social blogging platform.", MD5("patrick@patricksavalle.com"), "https://gitlab.com/uploads/-/system/group/avatar/13533618/zapruderlogo.png");
+INSERT INTO channels(name,bio,userid,avatar) VALUES ("zaplog", "Next-generation social blogging platform.", MD5("zaplog@patricksavalle.com"), "https://gitlab.com/uploads/-/system/group/avatar/13533618/zapruderlogo.png");
 
 -- -----------------------------------------------------
 -- For public queries. Hide privacy data.
 -- -----------------------------------------------------
 
 CREATE VIEW channels_public_view AS
-    SELECT id,name,createdatetime,updatedatetime,bio,avatar,feedurl,reputation,moneroaddress FROM channels;
+    SELECT id,name,createdatetime,updatedatetime,bio,avatar,reputation FROM channels;
 
 -- -----------------------------------------------------
 -- The links that are being shared, rated, etc.
@@ -232,12 +232,14 @@ CREATE EVENT calculate_frontpage ON SCHEDULE EVERY 1 HOUR DO CALL calculate_fron
 -- -------------------------------------------------------------------------
 
 DELIMITER //
-CREATE EVENT apply_reputation_decay ON SCHEDULE EVERY 24 HOUR DO
-    BEGIN
-        INSERT INTO interactions(type) VALUES('on_reputation_calculated');
-        UPDATE channels SET reputation = reputation * 0.9981 + score - prevscore, prevscore = score;
-    END//
+CREATE PROCEDURE calculate_channel_reputations()
+BEGIN
+    INSERT INTO interactions(type) VALUES('on_reputation_calculated');
+    UPDATE channels SET reputation = reputation * 0.9981 + score - prevscore, prevscore = score;
+END //
 DELIMITER ;
+
+CREATE EVENT calculate_channel_reputations ON SCHEDULE EVERY 24 HOUR DO CALL calculate_channel_reputations();
 
 -- ------------------------------------------------
 --
@@ -303,12 +305,15 @@ CREATE TRIGGER on_delete_link AFTER DELETE ON links FOR EACH ROW
 CREATE TABLE reactions
 (
     id             INT       NOT NULL AUTO_INCREMENT,
-    -- optimization for forum-style display
+    -- optimization for forum-style display, all reactions on the same link
+    -- have the id of the latest comment as threadid
     threadid       INT       NULL DEFAULT NULL,
     createdatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     linkid         INT       NOT NULL,
     channelid      INT       NOT NULL,
     published      BOOL      NOT NULL DEFAULT TRUE,
+    -- Clean text blurb
+    description    VARCHAR(256)       DEFAULT NULL,
     -- Purified xhtml from markdown input, no need to store original input because immutable
     xtext          TEXT               DEFAULT NULL,
     PRIMARY KEY (id),
@@ -446,11 +451,11 @@ CREATE VIEW activeusers AS
 -- -----------------------------------------------------
 
 CREATE VIEW statistics AS
-SELECT (SELECT COUNT(*) FROM reactions)                                                                    AS numreactions,
-       (SELECT COUNT(*) FROM channels)                                                                     AS numchannels,
-       (SELECT COUNT(*) FROM links)                                                                        AS numposts,
-       (SELECT COUNT(*) FROM tags)                                                                         AS numtags,
-       (SELECT COUNT(*) FROM votes)                                                                        AS numvotes;
+SELECT (SELECT COUNT(*) FROM reactions) AS numreactions,
+       (SELECT COUNT(*) FROM channels)  AS numchannels,
+       (SELECT COUNT(*) FROM links)     AS numposts,
+       (SELECT COUNT(*) FROM tags)      AS numtags,
+       (SELECT COUNT(*) FROM votes)     AS numvotes;
 
 -- --------------------------------------------------------
 -- Most popular tags, this query should be cached by server
@@ -459,9 +464,9 @@ SELECT (SELECT COUNT(*) FROM reactions)                                         
 -- should be cached higher up in the stack
 -- (optimized)
 CREATE VIEW trendingtopics AS
-    SELECT tags.* FROM tags
+    SELECT tag FROM tags
     JOIN links ON tags.linkid=links.id
-    WHERE tags.linkid in (SELECT id FROM frontpage)
+    WHERE tags.linkid in (SELECT id FROM frontpage) AND links.published=TRUE
     GROUP BY tag
     ORDER BY SUM(score) DESC LIMIT 50;
 
@@ -469,7 +474,7 @@ CREATE VIEW trendingtopics AS
 -- (optimized/profiled)
 CREATE VIEW toptopics AS
     SELECT DISTINCT tag FROM tags
-    JOIN (SELECT id, score FROM links ORDER BY score DESC limit 1000) AS links
+    JOIN (SELECT id, score FROM links WHERE published=TRUE ORDER BY score DESC limit 1000) AS links
     ON tags.linkid = links.id
     GROUP BY tag
     ORDER BY SUM(score) DESC LIMIT 50;
@@ -494,8 +499,9 @@ CREATE VIEW trendingchannels AS
 CREATE VIEW topchannels AS
     SELECT channels.* FROM channels_public_view AS channels ORDER BY reputation DESC LIMIT 50;
 
+-- optimal/profiled
 CREATE VIEW updatedchannels AS
-    SELECT DISTINCT channels.id, channels.name, channels.avatar FROM channels_public_view AS channels
+    SELECT DISTINCT channels.* FROM channels_public_view AS channels
     JOIN links ON links.channelid=channels.id
     GROUP BY channels.id
     ORDER BY MAX(links.id) DESC LIMIT 50;
@@ -507,39 +513,54 @@ CREATE VIEW updatedchannels AS
 DELIMITER //
 CREATE PROCEDURE select_channel_tags(IN arg_channelid INT)
 BEGIN
-    SELECT tag, COUNT(tag) AS tagscount
+    SELECT tag AS tagscount
     FROM tags JOIN links ON tags.linkid=links.id
-    WHERE links.channelid=arg_channelid
+    WHERE links.channelid=arg_channelid AND links.published-TRUE
     GROUP BY tag ORDER BY SUM(score) DESC LIMIT 20;
 END //
 DELIMITER ;
 
--- -----------------------------------------------------
--- Returns forum style reactions, order by most recent
--- TODO why not just a view?
--- -----------------------------------------------------
+-- ---------------------------------------------------------------------------------
+-- Returns forum style reactions, order by most recent thread, 3 comments per thread
+-- ---------------------------------------------------------------------------------
 
 DELIMITER //
 CREATE PROCEDURE select_discussion(IN arg_offset INT, IN arg_count INT)
 BEGIN
-    SELECT ranked_reactions.*, links.title FROM
-        (SELECT reactions.*,
-               @link_rank := IF(@current = linkid, @link_rank + 1, 1) AS link_rank,
-               @current := linkid
-        FROM reactions
-        ORDER BY threadid DESC, reactions.id DESC) AS ranked_reactions
-        LEFT JOIN links ON links.id=ranked_reactions.linkid AND link_rank=1
-    WHERE link_rank<=3
-    LIMIT arg_offset, arg_count;
+    SELECT
+        reactions.id,
+        reactions.createdatetime,
+        reactions.description,
+        reactions.channelid,
+        reactions.linkid,
+        channels.avatar,
+        channels.name,
+        links.title,
+        links.createdatetime AS linkdatetime
+    FROM (
+         SELECT id, channelid, linkid FROM (
+            SELECT r.threadid, r.id, r.channelid, r.linkid, (@num:=if(@threadid = r.threadid, @num +1, if(@threadid := r.threadid, 1, 1))) AS row_num
+            FROM reactions AS r
+            ORDER BY r.threadid DESC, r.id DESC
+         ) AS x
+         JOIN (SELECT threadid FROM reactions GROUP BY threadid ORDER BY threadid DESC LIMIT arg_offset, arg_count) AS t ON x.threadid=t.threadid
+         WHERE x.row_num <= 3
+    ) AS r
+    JOIN reactions ON reactions.id=r.id
+    JOIN channels ON channels.id=r.channelid
+    LEFT JOIN links ON links.id=r.linkid
+    ORDER by r.threadid DESC, r.id ASC;
 END //
 DELIMITER ;
 
 DELIMITER //
-CREATE PROCEDURE insert_reaction(IN arg_channelid INT, IN arg_linkid INT, IN arg_xtext TEXT)
+CREATE PROCEDURE insert_reaction(IN arg_channelid INT, IN arg_linkid INT, IN arg_xtext TEXT, IN arg_description VARCHAR(256))
 BEGIN
-    INSERT INTO reactions(channelid,linkid,xtext)VALUES(arg_channelid,arg_linkid,arg_xtext);
+    INSERT INTO reactions (channelid,linkid,xtext,description)
+        VALUES(arg_channelid,arg_linkid,arg_xtext,arg_description);
     UPDATE reactions SET threadid=LAST_INSERT_ID() WHERE linkid=arg_linkid;
 END //
 DELIMITER ;
+
 
 
