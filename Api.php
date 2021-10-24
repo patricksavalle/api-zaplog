@@ -20,6 +20,7 @@ namespace Zaplog {
     use ContentSyndication\HtmlMetadata;
     use ContentSyndication\Text;
     use SlimRestApi\Infra\Ini;
+    use SlimRestApi\Infra\MemcachedFunction;
     use stdClass;
     use SlimRestApi\Middleware\CliRequest;
     use SlimRestApi\Middleware\Memcaching;
@@ -61,6 +62,18 @@ namespace Zaplog {
                 }
                 echo "</table>";
                 return $rp;
+            });
+
+            // ------------------------------------------
+            // redirect to original or else archived page
+            // ------------------------------------------
+
+            $this->get("/goto/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
+                Request  $request,
+                Response $response,
+                stdClass $args): Response {
+                return $response->withStatus(307)->withHeader("Location",
+                    (new MemcachedFunction)(["\ContentSyndication\ArchiveOrg", "originalOrClosest"], [urldecode($args->urlencoded)], 60*60));
             });
 
             $this->get("/import", function (

@@ -100,6 +100,7 @@ CREATE TABLE links
     published      BOOL          NOT NULL DEFAULT TRUE,
     urlhash        CHAR(32) GENERATED ALWAYS AS (MD5(url)),
     url            VARCHAR(1024) NOT NULL,
+    source         ENUM ('feed','api','site') DEFAULT 'site',
     waybackurl     VARCHAR(1024) NULL     DEFAULT NULL,
     location       VARCHAR(256)  NULL     DEFAULT NULL,
     latitude       FLOAT         NULL     DEFAULT NULL,
@@ -451,11 +452,11 @@ CREATE VIEW activeusers AS
 -- -----------------------------------------------------
 
 CREATE VIEW statistics AS
-SELECT (SELECT COUNT(*) FROM reactions) AS numreactions,
-       (SELECT COUNT(*) FROM channels)  AS numchannels,
-       (SELECT COUNT(*) FROM links)     AS numposts,
-       (SELECT COUNT(*) FROM tags)      AS numtags,
-       (SELECT COUNT(*) FROM votes)     AS numvotes;
+SELECT (SELECT COUNT(*) FROM reactions)            AS numreactions,
+       (SELECT COUNT(*) FROM channels)             AS numchannels,
+       (SELECT COUNT(*) FROM links)                AS numposts,
+       (SELECT COUNT(DISTINCT tag) FROM tags)      AS numtags,
+       (SELECT COUNT(*) FROM votes)                AS numvotes;
 
 -- --------------------------------------------------------
 -- Most popular tags, this query should be cached by server
@@ -563,4 +564,23 @@ END //
 DELIMITER ;
 
 
+-- --------------------------------------------------
+--
+-- --------------------------------------------------
 
+CREATE TABLE referrers
+(
+    id     INT           NOT NULL AUTO_INCREMENT,
+    hash   BINARY(16)    NOT NULL,
+    url    VARCHAR(1024) NOT NULL,
+    domain VARCHAR(50)   NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE INDEX (hash)
+);
+
+CREATE TABLE referrals
+(
+    referrerid  INT NOT NULL,
+    linkid      INT NOT NULL,
+    INDEX (linkid)
+)

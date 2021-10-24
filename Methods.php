@@ -6,8 +6,8 @@ namespace Zaplog {
 
     require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
 
+    use ContentSyndication\ArchiveOrg;
     use ContentSyndication\HtmlMetadata;
-    use ContentSyndication\HttpRequest;
     use ContentSyndication\Text;
     use ContentSyndication\Url;
     use ContentSyndication\XmlFeed;
@@ -183,16 +183,7 @@ namespace Zaplog {
 
         static public function storeWebArchive(string $linkid, string $url)
         {
-            // first check the wayback-machine
-            $tmp = Ini::get("webarchive_retrieve_link") . $url;
-            $json = json_decode((new HttpRequest)($tmp));
-            $archived_url = $json->archived_snapshots->closest->url ?? false;
-            if ($archived_url === false) {
-                // store in webarchive.com and get newly archived url back
-                $archived_url = Ini::get("webarchive_save_link") . $url;
-                (new HttpRequest)($archived_url);
-            }
-            // store with link
+            $archived_url = ArchiveOrg::archive($url);
             assert(filter_var($archived_url, FILTER_VALIDATE_URL) !== false);
             Db::execute("UPDATE links SET waybackurl=:url WHERE id=:id", [":id" => $linkid, ":url" => $archived_url]);
         }
@@ -235,7 +226,7 @@ namespace Zaplog {
         //
         // ----------------------------------------------------------
 
-        static public function postLink(string $channelid, $url, $title, $markdown, $image, array $keywords = []): string
+        static public function postLink(string $channelid, string $url, string $title, string $markdown, string $image, array $keywords = []): string
         {
             // Insert into database
             (new ServerException)(Db::execute("INSERT INTO links(url, channelid, title, markdown, description, image)
