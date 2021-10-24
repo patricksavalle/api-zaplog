@@ -164,7 +164,7 @@ namespace Zaplog {
         //
         // ----------------------------------------------------------
 
-        static public function archiveLinkAsync(string $linkid, string $url)
+        static public function storeWebArchiveBackground(string $linkid, string $url)
         {
             // store url in wayback-machine, use asynchronous self-call
             try {
@@ -244,7 +244,7 @@ namespace Zaplog {
 
             self::postTags($channelid, $linkid, $keywords);
 
-            self::archiveLinkAsync($linkid, $url);
+            ArchiveOrg::archiveAsync($url);
 
             return $linkid;
         }
@@ -340,7 +340,7 @@ namespace Zaplog {
                     WHERE tag=:tag1)
                 AND tag<>:tag2
                 GROUP BY tag ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT :count",
-                [":tag1" => $tag, ":tag2" => $tag, ":count" => $count], 60*60);
+                [":tag1" => $tag, ":tag2" => $tag, ":count" => $count], 60 * 60);
         }
 
     }
