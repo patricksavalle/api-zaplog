@@ -33,6 +33,7 @@ namespace Zaplog {
     use SlimRestApi\Infra\Db;
     use Zaplog\Exception\UserException;
     use Zaplog\Library\Avatar;
+    use Zaplog\Library\ParsedownProcessor;
     use Zaplog\Library\TwoFactorAction;
     use Zaplog\Middleware\Authentication;
 
@@ -281,14 +282,14 @@ namespace Zaplog {
                 Response $response,
                 stdClass $args): Response {
                 return $response->withJson([
-                    "links.description" => (string)(new Text($args->markdown))->parseDown()->blurbify(),
-                    "links.xtext" => (string)(new Text($args->markdown))->parseDown(),
-                    "reactions.description" => (string)(new Text($args->markdown))->parseDownLine()->blurbify(),
-                    "reactions.xtext" => (string)(new Text($args->markdown))->parseDownLine(),
+                    "links.description" => (string)(new Text($args->markdown))->parseDown(new ParsedownProcessor)->blurbify(),
+                    "links.xtext" => (string)(new Text($args->markdown))->parseDown(new ParsedownProcessor),
+                    "reactions.description" => (string)(new Text($args->markdown))->parseDownLine(new ParsedownProcessor)->blurbify(),
+                    "reactions.xtext" => (string)(new Text($args->markdown))->parseDownLine(new ParsedownProcessor),
                 ]);
             })
-                ->add(new BodyParameters(['{markdown:\raw}']))
-                ->add(new Authentication);
+                ->add(new BodyParameters(['{markdown:\raw}']));
+                //->add(new Authentication);
 
             // ----------------------------------------------------------------
             // Channels show posts and activity for a specific user / email
@@ -557,7 +558,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    $xtext = (string)(new Text($args->markdown))->parseDownLine();
+                    $xtext = (string)(new Text($args->markdown))->parseDownLine(new ParsedownProcessor);
                     Db::execute("CALL insert_reaction(:channelid,:linkid,:xtext,:description)", [
                         ":linkid" => $args->id,
                         ":channelid" => 1, Authentication::getSession()->id,

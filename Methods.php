@@ -18,6 +18,7 @@ namespace Zaplog {
     use Zaplog\Exception\ResourceNotFoundException;
     use Zaplog\Exception\ServerException;
     use Zaplog\Exception\UserException;
+    use Zaplog\Library\ParsedownProcessor;
     use Zaplog\Library\TwoFactorAction;
 
     class Methods
@@ -236,7 +237,7 @@ namespace Zaplog {
                         ":channelid" => $channelid,
                         ":title" => $title,
                         ":markdown" => $markdown,
-                        ":description" => (new Text($markdown))->parseDown()->blurbify(),
+                        ":description" => (new Text($markdown))->parseDown(new ParsedownProcessor)->blurbify(),
                         ":image" => $image,
                     ])->rowCount() > 0);
 
@@ -263,7 +264,7 @@ namespace Zaplog {
                 WHERE id=:id AND published=TRUE", [":id" => $id]));
 
             // parse and filter the original markdown into safe xhtml
-            $link->xtext = (string)(new Text($link->markdown))->parseDown();
+            $link->xtext = (string)(new Text($link->markdown))->parseDown(new ParsedownProcessor);
 
             return [
                 "link" => $link,
