@@ -189,12 +189,12 @@ namespace Zaplog {
                 Response $response,
                 stdClass $args): Response {
                 return $response->withJson([
-                    "trendinglinks" => Db::fetchAll("SELECT * FROM frontpage"),
                     "trendingtags" => Db::fetchAll("SELECT * FROM trendingtopics LIMIT :count", [":count" => $args->count]),
-                    "trendingchannels" => Db::fetchAll("SELECT * FROM trendingchannels LIMIT :count", [":count" => $args->count])]);
+                    "trendingchannels" => Db::fetchAll("SELECT * FROM trendingchannels LIMIT :count", [":count" => $args->count]),
+                    "trendinglinks" => Db::fetchAll("call select_frontpage(:datetime)", [":datetime" => $args->datetime])]);
             })
                 ->add(new ReadOnly)
-                ->add(new QueryParameters(['{count:\int},25',]))
+                ->add(new QueryParameters(['{count:\int},25','{datetime:\date},null',]))
                 ->add(new Memcaching(60 * 60/*sec*/));
 
             // ----------------------------------------------------------------

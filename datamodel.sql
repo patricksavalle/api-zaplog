@@ -212,22 +212,16 @@ CREATE EVENT purge_interactions ON SCHEDULE EVERY 1 HOUR DO
 -- -----------------------------------------------------------
 
 DELIMITER //
-CREATE PROCEDURE calculate_frontpage()
+CREATE PROCEDURE select_frontpage(IN arg_datetime TIMESTAMP)
 BEGIN
-    START TRANSACTION;
-    DROP TABLE IF EXISTS frontpage;
-    CREATE TABLE frontpage
-        SELECT DISTINCT links.*
-        FROM interactions
-        JOIN links ON interactions.linkid = links.id
-        WHERE published=TRUE
-        -- order by score, give old posts some half life decay after 3 hours
-        ORDER BY (score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, createdatetime), 2))) DESC LIMIT 18;
-    COMMIT;
+    IF (arg_datetime IS NULL) THEN
+        arg_datetime:=CURRENT_TIMESTAMP;
+    END IF;
+    SELECT DISTINCT links.* FROM links WHERE published=TRUE AND createdatetime<arg_datetime
+      -- order by score, give old posts some half life decay after 3 hours
+    ORDER BY (score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, arg_datetime, createdatetime), 2))) DESC LIMIT 24;
 END //
 DELIMITER ;
-
-CREATE EVENT calculate_frontpage ON SCHEDULE EVERY 1 HOUR DO CALL calculate_frontpage();
 
 -- -------------------------------------------------------------------------
 -- apply half life decay to current channel reputations and add delta score,
