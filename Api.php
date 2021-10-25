@@ -144,13 +144,12 @@ namespace Zaplog {
                         ->sendToken($args->email, $args->subject, $args->template, $args);
                     return $response->withJson(true);
                 })
-                    ->add(new Authentication)
                     ->add(new BodyParameters([
                         '{email:\email}',
                         '{subject:.{10,100}},Your email confirmation link',
                         '{template:\url},null',
-                        '{*}' /* all {{variables}} used in template */,
-                    ]));
+                        '{*}' /* all {{variables}} used in template */,]))
+                    ->add(new Authentication);
 
                 // ----------------------------------------------------------------
                 // Return the active channels (sessions) 'who's online'
@@ -193,9 +192,9 @@ namespace Zaplog {
                     "trendingtags" => Db::fetchAll("SELECT * FROM trendingtopics LIMIT :count", [":count" => $args->count]),
                     "trendingchannels" => Db::fetchAll("SELECT * FROM trendingchannels LIMIT :count", [":count" => $args->count])]);
             })
-                ->add(new Memcaching(60 * 60/*sec*/))
                 ->add(new ReadOnly)
-                ->add(new QueryParameters(['{count:\int},25',]));
+                ->add(new QueryParameters(['{count:\int},25',]))
+                ->add(new Memcaching(60 * 60/*sec*/));
 
             // ----------------------------------------------------------------
             // Get reactions, forum style, returns the latest reactions
@@ -239,14 +238,13 @@ namespace Zaplog {
                 stdClass $args): Response {
                 return $response->withJson(Methods::getActivityStream($args->offset, $args->count, $args->channel, $args->grouped));
             })
-                ->add(new Memcaching(60/*sec*/))
                 ->add(new ReadOnly)
                 ->add(new QueryParameters([
                     '{channel:\d{1,10}},null',
                     '{offset:\int},0',
                     '{count:\int},250',
-                    '{grouped:\boolean},true',
-                ]));
+                    '{grouped:\boolean},true',]))
+                ->add(new Memcaching(60/*sec*/));
 
             // ------------------------------------------------
             // return all tags unique sorted
@@ -258,8 +256,8 @@ namespace Zaplog {
                 stdClass $args): Response {
                 return $response->withJson(Db::fetchAll("SELECT * FROM tagindex"));
             })
-                ->add(new Memcaching(10/*sec*/))
-                ->add(new ReadOnly);
+                ->add(new ReadOnly)
+                ->add(new Memcaching(10/*sec*/));
 
             // ------------------------------------------------
             // get some basic statistics
@@ -271,8 +269,8 @@ namespace Zaplog {
                 stdClass $args): Response {
                 return $response->withJson(Db::fetch("SELECT * FROM statistics"));
             })
-                ->add(new Memcaching(60/*sec*/))
-                ->add(new ReadOnly);
+                ->add(new ReadOnly)
+                ->add(new Memcaching(60/*sec*/));
 
             // --------------------------------------------------------
             // Preview comment or post text after parsing and filtering
@@ -283,13 +281,14 @@ namespace Zaplog {
                 Response $response,
                 stdClass $args): Response {
                 return $response->withJson([
-                    "links.description" => (string)(new Text($args->text))->parseDown()->blurbify(),
-                    "links.xtext" => (string)(new Text($args->text))->parseDown(),
-                    "reactions.xtext" => (string)(new Text($args->text))->parseDownLine(),
+                    "links.description" => (string)(new Text($args->markdown))->parseDown()->blurbify(),
+                    "links.xtext" => (string)(new Text($args->markdown))->parseDown(),
+                    "reactions.description" => (string)(new Text($args->markdown))->parseDownLine()->blurbify(),
+                    "reactions.xtext" => (string)(new Text($args->markdown))->parseDownLine(),
                 ]);
             })
-                ->add(new Authentication)
-                ->add(new BodyParameters(['{markdown:\raw}']));
+                ->add(new BodyParameters(['{markdown:\raw}']))
+                ->add(new Authentication);
 
             // ----------------------------------------------------------------
             // Channels show posts and activity for a specific user / email
@@ -309,12 +308,11 @@ namespace Zaplog {
                     return $response->withJson(Db::fetchAll("SELECT * FROM channels_public_view ORDER BY name LIMIT :offset,:count",
                         [":offset" => $args->offset, ":count" => $args->count]));
                 })
-                    ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly)
                     ->add(new QueryParameters([
                         '{offset:\int},0',
-                        '{count:\int},2147483647,',
-                    ]));
+                        '{count:\int},2147483647,',]))
+                    ->add(new Memcaching(60/*sec*/));
 
                 // ----------------------------------------------------------------
                 // Return single channel plus its tags and related channels
@@ -326,12 +324,11 @@ namespace Zaplog {
                     stdClass $args): Response {
                     return $response->withJson(Methods::getSingleChannel($args->id));
                 })
-                    ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly)
                     ->add(new QueryParameters([
                         '{offset:\int},0',
-                        '{count:\int},20',
-                    ]));
+                        '{count:\int},20']))
+                    ->add(new Memcaching(60/*sec*/));
 
                 // ----------------------------------------------------------------
                 // Return top channels for given tag
@@ -349,9 +346,9 @@ namespace Zaplog {
                         ORDER BY SUM(links.score)/COUNT(links.id) DESC LIMIT :count",
                         [":tag" => $args->tag, ":count" => $args->count]));
                 })
-                    ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly)
-                    ->add(new QueryParameters(['{count:\int},10',]));
+                    ->add(new QueryParameters(['{count:\int},10',]))
+                    ->add(new Memcaching(60/*sec*/));
 
                 // ----------------------------------------------------------------
                 // Change channel properties of authenticated user's channel
@@ -370,13 +367,12 @@ namespace Zaplog {
                         ":channelid" => Authentication::getSession()->id,
                     ])->rowCount());
                 })
-                    ->add(new Authentication)
                     ->add(new BodyParameters([
                         '{name:[.\w-]{3,55}}',
                         '{avatar:\url},null',
                         '{bio:\xtext},null',
-                        '{moneroaddress:\moneroaddress},null',
-                    ]));
+                        '{moneroaddress:\moneroaddress},null']))
+                    ->add(new Authentication);
 
                 // ----------------------------------------------------------------
                 // Return channels top lists
@@ -391,11 +387,9 @@ namespace Zaplog {
                         "updated10" => Db::fetchAll("SELECT * FROM updatedchannels LIMIT :count", [":count" => $args->count]),
                     ]);
                 })
-                    ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly)
-                    ->add(new QueryParameters([
-                        '{count:\int},10',
-                    ]));
+                    ->add(new QueryParameters(['{count:\int},10']))
+                    ->add(new Memcaching(60/*sec*/));
 
             });
 
@@ -426,13 +420,12 @@ namespace Zaplog {
                     return $response->withJson(Methods::postLink(
                         (string)Authentication::getSession()->id, $args->link, $args->title, $args->description, $args->image));
                 })
-                    ->add(new Authentication)
                     ->add(new BodyParameters([
                         '{link:\url},null',
                         '{title:[\w-]{3,55}}',
                         '{description:\raw}',
-                        '{image:\url},null',
-                    ]));
+                        '{image:\url},null']))
+                    ->add(new Authentication);
 
                 // ----------------------------------------------------------------
                 // Return a link, including tags and related links
@@ -478,12 +471,11 @@ namespace Zaplog {
                         ":channelid" => Authentication::getSession()->id,
                     ])->rowCount());
                 })
-                    ->add(new Authentication)
                     ->add(new BodyParameters([
                         '{title:[\w-]{3,55}},null',
                         '{description:\raw},null',
-                        '{published:\boolean},null',
-                    ]));
+                        '{published:\boolean},null']))
+                    ->add(new Authentication);
 
                 // --------------------------------------------------
                 // delete a link by it's id
@@ -528,12 +520,11 @@ namespace Zaplog {
                         ORDER BY id DESC LIMIT :offset,:count",
                         [":channel" => $args->id, ":offset" => $args->offset, ":count" => $args->count]));
                 })
-                    ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly)
                     ->add(new QueryParameters([
                         '{offset:\int},0',
-                        '{count:\int},20',
-                    ]));
+                        '{count:\int},20']))
+                    ->add(new Memcaching(60/*sec*/));
 
                 // -----------------------------------------------------
                 // Returns the top scoring links for a given tag
@@ -574,8 +565,8 @@ namespace Zaplog {
                         ":description" => (new Text($xtext))->blurbify()]);
                     return $response->withJson(Db::lastInsertId());
                 })
-                    ->add(new Authentication)
-                    ->add(new BodyParameters(['{markdown:\raw}']));
+                    ->add(new BodyParameters(['{markdown:\raw}']))
+                    ->add(new Authentication);
 
                 // ------------------------------------------------
                 // get reActions
@@ -662,9 +653,9 @@ namespace Zaplog {
                     stdClass $args): Response {
                     return $response->withJson(Methods::getRelatedTags($args->tag, $args->count));
                 })
-                    ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly)
-                    ->add(new QueryParameters(['{count:\int},20',]));
+                    ->add(new QueryParameters(['{count:\int},20',]))
+                    ->add(new Memcaching(60/*sec*/));
 
                 // ------------------------------------------------
                 // get the top trending tags
@@ -680,9 +671,9 @@ namespace Zaplog {
                         "trending" => Db::fetchAll("SELECT * FROM trendingtopics LIMIT :count", [":count" => $args->count]),
                     ]);
                 })
-                    ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly)
-                    ->add(new QueryParameters(['{count:\int},20',]));
+                    ->add(new QueryParameters(['{count:\int},20',]))
+                    ->add(new Memcaching(60/*sec*/));
 
                 // ------------------------------------------------
                 // delete a tag, only delete your own tags
