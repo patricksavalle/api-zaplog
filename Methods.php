@@ -192,7 +192,7 @@ namespace Zaplog {
         //
         // ----------------------------------------------------------
 
-        static public function postTags(/*int*/ $channelid, /*int*/ $linkid, array $keywords): int
+        static public function postTags(/*int*/ $channelid, /*int*/ $linkid, array $keywords): string
         {
             $tags = [];
             foreach ($keywords as $tag) {
@@ -219,7 +219,7 @@ namespace Zaplog {
                     error_log($e->getMessage() . " @ " . __METHOD__ . "(" . __LINE__ . ") " . $tag);
                 }
             }
-            return $count;
+            return Db::lastInsertid();
         }
 
         // ----------------------------------------------------------
@@ -270,7 +270,7 @@ namespace Zaplog {
 
                 "channel" => Db::fetch("SELECT * FROM channels_public_view WHERE id=:id", [":id" => $link->channelid]),
 
-                "tags" => Db::fetchAll("SELECT tag, channelid FROM tags WHERE linkid=:id GROUP BY tag", [":id" => $id]),
+                "tags" => Db::fetchAll("SELECT * FROM tags WHERE linkid=:id GROUP BY tag", [":id" => $id]),
 
                 "related" => Db::fetchAll("SELECT links.id, links.description, links.createdatetime, links.channelid, links.title, links.image
                     FROM links JOIN tags ON tags.linkid=links.id AND links.id<>:id1
