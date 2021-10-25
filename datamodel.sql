@@ -97,7 +97,7 @@ CREATE TABLE links
     updatedatetime TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     checkdatetime  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     -- datetime of the original publication
-    origdatetime   TIMESTAMP              DEFAULT NULL,
+    origdatetime   DATETIME               DEFAULT NULL,
     channelid      INT           NOT NULL,
     published      BOOL          NOT NULL DEFAULT TRUE,
     urlhash        CHAR(32) GENERATED ALWAYS AS (MD5(url)),
