@@ -283,13 +283,13 @@ namespace Zaplog {
                 Response $response,
                 stdClass $args): Response {
                 return $response->withJson([
-                    "links.description" => (string)(new Text($args->text))->reEncode()->parseDown()->blurbify(),
-                    "links.xtext" => (string)(new Text($args->text))->reEncode()->parseDown(),
-                    "reactions.xtext" => (string)(new Text($args->text))->reEncode()->parseDownLine(),
+                    "links.description" => (string)(new Text($args->text))->parseDown()->blurbify(),
+                    "links.xtext" => (string)(new Text($args->text))->parseDown(),
+                    "reactions.xtext" => (string)(new Text($args->text))->parseDownLine(),
                 ]);
             })
-//                ->add(new Authentication)
-                ->add(new BodyParameters(['{text:\raw}']));
+                ->add(new Authentication)
+                ->add(new BodyParameters(['{markdown:\raw}']));
 
             // ----------------------------------------------------------------
             // Channels show posts and activity for a specific user / email
@@ -424,12 +424,7 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     return $response->withJson(Methods::postLink(
-                        (string)Authentication::getSession()->id,
-                        $args->link,
-                        $args->title,
-                        $args->description,
-                        $args->image)
-                    );
+                        (string)Authentication::getSession()->id, $args->link, $args->title, $args->description, $args->image));
                 })
                     ->add(new Authentication)
                     ->add(new BodyParameters([

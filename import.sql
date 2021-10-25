@@ -54,7 +54,5 @@ JOIN zaplog_site.exp_members as members ON comments.author_id=members.member_id;
 
 ALTER TABLE zaplog.imported_comments ADD INDEX (userid), ADD INDEX(entry_id), ADD INDEX(comment_id);
 
-ALTER TABLE zaplog.links
-ADD COLUMN entryid INT NULL AFTER id,
-ADD INDEX (entryid);
+
 
