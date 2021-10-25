@@ -13,13 +13,6 @@ namespace Zaplog {
 
     class ZaplogImport
     {
-        protected function SR(string $text): string
-        {
-            str_replace("http://zaplog.nl/", "https://web.archive.org/web/*/http://zaplog.nl/", $text);
-            str_replace("http://zapruder.nl/", "https://web.archive.org/web/*/http://zapruder.nl/", $text);
-            return $text;
-        }
-
         public function __invoke()
         {
             set_time_limit(0);
@@ -53,7 +46,6 @@ namespace Zaplog {
                     ORDER BY entry_id ASC
                     LIMIT :offset, 1000", [":offset" => $offset]) as $post) {
                     $batchsize++;
-                    $post->description = $this->SR($post->description);
                     Db::execute("INSERT INTO links(entryid,channelid,title,markdown,description,createdatetime,viewscount,url, image)
                         VALUES(:entryid,:channelid,:title,:markdown,:description,:createdatetime,:viewscount,:url, :image)", [
                         ":entryid" => $post->entry_id,
