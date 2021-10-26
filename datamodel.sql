@@ -132,13 +132,22 @@ CREATE TABLE links
     score          INT GENERATED ALWAYS AS (
 
             -- the scoring algorithm
-            (votescount+1) * (
-                ROUND(LOG(10, 1 + uniquereactors * 10)) +
-                ROUND(LOG(10, 1 + LENGTH(markdown)) +
-                ROUND(LOG(10, 1 + uniquereferrers)) +
-                ROUND(LOG(10, 1 + reactionscount)) +
-                ROUND(LOG(10, 1 + viewscount / 10))) +
-                IF(tagscount > 3 AND tagscount < 10, 1, 0)
+            (votescount+1) *
+            -- no tags, no score
+            IF(tagscount = 0 , 0, 1) *
+            -- no content, no score
+            IF (markdown IS NULL OR LENGTH(markdown) = 0, 0, 1) *
+            -- double score for real articles
+            IF(copyright IS NULL OR copyright = 'No Rights Apply', 1, 2) *
+            -- weigh the active and passive factors
+            (
+                ROUND(
+                    LOG(10, 1 + uniquereactors * 10) +
+                    LOG(10, 1 + IF(markdown IS NULL, 0, LENGTH(markdown))) +
+                    LOG(10, 1 + uniquereferrers) +
+                    LOG(10, 1 + reactionscount) +
+                    LOG(10, 1 + viewscount / 10)
+                )
             )
 
         ),
@@ -225,16 +234,15 @@ BEGIN
     IF (arg_datetime IS NULL) THEN
         SET arg_datetime=CURRENT_TIMESTAMP;
     END IF;
-    SELECT DISTINCT links.* FROM links WHERE published=TRUE AND createdatetime<arg_datetime
+    SELECT DISTINCT links.* FROM links WHERE published=TRUE AND createdatetime<SUBDATE(arg_datetime, INTERVAL 3 HOUR)
       -- order by score, give old posts some half life decay after 3 hours
     ORDER BY (score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, arg_datetime, createdatetime), 2))) DESC LIMIT 24;
 END //
 DELIMITER ;
 
 CREATE VIEW frontpage AS
-    SELECT DISTINCT links.* FROM links WHERE published=TRUE
+    SELECT DISTINCT links.* FROM links WHERE published=TRUE AND createdatetime<SUBDATE(CURRENT_TIMESTAMP, INTERVAL 3 HOUR)
     ORDER BY (score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, createdatetime), 2))) DESC LIMIT 24;
-
 
 -- -------------------------------------------------------------------------
 -- apply half life decay to current channel reputations and add delta score,
