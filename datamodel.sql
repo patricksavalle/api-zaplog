@@ -5,7 +5,7 @@
 
 /*
     I tried to make the datamodel as complete and self-contained as possible.
-    It should be possible to use the model with a different code-base on top.
+    Data-integrity is maintained within the datamodel itself.
 
     This datamodel should be understandable WITHOUT reading the PHP/code layer
     (and vice versa)
@@ -125,15 +125,23 @@ CREATE TABLE links
     -- instead of counting/joining the respective tables each time
     reactionscount INT                    DEFAULT 0,
     uniquereactors INT                    DEFAULT 0,
+    uniquereferrers INT                   DEFAULT 0,
     viewscount     INT                    DEFAULT 0,
     votescount     INT                    DEFAULT 0,
     tagscount      INT                    DEFAULT 0,
     score          INT GENERATED ALWAYS AS (
-                           FLOOR(LN(uniquereactors + 2.71828) * reactionscount * 5) +
-                           votescount * 10 +
-                           tagscount * 2 +
-                           FLOOR(LOG(viewscount + 1))
-                       ),
+
+            -- the scoring algorithm
+            (votescount+1) * (
+                ROUND(LOG(10, 1 + uniquereactors * 10)) +
+                ROUND(LOG(10, 1 + LENGTH(markdown)) +
+                ROUND(LOG(10, 1 + uniquereferrers)) +
+                ROUND(LOG(10, 1 + reactionscount)) +
+                ROUND(LOG(10, 1 + viewscount / 10))) +
+                IF(tagscount > 3 AND tagscount < 10, 1, 0)
+            )
+
+        ),
     PRIMARY KEY (id),
     INDEX (channelid),
     INDEX (published),
@@ -215,13 +223,18 @@ DELIMITER //
 CREATE PROCEDURE select_frontpage(IN arg_datetime TIMESTAMP)
 BEGIN
     IF (arg_datetime IS NULL) THEN
-        arg_datetime:=CURRENT_TIMESTAMP;
+        SET arg_datetime=CURRENT_TIMESTAMP;
     END IF;
     SELECT DISTINCT links.* FROM links WHERE published=TRUE AND createdatetime<arg_datetime
       -- order by score, give old posts some half life decay after 3 hours
     ORDER BY (score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, arg_datetime, createdatetime), 2))) DESC LIMIT 24;
 END //
 DELIMITER ;
+
+CREATE VIEW frontpage AS
+    SELECT DISTINCT links.* FROM links WHERE published=TRUE
+    ORDER BY (score / GREATEST(9, POWER(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, createdatetime), 2))) DESC LIMIT 24;
+
 
 -- -------------------------------------------------------------------------
 -- apply half life decay to current channel reputations and add delta score,

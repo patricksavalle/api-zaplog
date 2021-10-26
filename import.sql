@@ -52,7 +52,7 @@ SELECT comment_id, entry_id, MD5(members.email) AS userid, FROM_UNIXTIME(comment
 FROM zaplog_site.exp_comments AS comments
 JOIN zaplog_site.exp_members as members ON comments.author_id=members.member_id;
 
-ALTER TABLE zaplog.imported_comments ADD INDEX (userid), ADD INDEX(entry_id), ADD INDEX(comment_id);
+ALTER TABLE zaplog.imported_comments ADD INDEX (userid), ADD INDEX(entry_id);
 
 
 

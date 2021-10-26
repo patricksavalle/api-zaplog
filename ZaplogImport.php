@@ -46,13 +46,16 @@ namespace Zaplog {
                     ORDER BY entry_id ASC
                     LIMIT :offset, 1000", [":offset" => $offset]) as $post) {
                     $batchsize++;
+                    $purified = (string)(new Text($post->description))->nl2br()->BBtoHTML()->purify();
+                    $markdown = (string)(new Text($purified))->parseUp();
+                    if (strlen($markdown)<50) continue;
                     Db::execute("INSERT INTO links(entryid,channelid,title,markdown,description,createdatetime,viewscount,url, image)
                         VALUES(:entryid,:channelid,:title,:markdown,:description,:createdatetime,:viewscount,:url, :image)", [
                         ":entryid" => $post->entry_id,
                         ":channelid" => $post->channelid,
                         ":title" => (string)(new Text($post->title)),
-                        ":markdown" => (string)(new Text($post->description))->nl2br()->BBtoHTML()->purify()->parseUp(),
-                        ":description" => (string)(new Text($post->description))->blurbify(),
+                        ":markdown" => $markdown,
+                        ":description" => (string)(new Text($purified))->blurbify(),
                         ":createdatetime" => $post->createdatetime,
                         ":viewscount" => $post->viewscount * 3,
                         ":url" => $post->link,
@@ -99,6 +102,8 @@ namespace Zaplog {
                 $offset += 1000;
             } while ($batchsize > 0);
 
+            Db::execute("DELETE FROM comments");
+
             // import comments
             $offset = 0;
             do {
@@ -142,7 +147,6 @@ namespace Zaplog {
             Db::execute("DELETE FROM links WHERE (tagscount=0 OR votescount=0) AND reactionscount=0");
 
             Db::execute("CALL calculate_channel_reputations()");
-            Db::execute("CALL calculate_frontpage()");
 
             Db::execute("OPTIMIZE TABLE channels");
             Db::execute("OPTIMIZE TABLE links");
