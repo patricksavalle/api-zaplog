@@ -7,8 +7,8 @@ bitcoinaddress=
 
 [content]
 default_post_image=https://cdn.pixabay.com/photo/2018/06/24/08/01/dark-background-3494082_1280.jpg
-;broken_link_redirector="https://url.zaplog.pro/"
-broken_link_redirector="http://localhost:8080/Api.php/goto/"
+;broken_link_redirector="https://url.zaplog.pro?urlencoded="
+broken_link_redirector="http://localhost:8080/Api.php/goto?urlencoded="
 ; prefix links with the Zaplog redirector
 
 [memcache]
