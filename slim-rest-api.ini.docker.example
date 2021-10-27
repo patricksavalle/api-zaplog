@@ -7,6 +7,7 @@ admins[]=
 
 [content]
 default_post_image=https://cdn.pixabay.com/photo/2018/06/24/08/01/dark-background-3494082_1280.jpg
+broken_link_redirector=${ZAPLOG_GOTO_URL}
 
 [memcache]
 memcache_host=${MEMCACHED_HOST}
@@ -38,5 +39,5 @@ smtp_secure=TLS
 smtp_port=587
 
 [email]
-email_sender=
-email_sendername=Zaplog
+email_sender=${ZAPLOG_MAIL_SENDER_EMAIL}
+email_sendername=${ZAPLOG_MAIL_SENDER_NAME}
