@@ -400,14 +400,13 @@ namespace Zaplog {
                 // post from link, retrieve its metadata, add to user channel
                 // ------------------------------------------------------
 
-                $this->post("/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
+                $this->post("/link", function (
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    $url = trim(urldecode($args->urlencoded));
-                    (new UserException)(filter_var($url, FILTER_VALIDATE_URL) !== false);
-                    return $response->withJson(Methods::postLinkFromUrl((string)Authentication::getSession()->id, $url));
+                    return $response->withJson(Methods::postLinkFromUrl((string)Authentication::getSession()->id, $args->link));
                 })
+                    ->add(new BodyParameters(['{link:\url}']))
                     ->add(new Authentication);
 
                 // ------------------------------------------------------
