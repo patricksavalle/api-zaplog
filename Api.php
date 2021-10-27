@@ -11,11 +11,6 @@ namespace Zaplog {
     define("BASE_PATH", __DIR__);
 
     require_once BASE_PATH . '/vendor/autoload.php';
-    require_once BASE_PATH . '/Middleware/Authentication.php';
-    require_once BASE_PATH . '/Methods.php';
-    require_once BASE_PATH . '/Library/TwoFactorAction.php';
-    require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
-    require_once BASE_PATH . '/Exception/EmailException.php';
 
     use ContentSyndication\HtmlMetadata;
     use ContentSyndication\Text;
@@ -39,6 +34,20 @@ namespace Zaplog {
 
     class Api extends SlimRestApi
     {
+        static protected function resultHook(Request $request, stdClass $args, array $json): array
+        {
+            foreach (scandir("Plugins/ResponseFilters/") as $file) {
+                if (strpos($file, ".php") !== false) {
+                    /** @noinspection PhpIncludeInspection */
+                    require "Plugins/ResponseFilters/$file";
+                    $json = call_user_func_array(
+                        ["Zaplog\Plugins\ResponseFilters\Plugin", "filter"],
+                        [$request->getUri()->getPath(), $args, $json]);
+                }
+            }
+            return $json;
+        }
+
         public function __construct()
         {
             parent::__construct();
@@ -194,7 +203,7 @@ namespace Zaplog {
                     "trendinglinks" => Db::fetchAll("call select_frontpage(:datetime)", [":datetime" => $args->datetime])]);
             })
                 ->add(new ReadOnly)
-                ->add(new QueryParameters(['{count:\int},25','{datetime:\date},null',]))
+                ->add(new QueryParameters(['{count:\int},25', '{datetime:\date},null',]))
                 ->add(new Memcaching(60 * 60/*sec*/));
 
             // ----------------------------------------------------------------
@@ -289,7 +298,7 @@ namespace Zaplog {
                 ]);
             })
                 ->add(new BodyParameters(['{markdown:\raw}']));
-                //->add(new Authentication);
+            //->add(new Authentication);
 
             // ----------------------------------------------------------------
             // Channels show posts and activity for a specific user / email
