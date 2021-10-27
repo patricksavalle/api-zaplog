@@ -69,13 +69,14 @@ namespace Zaplog {
             // redirect to original or else archived page
             // ------------------------------------------
 
-            $this->get("/goto/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
+            $this->get("/goto", function (
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
                 return $response->withStatus(307)->withHeader("Location",
                     (new MemcachedFunction)(["\ContentSyndication\ArchiveOrg", "originalOrClosest"], [urldecode($args->urlencoded)], 60 * 60));
-            });
+            })
+                ->add(new QueryParameters(['{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}']));
 
             $this->get("/import", function (
                 Request  $request,
@@ -443,7 +444,7 @@ namespace Zaplog {
                 // Return a link's metadata
                 // ----------------------------------------------------------------
 
-                $this->get("/metadata/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
+                $this->get("/metadata", function (
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
@@ -451,6 +452,7 @@ namespace Zaplog {
                     (new UserException)(filter_var($url, FILTER_VALIDATE_URL));
                     return $response->withJson((new HtmlMetadata)($url));
                 })
+                    ->add(new QueryParameters(['{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}']))
                     ->add(new Authentication);
 
                 // ----------------------------------------------------------------
