@@ -50,7 +50,7 @@ namespace Zaplog {
             $this->get("/", function ($rq, $rp, $args): Response {
 
                 // Initialization
-                Authentication::createSession("dummy");
+                Authentication::createSession("dummy@dummy.dummy");
 
                 echo "<p>Repositories: https://gitlab.com/zaplog/api-zaplog</p>";
                 echo "<h1>" . __CLASS__ . "</h1>";
