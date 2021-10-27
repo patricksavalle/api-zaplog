@@ -1,5 +1,7 @@
 FROM php:apache
 
+ARG ZAPLOG_API_HOST=localhost
+
 RUN apt-get update
 RUN apt-get install -y libz-dev libmemcached-dev apt-utils git unzip libzip-dev && \
     docker-php-ext-install zip pdo pdo_mysql && \
@@ -23,7 +25,7 @@ RUN chmod +x /var/www/html/composer.phar
 RUN /var/www/html/composer.phar selfupdate && \
     /var/www/html/composer.phar update
 
-RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+RUN echo "ServerName $ZAPLOG_API_HOST" >> /etc/apache2/apache2.conf
 
 EXPOSE 80
 CMD ["/usr/sbin/apache2ctl", "-D", "FOREGROUND"]
