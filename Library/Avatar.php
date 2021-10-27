@@ -18,6 +18,7 @@ namespace Zaplog\Library {
 
         public function inlineBase64(): string
         {
+            /** @noinspection PhpStrictTypeCheckingInspection */
             $type = get_headers($this->url, 1)["Content-Type"] ?? "";
             error_log($type);
             (new UserException)($type !== false and strpos($type, "image/") === 0);
