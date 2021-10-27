@@ -34,18 +34,17 @@ namespace Zaplog {
 
     class Api extends SlimRestApi
     {
-        static protected function resultHook(Request $request, stdClass $args, array $json): array
+        static protected function response(Request $request, Response $response, stdClass $args, $data): Response
         {
+            // scan plugin direcory for plugins and execute
             foreach (scandir("Plugins/ResponseFilters/") as $file) {
-                if (strpos($file, ".php") !== false) {
-                    /** @noinspection PhpIncludeInspection */
-                    require "Plugins/ResponseFilters/$file";
-                    $json = call_user_func_array(
-                        ["Zaplog\Plugins\ResponseFilters\Plugin", "filter"],
-                        [$request->getUri()->getPath(), $args, $json]);
+                if (strrpos($file, ".php") !== false) {
+                    require_once "Plugins/ResponseFilters/" . $file;
+                    $classname = "Zaplog\\Plugins\\ResponseFilters\\" . substr($file, 0, strrpos($file, ".php"));
+                    (new $classname)($request->getUri()->getPath(), $args, $data);
                 }
             }
-            return $json;
+            return self::response( $request, $response, $args, $data);
         }
 
         public function __construct()
@@ -91,7 +90,7 @@ namespace Zaplog {
                 Response $response,
                 stdClass $args): Response {
                 (new ZaplogImport)();
-                return $response->withJson(null);
+                return self::response( $request, $response, $args, null);
             });
 
             // -----------------------------------------
@@ -108,7 +107,7 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                return $response->withJson(["bitcoinaddress" => Ini::get("bitcoinaddress"), "shares" => Methods::getPaymentShares()]);
+                return self::response( $request, $response, $args, ["bitcoinaddress" => Ini::get("bitcoinaddress"), "shares" => Methods::getPaymentShares()]);
             })
                 ->add(new Memcaching(60/*sec*/));
 
@@ -131,7 +130,7 @@ namespace Zaplog {
                         ->addAction('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'createSession'], [$args->email])
                         ->createToken()
                         ->sendToken($args->email, $args->subject, $args->template, $args);
-                    return $response->withJson(true);
+                    return self::response( $request, $response, $args, true);
                 })
                     ->add(new BodyParameters([
                         '{email:\email}',
@@ -152,7 +151,7 @@ namespace Zaplog {
                         ->addAction('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'updateIdentity'], [$args->email])
                         ->createToken()
                         ->sendToken($args->email, $args->subject, $args->template, $args);
-                    return $response->withJson(true);
+                    return self::response( $request, $response, $args, true);
                 })
                     ->add(new BodyParameters([
                         '{email:\email}',
@@ -169,7 +168,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Db::fetchAll("SELECT * FROM activeusers"));
+                    return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM activeusers"));
                 })
                     ->add(new Memcaching(60/*sec*/))
                     ->add(new ReadOnly);
@@ -183,7 +182,7 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     Authentication::deleteSession();
-                    return $response->withJson(null);
+                    return self::response( $request, $response, $args, null);
                 })
                     ->add(new Authentication);
 
@@ -197,7 +196,7 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                return $response->withJson([
+                return self::response( $request, $response, $args, [
                     "trendingtags" => Db::fetchAll("SELECT * FROM trendingtopics LIMIT :count", [":count" => $args->count]),
                     "trendingchannels" => Db::fetchAll("SELECT * FROM trendingchannels LIMIT :count", [":count" => $args->count]),
                     "trendinglinks" => Db::fetchAll("call select_frontpage(:datetime)", [":datetime" => $args->datetime])]);
@@ -215,7 +214,7 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                return $response->withJson(Db::fetchAll("CALL select_discussion(NULL,:offset,:count)",
+                return self::response( $request, $response, $args, Db::fetchAll("CALL select_discussion(NULL,:offset,:count)",
                     [":offset" => $args->offset, ":count" => $args->count]));
             })
                 ->add(new ReadOnly)
@@ -228,7 +227,7 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                return $response->withJson(Db::fetchAll("CALL select_discussion(:channel,:offset,:count)",
+                return self::response( $request, $response, $args, Db::fetchAll("CALL select_discussion(:channel,:offset,:count)",
                     [":channel" => $args->id, ":offset" => $args->offset, ":count" => $args->count]));
             })
                 ->add(new ReadOnly)
@@ -246,7 +245,7 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                return $response->withJson(Methods::getActivityStream($args->offset, $args->count, $args->channel, $args->grouped));
+                return self::response( $request, $response, $args, Methods::getActivityStream($args->offset, $args->count, $args->channel, $args->grouped));
             })
                 ->add(new ReadOnly)
                 ->add(new QueryParameters([
@@ -264,7 +263,7 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                return $response->withJson(Db::fetchAll("SELECT * FROM tagindex"));
+                return self::response( $request, $response, $args, Db::fetchAll("SELECT * FROM tagindex"));
             })
                 ->add(new ReadOnly)
                 ->add(new Memcaching(10/*sec*/));
@@ -277,7 +276,7 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                return $response->withJson(Db::fetch("SELECT * FROM statistics"));
+                return self::response( $request, $response, $args, Db::fetch("SELECT * FROM statistics"));
             })
                 ->add(new ReadOnly)
                 ->add(new Memcaching(60/*sec*/));
@@ -290,7 +289,7 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                return $response->withJson([
+                return self::response( $request, $response, $args, [
                     "links.description" => (string)(new Text($args->markdown))->parseDown(new ParsedownProcessor)->blurbify(),
                     "links.xtext" => (string)(new Text($args->markdown))->parseDown(new ParsedownProcessor),
                     "reactions.description" => (string)(new Text($args->markdown))->parseDownLine(new ParsedownProcessor)->blurbify(),
@@ -315,7 +314,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Db::fetchAll("SELECT * FROM channels_public_view ORDER BY name LIMIT :offset,:count",
+                    return self::response( $request, $response, $args, Db::fetchAll("SELECT * FROM channels_public_view ORDER BY name LIMIT :offset,:count",
                         [":offset" => $args->offset, ":count" => $args->count]));
                 })
                     ->add(new ReadOnly)
@@ -332,7 +331,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Methods::getSingleChannel($args->id));
+                    return self::response( $request, $response, $args, Methods::getSingleChannel($args->id));
                 })
                     ->add(new ReadOnly)
                     ->add(new QueryParameters([
@@ -348,7 +347,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Db::fetchAll("SELECT channels.* FROM channels_public_view AS channels
+                    return self::response( $request, $response, $args, Db::fetchAll("SELECT channels.* FROM channels_public_view AS channels
                         JOIN tags ON tags.channelid=channels.id
                         JOIN links ON tags.linkid=links.id
                         WHERE tag=:tag
@@ -368,7 +367,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Db::execute("UPDATE channels SET 
+                    return self::response( $request, $response, $args, Db::execute("UPDATE channels SET 
                         name=:name, avatar=IFNULL(:avatar,avatar), bio=:bio, moneroaddress=:moneroaddress WHERE id=:channelid", [
                         ":name" => (new Text($args->name))->convertToAscii()->hyphenize(),
                         ":avatar" => empty($args->avatar) ? null : (new Avatar($args->avatar))->inlineBase64(),
@@ -392,7 +391,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson([
+                    return self::response( $request, $response, $args, [
                         "top10" => Db::fetchAll("SELECT * FROM topchannels LIMIT :count", [":count" => $args->count]),
                         "updated10" => Db::fetchAll("SELECT * FROM updatedchannels LIMIT :count", [":count" => $args->count]),
                     ]);
@@ -415,7 +414,7 @@ namespace Zaplog {
                     stdClass $args): Response {
                     $url = trim(urldecode($args->urlencoded));
                     (new UserException)(filter_var($url, FILTER_VALIDATE_URL) !== false);
-                    return $response->withJson(Methods::postLinkFromUrl((string)Authentication::getSession()->id, $url));
+                    return self::response( $request, $response, $args, Methods::postLinkFromUrl((string)Authentication::getSession()->id, $url));
                 })
                     ->add(new Authentication);
 
@@ -427,7 +426,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Methods::postLink(
+                    return self::response( $request, $response, $args, Methods::postLink(
                         (string)Authentication::getSession()->id, $args->link, $args->title, $args->description, $args->image));
                 })
                     ->add(new BodyParameters([
@@ -445,7 +444,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Methods::getSingleLink($args->id));
+                    return self::response( $request, $response, $args, Methods::getSingleLink($args->id));
                 })
                     ->add(new QueryParameters(['{http_referer:\url},null']));
 
@@ -459,7 +458,7 @@ namespace Zaplog {
                     stdClass $args): Response {
                     $url = trim(urldecode($args->urlencoded));
                     (new UserException)(filter_var($url, FILTER_VALIDATE_URL));
-                    return $response->withJson((new HtmlMetadata)($url));
+                    return self::response( $request, $response, $args, (new HtmlMetadata)($url));
                 })
                     ->add(new Authentication);
 
@@ -471,7 +470,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Db::execute("UPDATE links SET 
+                    return self::response( $request, $response, $args, Db::execute("UPDATE links SET 
                         published=:published, title=:title, description=:description 
                         WHERE id=:linkid AND channelid=:channelid", [
                         ":published" => $args->published,
@@ -496,7 +495,7 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
-                    return $response->withJson((new UserException)(Db::execute("DELETE FROM links WHERE id =:id and channelid=:channelid",
+                    return self::response( $request, $response, $args, (new UserException)(Db::execute("DELETE FROM links WHERE id =:id and channelid=:channelid",
                             [":id" => $args->id, ":channelid" => $channelid])->rowCount() > 0));
                 })
                     ->add(new Authentication);
@@ -509,7 +508,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Db::fetchAll("SELECT * FROM links WHERE published=TRUE ORDER BY id DESC LIMIT :offset,:count",
+                    return self::response( $request, $response, $args, Db::fetchAll("SELECT * FROM links WHERE published=TRUE ORDER BY id DESC LIMIT :offset,:count",
                         [":offset" => $args->offset, ":count" => $args->count]));
                 })
                     ->add(new ReadOnly)
@@ -526,7 +525,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Db::fetchAll("SELECT * FROM links WHERE channelid=:channel AND published=TRUE 
+                    return self::response( $request, $response, $args, Db::fetchAll("SELECT * FROM links WHERE channelid=:channel AND published=TRUE 
                         ORDER BY id DESC LIMIT :offset,:count",
                         [":channel" => $args->id, ":offset" => $args->offset, ":count" => $args->count]));
                 })
@@ -544,7 +543,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Db::fetchAll("SELECT links.* FROM tags JOIN links ON tags.linkid=links.id 
+                    return self::response( $request, $response, $args, Db::fetchAll("SELECT links.* FROM tags JOIN links ON tags.linkid=links.id 
                         WHERE tags.tag=:tag AND published=TRUE ORDER BY links.id DESC LIMIT :offset,:count",
                         [":tag" => $args->tag, ":offset" => $args->offset, ":count" => $args->count]));
                 })
@@ -573,7 +572,7 @@ namespace Zaplog {
                         ":channelid" => 1, Authentication::getSession()->id,
                         ":xtext" => $xtext,
                         ":description" => (new Text($xtext))->blurbify()]);
-                    return $response->withJson(Db::lastInsertId());
+                    return self::response( $request, $response, $args, Db::lastInsertId());
                 })
                     ->add(new BodyParameters(['{markdown:\raw}']))
                     ->add(new Authentication);
@@ -586,8 +585,8 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson("SELECT reactions.* FROM reactions JOIN links ON links.id=reactions.linkid
-                        WHERE linkid=:id AND published=TRUE ORDER BY id", [":id" => $args->id]);
+                    return self::response( $request, $response, $args, Db::fetchAll("SELECT reactions.* FROM reactions JOIN links ON links.id=reactions.linkid
+                        WHERE linkid=:id AND published=TRUE ORDER BY id", [":id" => $args->id]));
                 })
                     ->add(new ReadOnly);
 
@@ -600,8 +599,8 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
-                    return $response->withJson((new UserException)(Db::execute("DELETE FROM reactions WHERE id=:id AND channelid=:channelid",
-                            [":id" => $args->id, ":channelid" => $channelid])->rowCount() > 0));
+                    return self::response( $request, $response, $args, Db::execute("DELETE FROM reactions WHERE id=:id AND channelid=:channelid",
+                            [":id" => $args->id, ":channelid" => $channelid]));
                 })
                     ->add(new Authentication);
 
@@ -619,7 +618,7 @@ namespace Zaplog {
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
                     Db::execute("CALL toggle_vote(:channelid,:linkid)", [":linkid" => $args->id, ":channelid" => $channelid]);
-                    return $response->withJson(Db::lastInsertId());
+                    return self::response( $request, $response, $args, Db::lastInsertId());
                 })
                     ->add(new Authentication);
 
@@ -632,7 +631,7 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
-                    return $response->withJson((new UserException)(Db::execute("DELETE FROM votes WHERE linkid=:linkid AND channelid=:channelid",
+                    return self::response( $request, $response, $args, (new UserException)(Db::execute("DELETE FROM votes WHERE linkid=:linkid AND channelid=:channelid",
                             [":linkid" => $args->id, ":channelid" => $channelid])->rowCount() > 0));
                 })
                     ->add(new Authentication);
@@ -649,7 +648,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Methods::postTags(Authentication::getSession()->id, (int)$args->id, [$args->tag]));
+                    return self::response( $request, $response, $args, Methods::postTags(Authentication::getSession()->id, (int)$args->id, [$args->tag]));
                 })
                     ->add(new Authentication);
 
@@ -661,7 +660,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson(Methods::getRelatedTags($args->tag, $args->count));
+                    return self::response( $request, $response, $args, Methods::getRelatedTags($args->tag, $args->count));
                 })
                     ->add(new ReadOnly)
                     ->add(new QueryParameters(['{count:\int},20',]))
@@ -675,7 +674,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return $response->withJson([
+                    return self::response( $request, $response, $args, [
                         "top" => Db::fetchAll("SELECT * FROM toptopics LIMIT :count", [":count" => $args->count]),
                         "new" => Db::fetchAll("SELECT * FROM newtopics LIMIT :count", [":count" => $args->count]),
                         "trending" => Db::fetchAll("SELECT * FROM trendingtopics LIMIT :count", [":count" => $args->count]),
@@ -694,7 +693,7 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
-                    return $response->withJson((new UserException)(Db::execute("DELETE tags FROM tags WHERE id=:id and channelid=:channelid",
+                    return self::response( $request, $response, $args, (new UserException)(Db::execute("DELETE tags FROM tags WHERE id=:id and channelid=:channelid",
                             [":id" => $args->id, ":channelid" => $channelid])->rowCount() > 0));
                 })
                     ->add(new Authentication);
