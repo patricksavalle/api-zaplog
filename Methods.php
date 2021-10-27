@@ -146,10 +146,10 @@ namespace Zaplog {
             $metadata = (new HtmlMetadata)($url);
 
             // external input must be validated
-            (new UserException("Invalid link"))(filter_var($metadata["url"], FILTER_VALIDATE_URL) !== false);
+            (new UserException("Invalid link"))(filter_var($metadata["url"] ?? "", FILTER_VALIDATE_URL) !== false);
             (new UserException("Invalid title"))(!empty($metadata["title"]));
             (new UserException("Invalid description"))(!empty($metadata["description"]));
-            if (filter_var($metadata["image"], FILTER_VALIDATE_URL) === false) {
+            if (filter_var($metadata["image"] ?? "", FILTER_VALIDATE_URL) === false) {
                 $metadata["image"] = Ini::get("default_post_image");
             }
 
