@@ -40,7 +40,7 @@ CREATE TABLE channels
     refeeddatetime   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     lastseendatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     -- inline base64 encoded avatars
-    avatar           VARCHAR(8192)      DEFAULT NULL,
+    avatar           VARCHAR(16384)     DEFAULT NULL,
     header           VARCHAR(255)       DEFAULT NULL,
     bio              VARCHAR(255)       DEFAULT NULL,
     moneroaddress    CHAR(93)           DEFAULT NULL,
@@ -84,7 +84,7 @@ INSERT INTO channels(name,bio,userid,avatar) VALUES ("zaplog", "Next-generation 
 -- -----------------------------------------------------
 
 CREATE VIEW channels_public_view AS
-    SELECT id,name,createdatetime,updatedatetime,bio,avatar,reputation FROM channels;
+    SELECT id,name,createdatetime,updatedatetime,bio,avatar,ROUND(reputation) AS reputation FROM channels;
 
 -- -----------------------------------------------------
 -- The links that are being shared, rated, etc.
@@ -136,7 +136,7 @@ CREATE TABLE links
             -- no tags, no score
             IF(tagscount = 0 , 0, 1) *
             -- no content, no score
-            IF (markdown IS NULL OR LENGTH(markdown) = 0, 0, 1) *
+            IF(markdown IS NULL OR LENGTH(markdown) = 0, 0, 1) *
             -- double score for real articles
             IF(copyright IS NULL OR copyright = 'No Rights Apply', 1, 2) *
             -- weigh the active and passive factors

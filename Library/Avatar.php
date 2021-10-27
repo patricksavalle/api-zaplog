@@ -18,12 +18,13 @@ namespace Zaplog\Library {
 
         public function inlineBase64(): string
         {
-            $type = mime_content_type($this->url);
+            $type = get_headers($this->url, 1)["Content-Type"] ?? "";
+            error_log($type);
             (new UserException)($type !== false and strpos($type, "image/") === 0);
             $file = file_get_contents($this->url);
             (new UserException)($file !== false);
             $base64 = base64_encode($file);
-            (new UserException)(strlen($file)<8192);
+            (new UserException("Image file too large"))(strlen($file)<16384);
             return "data:$type;base64,$base64";
         }
     }
