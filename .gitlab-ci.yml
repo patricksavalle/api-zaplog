@@ -5,6 +5,7 @@ services:
 
 stages:
   - build
+  - deploy
  # - package
  # - release
  # - deploy
@@ -28,6 +29,7 @@ build-docker:
     - master
 
 deploy-prod:
+  stage: deploy
   tags: 
     - zaplog
   #only: 
