@@ -31,36 +31,19 @@ namespace Zaplog {
     use Zaplog\Library\ParsedownProcessor;
     use Zaplog\Library\TwoFactorAction;
     use Zaplog\Middleware\Authentication;
+    use Zaplog\Plugins\ResponseFilterIterator;
 
     class Api extends SlimRestApi
     {
+        // --------------------------------------------------------------------
+        // Allow plugins to filter responses before they're returned.
+        // Plugins/ResponseFilters/<method>_<uri>__<pluginname>.php
+        // --------------------------------------------------------------------
+
         static protected function response(Request $request, Response $response, stdClass $args, $data): Response
         {
-            $method = $request->getMethod();
-            $uri = $request->getUri();
-            // scan plugin direcory for plugins that match the request method
-            foreach (glob("Plugins/ResponseFilters/{$method}_*.php") as $file) {
-
-                // GET/links/id/10
-                // get_links_id_10
-                //  - get__plugin1.php           v
-                //  - get_links__plugin2.php     v
-                //  - get_channels__plugin2.php  x
-                //  - post_links__plugin3.php    x
-
-                // find plugins that match the request
-                if (stripos(
-                        $method . str_replace("/", "_", $uri),
-                        substr($file, 0, strrpos($file, "__") + 1)
-                    ) === 0) {
-
-                    //execute the plugin
-                    require_once "Plugins/ResponseFilters/" . $file;
-                    $classname = "Zaplog\\Plugins\\ResponseFilters\\" . substr($file, 0, strrpos($file, ".php"));
-                    (new $classname)($request->getUri()->getPath(), $args, $data);
-                }
-            }
-            return self::response($request, $response, $args, $data);
+            new ResponseFilterIterator($request->getMethod(), $request->getUri()->getPath(), $args, $data);
+            return $response->withJson($data);
         }
 
         public function __construct()
