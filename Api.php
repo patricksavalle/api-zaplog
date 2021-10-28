@@ -42,7 +42,8 @@ namespace Zaplog {
 
         static protected function response(Request $request, Response $response, stdClass $args, $data): Response
         {
-            new ResponseFilterIterator($request->getMethod(), $request->getUri()->getPath(), $args, $data);
+            $iterator = new ResponseFilterIterator($request->getMethod(), $request->getUri()->getPath());
+            $iterator($request->getUri()->getPath(), $args, $data);
             return $response->withJson($data);
         }
 

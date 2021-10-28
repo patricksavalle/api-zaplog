@@ -11,7 +11,7 @@ namespace Zaplog\Plugins {
     {
         protected $processors = [];
 
-        public function __construct(string $method, string $uri, stdClass $args, &$data)
+        public function __construct(string $method, string $uri)
         {
             $method = strtolower($method);
 
@@ -37,9 +37,9 @@ namespace Zaplog\Plugins {
             }
         }
 
-        public function __invoke(string $requestUri, stdClass $requestArgs, &$responseData)
+        public function __invoke(string $uri, stdClass $args, &$data)
         {
-            foreach ($this->processors as $processor) $processor($requestUri, $requestArgs, $responseData);
+            foreach ($this->processors as $processor) $processor($uri, $args, $data);
         }
     }
 }
