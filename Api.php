@@ -187,11 +187,11 @@ namespace Zaplog {
                 return $response->withJson([
                     "trendingtags" => Db::fetchAll("SELECT * FROM trendingtopics LIMIT :count", [":count" => $args->count]),
                     "trendingchannels" => Db::fetchAll("SELECT * FROM trendingchannels LIMIT :count", [":count" => $args->count]),
-                    "trendinglinks" => Db::fetchAll("call select_frontpage(:datetime)", [":datetime" => $args->datetime])]);
+                    "trendinglinks" => Db::fetchAll("SELECT * FROM frontpage LIMIT :count", [":count" => $args->count])]);
             })
                 ->add(new ReadOnly)
                 ->add(new QueryParameters(['{count:\int},25','{datetime:\date},null',]))
-                ->add(new Memcaching(60 * 60/*sec*/));
+                ->add(new Memcaching(60 * 10/*sec*/));
 
             // ----------------------------------------------------------------
             // Get reactions, forum style, returns the latest reactions
