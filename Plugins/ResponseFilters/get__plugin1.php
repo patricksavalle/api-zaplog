@@ -7,7 +7,7 @@ namespace Zaplog\Plugins\ResponseFilters {
     use stdClass;
     use Zaplog\Plugins\AbstractResponseFilter;
 
-    class Plugin2 extends AbstractResponseFilter
+    class get__plugin1 extends AbstractResponseFilter
     {
         public function __invoke(string $uri, stdClass $args, &$data): array
         {

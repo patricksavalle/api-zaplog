@@ -102,8 +102,6 @@ namespace Zaplog {
                 $offset += 1000;
             } while ($batchsize > 0);
 
-            Db::execute("DELETE FROM comments");
-
             // import comments
             $offset = 0;
             do {
