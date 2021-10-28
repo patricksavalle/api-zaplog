@@ -5,6 +5,7 @@ services:
 
 stages:
   - build
+  - deploy
  # - package
  # - release
  # - deploy
@@ -26,3 +27,12 @@ build-docker:
     - docker push $CONTAINER_TEST_IMAGE
   only:
     - master
+
+deploy-prod:
+  stage: deploy
+  tags: 
+    - zaplog
+  #only: 
+  #  - master
+  script:
+    - ls -l
