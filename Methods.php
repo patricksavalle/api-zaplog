@@ -146,18 +146,19 @@ namespace Zaplog {
             $metadata = (new HtmlMetadata)($url);
 
             // external input must be validated
-            if (!empty($metadata["title"]) and strlen($metadata["title"]) < 2) $metadata["title"] = null;
-            if (!empty($metadata["description"]) and strlen($metadata["description"]) < 2) $metadata["description"] = null;
-            (new UserException("Invalid link"))(filter_var($metadata["url"], FILTER_VALIDATE_URL) !== false);
-            (new UserException("Invalid title or description"))(!empty($metadata["title"]) or !empty($metadata["description"]));
-            (new UserException("Invalid image"))(empty($metadata["image"]) or filter_var($metadata["image"], FILTER_VALIDATE_URL) !== false);
+            (new UserException("Invalid link"))(filter_var($metadata["url"] ?? "", FILTER_VALIDATE_URL) !== false);
+            (new UserException("Invalid title"))(!empty($metadata["title"]));
+            //(new UserException("Invalid description"))(!empty($metadata["description"]));
+            if (filter_var($metadata["image"] ?? "", FILTER_VALIDATE_URL) === false) {
+                $metadata["image"] = Ini::get("default_post_image");
+            }
 
             return self::postLink(
                 $channelid,
                 $metadata["url"],
-                $metadata["title"] ?? "",
+                $metadata["title"],
                 $metadata["description"] ?? "",
-                $metadata["image"] ?? Ini::get("default_post_image"),
+                $metadata["image"],
                 $metadata["keywords"] ?? []);
         }
 
@@ -227,7 +228,7 @@ namespace Zaplog {
         //
         // ----------------------------------------------------------
 
-        static public function postLink(string $channelid, string $url, string $title, string $markdown, string $image, array $keywords = []): string
+        static public function postLink(string $channelid, string $url, string $title, $markdown, $image, $keywords = []): string
         {
             // Insert into database
             (new ServerException)(Db::execute("INSERT INTO links(url, channelid, title, markdown, description, image)
@@ -265,6 +266,8 @@ namespace Zaplog {
 
             // parse and filter the original markdown into safe xhtml
             $link->xtext = (string)(new Text($link->markdown))->parseDown(new ParsedownFilterIterator);
+            $link->xtext = (string)(new Text($link->markdown))->parseDown(new ParsedownProcessor);
+            $link->goto_endpoint = Ini::get("broken_link_redirector");
 
             return [
                 "link" => $link,

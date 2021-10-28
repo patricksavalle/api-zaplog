@@ -5,6 +5,7 @@ services:
 
 stages:
   - build
+  - deploy
  # - package
  # - release
  # - deploy
@@ -15,8 +16,11 @@ variables:
   CONTAINER_RELEASE_IMAGE: $CI_REGISTRY_IMAGE:latest
   # from https://storage.googleapis.com/kubernetes-release/release/stable.txt
   K8S_STABLE_VERSION_URL: https://storage.googleapis.com/kubernetes-release/release/v1.14.1/bin/linux/amd64/kubectl
-  OTAP: prod.leukermakkelijker.nl
   DOCKER_TLS_CERTDIR: ""
+  PROD_SERVER_IP: zaplog.pro
+  PROD_SERVER_USER: owner
+  PROD_IMAGE_APP_TAG: registry.gitlab.com/zaplog/api-zaplog:master
+
 
 build-docker:
   stage: build
@@ -27,3 +31,27 @@ build-docker:
     - docker push $CONTAINER_TEST_IMAGE
   only:
     - master
+
+deploy-prod:
+  stage: deploy
+  tags: 
+    - zaplog
+  #only: 
+  #  - master
+  script:
+    - ls -l
+
+deploy-to-prod:
+  stage: deploy
+  script:
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PROD_SERVER_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY_IMAGE
+    - echo "EXTERNAL_SERVICE_KEY=$EXTERNAL_SERVICE_PROD_KEY" >> .env
+    - echo "IMAGE_APP_TAG=$PROD_IMAGE_APP_TAG" >> .env
+    #- docker-compose -H "ssh://$PROD_SERVER_USER@$PROD_SERVER_IP" down --remove-orphans
+    - docker-compose -H "ssh://$PROD_SERVER_USER@$PROD_SERVER_IP" pull
+    #- docker-compose -H "ssh://$PROD_SERVER_USER@$PROD_SERVER_IP" up -d
+  only:
+    - master
+  when: manual

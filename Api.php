@@ -77,13 +77,14 @@ namespace Zaplog {
             // redirect to original or else archived page
             // ------------------------------------------
 
-            $this->get("/goto/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
+            $this->get("/goto", function (
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
                 return $response->withStatus(307)->withHeader("Location",
                     (new MemcachedFunction)(["\ContentSyndication\ArchiveOrg", "originalOrClosest"], [urldecode($args->urlencoded)], 60 * 60));
-            });
+            })
+                ->add(new QueryParameters(['{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}']));
 
             $this->get("/import", function (
                 Request  $request,
@@ -199,7 +200,7 @@ namespace Zaplog {
                 return self::response($request, $response, $args, [
                     "trendingtags" => Db::fetchAll("SELECT * FROM trendingtopics LIMIT :count", [":count" => $args->count]),
                     "trendingchannels" => Db::fetchAll("SELECT * FROM trendingchannels LIMIT :count", [":count" => $args->count]),
-                    "trendinglinks" => Db::fetchAll("call select_frontpage(:datetime)", [":datetime" => $args->datetime])]);
+                    "trendinglinks" => Db::fetchAll("SELECT * FROM frontpage LIMIT :count", [":count" => $args->count])]);
             })
                 ->add(new ReadOnly)
                 ->add(new QueryParameters(['{count:\int},25', '{datetime:\date},null',]))
@@ -297,7 +298,7 @@ namespace Zaplog {
                 ]);
             })
                 ->add(new BodyParameters(['{markdown:\raw}']));
-            //->add(new Authentication);
+                //->add(new Authentication);
 
             // ----------------------------------------------------------------
             // Channels show posts and activity for a specific user / email
@@ -371,7 +372,7 @@ namespace Zaplog {
                         name=:name, avatar=IFNULL(:avatar,avatar), bio=:bio, moneroaddress=:moneroaddress WHERE id=:channelid", [
                         ":name" => (new Text($args->name))->convertToAscii()->hyphenize(),
                         ":avatar" => empty($args->avatar) ? null : (new Avatar($args->avatar))->inlineBase64(),
-                        ":bio" => $args->bio,
+                        ":bio" => strip_tags($args->bio),
                         ":moneroaddress" => $args->moneroaddress,
                         ":channelid" => Authentication::getSession()->id,
                     ])->rowCount());
@@ -379,7 +380,7 @@ namespace Zaplog {
                     ->add(new BodyParameters([
                         '{name:[.\w-]{3,55}}',
                         '{avatar:\url},null',
-                        '{bio:\xtext},null',
+                        '{bio:\raw},""',
                         '{moneroaddress:\moneroaddress},null']))
                     ->add(new Authentication);
 
@@ -408,14 +409,13 @@ namespace Zaplog {
                 // post from link, retrieve its metadata, add to user channel
                 // ------------------------------------------------------
 
-                $this->post("/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
+                $this->post("/link", function (
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    $url = trim(urldecode($args->urlencoded));
-                    (new UserException)(filter_var($url, FILTER_VALIDATE_URL) !== false);
-                    return self::response($request, $response, $args, Methods::postLinkFromUrl((string)Authentication::getSession()->id, $url));
+                    return self::response($request, $response, $args, Methods::postLinkFromUrl((string)Authentication::getSession()->id, $args->link));
                 })
+                    ->add(new BodyParameters(['{link:\url}']))
                     ->add(new Authentication);
 
                 // ------------------------------------------------------
@@ -452,7 +452,7 @@ namespace Zaplog {
                 // Return a link's metadata
                 // ----------------------------------------------------------------
 
-                $this->get("/metadata/{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}", function (
+                $this->get("/metadata", function (
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
@@ -460,6 +460,7 @@ namespace Zaplog {
                     (new UserException)(filter_var($url, FILTER_VALIDATE_URL));
                     return self::response($request, $response, $args, (new HtmlMetadata)($url));
                 })
+                    ->add(new QueryParameters(['{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}']))
                     ->add(new Authentication);
 
                 // ----------------------------------------------------------------
