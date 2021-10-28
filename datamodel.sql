@@ -42,7 +42,7 @@ CREATE TABLE channels
     -- inline base64 encoded avatars
     avatar           VARCHAR(16384)     DEFAULT NULL,
     header           VARCHAR(255)       DEFAULT NULL,
-    bio              VARCHAR(255)       DEFAULT NULL,
+    bio              VARCHAR(255) NOT NULL DEFAULT "",
     moneroaddress    CHAR(93)           DEFAULT NULL,
     -- sum of all related link scores
     score            INT                DEFAULT 0,
