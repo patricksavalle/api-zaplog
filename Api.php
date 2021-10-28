@@ -367,7 +367,7 @@ namespace Zaplog {
                     ->add(new BodyParameters([
                         '{name:[.\w-]{3,55}}',
                         '{avatar:\url},null',
-                        '{bio:\xtext},null',
+                        '{bio:\xtext},""',
                         '{moneroaddress:\moneroaddress},null']))
                     ->add(new Authentication);
 
