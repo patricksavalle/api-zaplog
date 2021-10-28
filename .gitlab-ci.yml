@@ -17,6 +17,8 @@ variables:
   # from https://storage.googleapis.com/kubernetes-release/release/stable.txt
   K8S_STABLE_VERSION_URL: https://storage.googleapis.com/kubernetes-release/release/v1.14.1/bin/linux/amd64/kubectl
   DOCKER_TLS_CERTDIR: ""
+  PROD_SERVER_IP: zaplog.pro
+  PROD_SERVER_USER: owner
 
 build-docker:
   stage: build
