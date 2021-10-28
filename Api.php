@@ -11,11 +11,6 @@ namespace Zaplog {
     define("BASE_PATH", __DIR__);
 
     require_once BASE_PATH . '/vendor/autoload.php';
-    require_once BASE_PATH . '/Middleware/Authentication.php';
-    require_once BASE_PATH . '/Methods.php';
-    require_once BASE_PATH . '/Library/TwoFactorAction.php';
-    require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
-    require_once BASE_PATH . '/Exception/EmailException.php';
 
     use ContentSyndication\HtmlMetadata;
     use ContentSyndication\Text;
@@ -127,7 +122,7 @@ namespace Zaplog {
                 })
                     ->add(new BodyParameters([
                         '{email:\email}',
-                        '{subject:.{10,100}},Your single-use login link',
+                        '{subject:.{10,100}},Log in op jouw Zaplog kanaal',
                         '{template:\url},null',
                         '{*}' /* all {{variables}} used in template */,
                     ]));
@@ -148,7 +143,7 @@ namespace Zaplog {
                 })
                     ->add(new BodyParameters([
                         '{email:\email}',
-                        '{subject:.{10,100}},Your email confirmation link',
+                        '{subject:.{10,100}},Bevestig deze email voor je Zaplog account',
                         '{template:\url},null',
                         '{*}' /* all {{variables}} used in template */,]))
                     ->add(new Authentication);
