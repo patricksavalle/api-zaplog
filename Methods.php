@@ -148,7 +148,7 @@ namespace Zaplog {
             // external input must be validated
             (new UserException("Invalid link"))(filter_var($metadata["url"] ?? "", FILTER_VALIDATE_URL) !== false);
             (new UserException("Invalid title"))(!empty($metadata["title"]));
-            (new UserException("Invalid description"))(!empty($metadata["description"]));
+            //(new UserException("Invalid description"))(!empty($metadata["description"]));
             if (filter_var($metadata["image"] ?? "", FILTER_VALIDATE_URL) === false) {
                 $metadata["image"] = Ini::get("default_post_image");
             }
@@ -157,7 +157,7 @@ namespace Zaplog {
                 $channelid,
                 $metadata["url"],
                 $metadata["title"],
-                $metadata["description"],
+                $metadata["description"] ?? "",
                 $metadata["image"],
                 $metadata["keywords"] ?? []);
         }
@@ -228,7 +228,7 @@ namespace Zaplog {
         //
         // ----------------------------------------------------------
 
-        static public function postLink(string $channelid, string $url, string $title, string $markdown, string $image, array $keywords = []): string
+        static public function postLink(string $channelid, string $url, string $title, $markdown, $image, $keywords = []): string
         {
             // Insert into database
             (new ServerException)(Db::execute("INSERT INTO links(url, channelid, title, markdown, description, image)
