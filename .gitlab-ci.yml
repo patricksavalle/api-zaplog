@@ -15,7 +15,6 @@ variables:
   CONTAINER_RELEASE_IMAGE: $CI_REGISTRY_IMAGE:latest
   # from https://storage.googleapis.com/kubernetes-release/release/stable.txt
   K8S_STABLE_VERSION_URL: https://storage.googleapis.com/kubernetes-release/release/v1.14.1/bin/linux/amd64/kubectl
-  OTAP: prod.leukermakkelijker.nl
   DOCKER_TLS_CERTDIR: ""
 
 build-docker:
