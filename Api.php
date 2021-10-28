@@ -359,7 +359,7 @@ namespace Zaplog {
                         name=:name, avatar=IFNULL(:avatar,avatar), bio=:bio, moneroaddress=:moneroaddress WHERE id=:channelid", [
                         ":name" => (new Text($args->name))->convertToAscii()->hyphenize(),
                         ":avatar" => empty($args->avatar) ? null : (new Avatar($args->avatar))->inlineBase64(),
-                        ":bio" => $args->bio,
+                        ":bio" => (new Text($args->bio))->purify("strong,em,a[href],b,cite,i,sub,sup,code,del"),
                         ":moneroaddress" => $args->moneroaddress,
                         ":channelid" => Authentication::getSession()->id,
                     ])->rowCount());
@@ -367,7 +367,7 @@ namespace Zaplog {
                     ->add(new BodyParameters([
                         '{name:[.\w-]{3,55}}',
                         '{avatar:\url},null',
-                        '{bio:\xtext},""',
+                        '{bio:\raw},""',
                         '{moneroaddress:\moneroaddress},null']))
                     ->add(new Authentication);
 
