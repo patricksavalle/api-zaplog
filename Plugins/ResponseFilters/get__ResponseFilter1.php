@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Zaplog\Plugins\ResponseFilters {
 
     use stdClass;
-    use Zaplog\Plugins\AbstractPlugin;
+    use Zaplog\Plugins\AbstractResponseFilter;
 
-    class get_links__Plugin2 extends AbstractPlugin
+    class get__ResponseFilter1 extends AbstractResponseFilter
     {
         public function __invoke(string $uri, stdClass $args, &$data)
         {

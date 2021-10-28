@@ -7,8 +7,10 @@ namespace Zaplog\Plugins {
 
     use stdClass;
 
-    class ResponseFilterIterator
+    class ResponseFilterIterator extends AbstractResponseFilter
     {
+        protected $processors = [];
+
         public function __construct(string $method, string $uri, stdClass $args, &$data)
         {
             $method = strtolower($method);
@@ -30,9 +32,14 @@ namespace Zaplog\Plugins {
                     //execute the plugin
                     require $file;
                     $classname = "Zaplog\\Plugins\\ResponseFilters\\" . $match[1];
-                    (new $classname)($uri, $args, $data);
+                    $this->processors[] = new $classname;
                 }
             }
+        }
+
+        public function __invoke(string $requestUri, stdClass $requestArgs, &$responseData)
+        {
+            foreach ($this->processors as $processor) $processor($requestUri, $requestArgs, $responseData);
         }
     }
 }

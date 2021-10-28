@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Zaplog\Plugins\ParsedownFilters {
+namespace Zaplog\Plugins\ResponseFilters {
 
     use stdClass;
-    use Zaplog\Plugins\AbstractPlugin;
+    use Zaplog\Plugins\AbstractResponseFilter;
 
-    class plugin1 extends AbstractPlugin
+    class get_links__ResponseFilter2 extends AbstractResponseFilter
     {
         public function __invoke(string $uri, stdClass $args, &$data)
         {

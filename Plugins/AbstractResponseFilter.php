@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Zaplog\Plugins {
 
-    use Psr\Http\Message\ResponseInterface as Response;
-    use Psr\Http\Message\ServerRequestInterface as Request;
     use stdClass;
 
     /**
@@ -17,8 +15,12 @@ namespace Zaplog\Plugins {
      * @param string $uri - the request and body and path parameters of the request
      * @param array $responseData - the response payload that can be modified and returned
      */
-    abstract class AbstractPlugin
+    abstract class AbstractResponseFilter
     {
         abstract public function __invoke(string $requestUri, stdClass $requestArgs, &$responseData);
+
+        /*
+            responsedata is the payload as it will be translated into JSON upon response, often an array
+         */
     }
 }

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Zaplog\Library {
+namespace Zaplog\Plugins\ParsedownFilters {
 
     use SlimRestApi\Infra\Ini;
+    use Zaplog\Plugins\AbstractParsedownFilter;
 
-    class ParsedownProcessor
+    class LinkDecorator extends AbstractParsedownFilter
     {
-        // Used in the Parsedown parser to prcoess XHTML elements before they're outputted
-        function __invoke($element): array
+        function __invoke(array $element): array
         {
             static $redirector = null;
             if ($redirector === null) $redirector = Ini::get("broken_link_redirector");
