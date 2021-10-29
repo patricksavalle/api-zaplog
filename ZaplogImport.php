@@ -8,17 +8,15 @@ namespace Zaplog {
 
     use Atrox\Haikunator;
     use ContentSyndication\Text;
+    use HTMLPurifier;
+    use HTMLPurifier_Config;
     use Multiavatar;
     use SlimRestApi\Infra\Db;
 
     class ZaplogImport
     {
-        /*
-        public function purify(string $allowedTags = "strong,abbr,em,a[href],b,cite,i,sub,sup,code,del,blockquote,p,br,ul,li,ol,table,tr,td"): Text
+        public function purify(string $text, string $allowedTags = "strong,abbr,em,a[href],b,cite,i,sub,sup,code,del,blockquote,p,br,ul,li,ol,table,tr,td"): string
         {
-            static $allow_domains = [
-                "",
-            ];
             static $purifier = null;
             if ($purifier === null) {
                 $config = HTMLPurifier_Config::createDefault();
@@ -29,10 +27,8 @@ namespace Zaplog {
                 $config->set('AutoFormat.Linkify', true);
                 $purifier = new HTMLPurifier($config);
             }
-            $this->text = $purifier->purify($this->text);
-            return $this;
+            return $purifier->purify($text);
         }
-        */
 
         public function __invoke()
         {
@@ -67,7 +63,7 @@ namespace Zaplog {
                     ORDER BY entry_id ASC
                     LIMIT :offset, 1000", [":offset" => $offset]) as $post) {
                     $batchsize++;
-                    $purified = (string)(new Text($post->description))->nl2br()->BBtoHTML()->purify();
+                    $purified = $this->purify((string)(new Text($post->description))->nl2br()->BBtoHTML());
                     $markdown = (string)(new Text($purified))->parseUp();
                     if (strlen($markdown)<50) continue;
                     Db::execute("INSERT INTO links(entryid,channelid,title,markdown,description,createdatetime,viewscount,url, image)
@@ -134,7 +130,7 @@ namespace Zaplog {
                     ORDER BY comment_id ASC
                     LIMIT :offset, 1000", [":offset" => $offset]) as $comment) {
                     $batchsize++;
-                    $xtext = (string)(new Text($comment->comment))->nl2br()->BBtoHTML()->purify();
+                    $xtext = $this->purify((string)(new Text($comment->comment))->nl2br()->BBtoHTML());
                     Db::execute("INSERT INTO reactions(linkid,channelid,xtext,createdatetime,description) VALUES(:linkid,:channelid,:xtext,:datetime,:description)", [
                         ":channelid" => $comment->channelid,
                         ":linkid" => $comment->linkid,
