@@ -169,6 +169,12 @@ namespace Zaplog {
             Db::execute("OPTIMIZE TABLE votes");
             Db::execute("OPTIMIZE TABLE reactions");
 
+            Db::execute("DROP TABLE imported_comments");
+            Db::execute("DROP TABLE imported_post");
+            Db::execute("DROP TABLE imported_tags");
+            Db::execute("DROP TABLE imported_users");
+            Db::execute("DROP TABLE imported_votes");
+
         }
     }
 }
