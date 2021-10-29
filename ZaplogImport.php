@@ -13,6 +13,27 @@ namespace Zaplog {
 
     class ZaplogImport
     {
+        /*
+        public function purify(string $allowedTags = "strong,abbr,em,a[href],b,cite,i,sub,sup,code,del,blockquote,p,br,ul,li,ol,table,tr,td"): Text
+        {
+            static $allow_domains = [
+                "",
+            ];
+            static $purifier = null;
+            if ($purifier === null) {
+                $config = HTMLPurifier_Config::createDefault();
+                $config->set('HTML.Allowed', $allowedTags);
+                $config->set('HTML.SafeEmbed', true);
+                $config->set('HTML.SafeObject', true);
+                $config->set('HTML.TargetBlank', true);
+                $config->set('AutoFormat.Linkify', true);
+                $purifier = new HTMLPurifier($config);
+            }
+            $this->text = $purifier->purify($this->text);
+            return $this;
+        }
+        */
+
         public function __invoke()
         {
             set_time_limit(0);
@@ -101,8 +122,6 @@ namespace Zaplog {
                 }
                 $offset += 1000;
             } while ($batchsize > 0);
-
-            Db::execute("DELETE FROM comments");
 
             // import comments
             $offset = 0;
