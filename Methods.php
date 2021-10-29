@@ -266,7 +266,6 @@ namespace Zaplog {
 
             // parse and filter the original markdown into safe xhtml
             $link->xtext = (string)(new Text($link->markdown))->parseDown(new ParsedownFilterIterator);
-            $link->xtext = (string)(new Text($link->markdown))->parseDown(new ParsedownProcessor);
             $link->goto_endpoint = Ini::get("broken_link_redirector");
 
             return [

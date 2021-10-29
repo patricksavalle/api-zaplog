@@ -7,51 +7,72 @@ namespace Zaplog\Plugins\ResponseFilters {
     use stdClass;
     use Zaplog\Plugins\AbstractResponseFilter;
 
+    // ------------------------------------------------------------------------------
+    // Called just before a post is returned to the frontend
+    // If the url of a post is embeddable, append as iframe to xtext-field
+    //
+    // The API has already normalized the url, no need to check all possible patterns
+    // ------------------------------------------------------------------------------
+
     class get_links_id__MediaEmbedder extends AbstractResponseFilter
     {
         public function __invoke(string $uri, stdClass $args, &$data)
         {
-            error_log("Filter: " . __METHOD__);
-
-            if ($Youtube = $this->YoutubeToken($data["link"]->url) !== null) {
-                $data["link"]->xtext .= "<iframe width='420' height='315' src='http://www.youtube.com/embed/$Youtube?autoplay=1'></iframe>";
+            $normalized_url = $data["link"]->url ?? null;
+            if ($normalized_url !== null) {
+                foreach (["Youtube", "Bitchute", "Odysee", "Vimeo", "Rumble", "Soundcloud"] as $service) {
+                    if (($embed = $this->{$service}($normalized_url)) !== null) {
+                        $data["link"]->xtext .= $embed;
+                        return;
+                    }
+                }
             }
-            return $data;
         }
 
-        protected function BitchuteToken(string $url): ?string
+        protected function Bitchute(string $normalized_url): ?string
         {
-            return null;
-        }
-
-        protected function YouTubeToken(string $url): ?string
-        {
-            // See: https://gist.github.com/rodrigoborgesdeoliveira/987683cfbfcc8d800192da1e73adc486
-
-            if (strncmp($url, 'user/', 5) === 0) { // 1.
+            // https://www.bitchute.com/video/ftihsfWPhzAp/
+            if (preg_match("/.*bitchute\.com\/video\/(.*)\//", $normalized_url, $matches) === 0) {
                 return null;
             }
-            if (preg_match('/^[a-zA-Z0-9\-\_]{11}$/', $url)) { // 2.
-                return $url;
-            }
-            if (preg_match('/(?:watch\?v=|v\/|embed\/|ytscreeningroom\?v=|\?v=|\?vi=|e\/|watch\?.*vi?=|\?feature=[a-z_]*&v=|vi\/)([a-zA-Z0-9\-\_]{11})/', $url, $regularMatch)) { // 3.
-                return $regularMatch[1];
-            }
-            if (preg_match('/([a-zA-Z0-9\-\_]{11})(?:\?[a-z]|\&[a-z])/', $url, $organicParametersMatch)) { // 4.
-                return $organicParametersMatch[1];
-            }
-            if (preg_match('/u\/1\/([a-zA-Z0-9\-\_]{11})(?:\?rel=0)?$/', $url)) { // 5.
-                return null; // 5. User channel without token.
-            }
+            return "<iframe width='100%'  class='video bitchute' src='https://www.bitchute.com/embed/$matches[1]/'></iframe>";
+        }
 
-            if (preg_match('/(?:watch%3Fv%3D|watch\?v%3D)([a-zA-Z0-9\-\_]{11})[%&]/', $url, $urlEncoded)) { // 6.
-                return $urlEncoded[1];
+        protected function Odysee(string $normalized_url): ?string
+        {
+            // https://odysee.com/What-is-graphene-oxide:b78c43bd498f180b76ee8bbaae9c560ee9b34c98
+            if (preg_match("/.*odysee.com\/(.*):(.*)/", $normalized_url, $matches) === 0) {
+                return null;
             }
-            // 7. Rules for special cases
-            if (preg_match('/watchv=([a-zA-Z0-9\-\_]{11})&list=/', $url, $special1)) {
-                return $special1[1];
+            return "<iframe width='100%'  class='video odysee' src='https://odysee.com/$/embed/$matches[1]/$matches[2]'></iframe>";
+        }
+
+        protected function Vimeo(string $normalized_url): ?string
+        {
+            // https://vimeo.com/574675111
+            if (preg_match("/.*vimeo\.com\/(.*)/", $normalized_url, $matches) === 0) {
+                return null;
             }
+            return "<iframe width='100%'  class='video vimeo' src='https://player.vimeo.com/video/$matches[1]/'></iframe>";
+        }
+
+        protected function Rumble(string $normalized_url): ?string
+        {
             return null;
+        }
+
+        protected function Soundcloud(string $normalized_url): ?string
+        {
+            return null;
+        }
+
+        protected function YouTube(string $normalized_url): ?string
+        {
+            // https://www.youtube.com/watch?v=UHkjxowYUdg
+            if (preg_match("/.*youtube\.com\/watch\?v=(.*)/", $normalized_url, $matches) === 0) {
+                return null;
+            }
+            return "<iframe width='100%' class='video youtube' src='http://www.youtube.com/embed/$matches[1]'></iframe>";
         }
     }
 }

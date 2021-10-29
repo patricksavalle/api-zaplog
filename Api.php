@@ -372,7 +372,7 @@ namespace Zaplog {
                         name=:name, avatar=IFNULL(:avatar,avatar), bio=:bio, moneroaddress=:moneroaddress WHERE id=:channelid", [
                         ":name" => (new Text($args->name))->convertToAscii()->hyphenize(),
                         ":avatar" => empty($args->avatar) ? null : (new Avatar($args->avatar))->inlineBase64(),
-                        ":bio" => strip_tags($args->bio),
+                        ":bio" => $args->bio,
                         ":moneroaddress" => $args->moneroaddress,
                         ":channelid" => Authentication::getSession()->id,
                     ])->rowCount());
@@ -380,7 +380,7 @@ namespace Zaplog {
                     ->add(new BodyParameters([
                         '{name:[.\w-]{3,55}}',
                         '{avatar:\url},null',
-                        '{bio:\raw},""',
+                        '{bio:\xtext},""',
                         '{moneroaddress:\moneroaddress},null']))
                     ->add(new Authentication);
 
@@ -460,8 +460,8 @@ namespace Zaplog {
                     (new UserException)(filter_var($url, FILTER_VALIDATE_URL));
                     return self::response($request, $response, $args, (new HtmlMetadata)($url));
                 })
-                    ->add(new QueryParameters(['{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}']))
-                    ->add(new Authentication);
+                    ->add(new QueryParameters(['{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}']));
+                   // ->add(new Authentication);
 
                 // ----------------------------------------------------------------
                 // Change post
