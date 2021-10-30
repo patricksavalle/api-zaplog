@@ -21,7 +21,6 @@ namespace Zaplog {
     use SlimRestApi\Middleware\Memcaching;
     use SlimRequestParams\BodyParameters;
     use SlimRequestParams\QueryParameters;
-    use SlimRestApi\Middleware\ReadOnly;
     use SlimRestApi\SlimRestApi;
     use Psr\Http\Message\ResponseInterface as Response;
     use Psr\Http\Message\ServerRequestInterface as Request;
@@ -171,8 +170,7 @@ namespace Zaplog {
                     stdClass $args): Response {
                     return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM activeusers"));
                 })
-                    ->add(new Memcaching(60/*sec*/))
-                    ->add(new ReadOnly);
+                    ->add(new Memcaching(60/*sec*/));
 
                 // -----------------------------------------------------
                 // invalidate the session token in the HTTP header
@@ -202,7 +200,6 @@ namespace Zaplog {
                     "trendingchannels" => Db::fetchAll("SELECT * FROM trendingchannels LIMIT :count", [":count" => $args->count]),
                     "trendinglinks" => Db::fetchAll("SELECT * FROM frontpage LIMIT :count", [":count" => $args->count])]);
             })
-                ->add(new ReadOnly)
                 ->add(new QueryParameters(['{count:\int},25', '{datetime:\date},null',]))
                 ->add(new Memcaching(60 * 60/*sec*/));
 
@@ -218,7 +215,6 @@ namespace Zaplog {
                 return self::response($request, $response, $args, Db::fetchAll("CALL select_discussion(NULL,:offset,:count)",
                     [":offset" => $args->offset, ":count" => $args->count]));
             })
-                ->add(new ReadOnly)
                 ->add(new QueryParameters([
                     '{offset:\int},0',
                     '{count:\int},8',
@@ -231,7 +227,6 @@ namespace Zaplog {
                 return self::response($request, $response, $args, Db::fetchAll("CALL select_discussion(:channel,:offset,:count)",
                     [":channel" => $args->id, ":offset" => $args->offset, ":count" => $args->count]));
             })
-                ->add(new ReadOnly)
                 ->add(new QueryParameters([
                     '{offset:\int},0',
                     '{count:\int},8',
@@ -248,7 +243,6 @@ namespace Zaplog {
                 stdClass $args): Response {
                 return self::response($request, $response, $args, Methods::getActivityStream($args->offset, $args->count, $args->channel, $args->grouped));
             })
-                ->add(new ReadOnly)
                 ->add(new QueryParameters([
                     '{channel:\d{1,10}},null',
                     '{offset:\int},0',
@@ -266,7 +260,6 @@ namespace Zaplog {
                 stdClass $args): Response {
                 return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM tagindex"));
             })
-                ->add(new ReadOnly)
                 ->add(new Memcaching(10/*sec*/));
 
             // ------------------------------------------------
@@ -279,7 +272,6 @@ namespace Zaplog {
                 stdClass $args): Response {
                 return self::response($request, $response, $args, Db::fetch("SELECT * FROM statistics"));
             })
-                ->add(new ReadOnly)
                 ->add(new Memcaching(60/*sec*/));
 
             // --------------------------------------------------------
@@ -318,7 +310,6 @@ namespace Zaplog {
                     return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM channels_public_view ORDER BY name LIMIT :offset,:count",
                         [":offset" => $args->offset, ":count" => $args->count]));
                 })
-                    ->add(new ReadOnly)
                     ->add(new QueryParameters([
                         '{offset:\int},0',
                         '{count:\int},2147483647,',]))
@@ -334,7 +325,6 @@ namespace Zaplog {
                     stdClass $args): Response {
                     return self::response($request, $response, $args, Methods::getSingleChannel($args->id));
                 })
-                    ->add(new ReadOnly)
                     ->add(new QueryParameters([
                         '{offset:\int},0',
                         '{count:\int},20']))
@@ -356,7 +346,6 @@ namespace Zaplog {
                         ORDER BY SUM(links.score)/COUNT(links.id) DESC LIMIT :count",
                         [":tag" => $args->tag, ":count" => $args->count]));
                 })
-                    ->add(new ReadOnly)
                     ->add(new QueryParameters(['{count:\int},10',]))
                     ->add(new Memcaching(60/*sec*/));
 
@@ -397,7 +386,6 @@ namespace Zaplog {
                         "updated10" => Db::fetchAll("SELECT * FROM updatedchannels LIMIT :count", [":count" => $args->count]),
                     ]);
                 })
-                    ->add(new ReadOnly)
                     ->add(new QueryParameters(['{count:\int},10']))
                     ->add(new Memcaching(60/*sec*/));
 
@@ -512,7 +500,6 @@ namespace Zaplog {
                     return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM links WHERE published=TRUE ORDER BY id DESC LIMIT :offset,:count",
                         [":offset" => $args->offset, ":count" => $args->count]));
                 })
-                    ->add(new ReadOnly)
                     ->add(new QueryParameters([
                         '{offset:\int},0',
                         '{count:\int},20',
@@ -530,7 +517,6 @@ namespace Zaplog {
                         ORDER BY id DESC LIMIT :offset,:count",
                         [":channel" => $args->id, ":offset" => $args->offset, ":count" => $args->count]));
                 })
-                    ->add(new ReadOnly)
                     ->add(new QueryParameters([
                         '{offset:\int},0',
                         '{count:\int},20']))
@@ -549,7 +535,6 @@ namespace Zaplog {
                         [":tag" => $args->tag, ":offset" => $args->offset, ":count" => $args->count]));
                 })
                     ->add(new Memcaching(60/*sec*/))
-                    ->add(new ReadOnly)
                     ->add(new QueryParameters([
                         '{offset:\int},0',
                         '{count:\int},20',
@@ -588,8 +573,7 @@ namespace Zaplog {
                     stdClass $args): Response {
                     return self::response($request, $response, $args, Db::fetchAll("SELECT reactions.* FROM reactions JOIN links ON links.id=reactions.linkid
                         WHERE linkid=:id AND published=TRUE ORDER BY id", [":id" => $args->id]));
-                })
-                    ->add(new ReadOnly);
+                });
 
                 // ----------------------------------------------------------------
                 // Delete a reaction, only your own reactions
@@ -663,7 +647,6 @@ namespace Zaplog {
                     stdClass $args): Response {
                     return self::response($request, $response, $args, Methods::getRelatedTags($args->tag, $args->count));
                 })
-                    ->add(new ReadOnly)
                     ->add(new QueryParameters(['{count:\int},20',]))
                     ->add(new Memcaching(60/*sec*/));
 
@@ -681,7 +664,6 @@ namespace Zaplog {
                         "trending" => Db::fetchAll("SELECT * FROM trendingtopics LIMIT :count", [":count" => $args->count]),
                     ]);
                 })
-                    ->add(new ReadOnly)
                     ->add(new QueryParameters(['{count:\int},20',]))
                     ->add(new Memcaching(60/*sec*/));
 
