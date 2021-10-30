@@ -42,6 +42,7 @@ deploy-prod:
     - ls -l
 
 deploy-to-prod:
+  image: creatiwww/docker-compose
   stage: deploy
   script:
     - eval $(ssh-agent -s)
