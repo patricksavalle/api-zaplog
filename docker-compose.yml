@@ -1,1 +1,36 @@
+version: "3.7"
+networks:
+  db:
+    driver: bridge
+  zaplog:
+    name: zaplog
+    ipam:
+      config:
+        - subnet: 192.168.99.0/24
 
+  apizaplog:
+    image: registry.gitlab.com/zaplog/api-zaplog:master
+    container_name: api_zaplog
+    restart: unless-stopped
+    environment:
+      - ZAPLOG_DB_QUERY_LOGGING=${ZAPLOG_DB_QUERY_LOGGING}
+      - ZAPLOG_DB_HOST=${ZAPLOG_DB_HOST}
+      - ZAPLOG_DB_NAME=${ZAPLOG_DB_NAME}
+      - ZAPLOG_DB_USER=${ZAPLOG_DB_USER}
+      - ZAPLOG_DB_PASSWORD=${ZAPLOG_DB_PASSWORD}
+      - ZAPLOG_MAIL_HOST=${ZAPLOG_MAIL_HOST}
+      - ZAPLOG_MAIL_LOGIN=${ZAPLOG_MAIL_LOGIN}
+      - ZAPLOG_MAIL_PASSWORD=${ZAPLOG_MAIL_PASSWORD}
+      - ZAPLOG_MAIL_SENDER_EMAIL=${ZAPLOG_MAIL_SENDER_EMAIL}
+      - ZAPLOG_MAIL_SENDER_NAME=${ZAPLOG_MAIL_SENDER_NAME}
+      - broken_link_redirector="https://api.zaplog.pro/goto?urlencoded="
+      - ZAPLOG_GOTO_URL=${ZAPLOG_GOTO_URL}
+    expose:
+      - 80
+    networks:
+      - zaplog
+      - db
+    depends_on:
+      - mariadb
+    security_opt:
+      - no-new-privileges:true
