@@ -85,14 +85,6 @@ namespace Zaplog {
             })
                 ->add(new QueryParameters(['{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}']));
 
-            $this->get("/import", function (
-                Request  $request,
-                Response $response,
-                stdClass $args): Response {
-                (new ZaplogImport)();
-                return self::response($request, $response, $args, null);
-            });
-
             // -----------------------------------------
             // Add the two factor handler to the server
             // -----------------------------------------
