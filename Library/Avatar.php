@@ -1,6 +1,7 @@
 <?php
 
-declare(strict_types=1);
+// explicitely set to OFF, see: https://gitlab.com/zaplog/web-zaplog/-/issues/61
+declare(strict_types=0);
 
 namespace Zaplog\Library {
 
