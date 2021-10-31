@@ -42,10 +42,11 @@ deploy-prod:
     - ls -l
 
 deploy-to-prod:
+  image: creatiwww/docker-compose
   stage: deploy
   script:
     - eval $(ssh-agent -s)
-    - echo "$SSH_PROD_SERVER_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - ssh-add <(echo "$SSH_PRIVATE_KEY" | base64 -d)
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY_IMAGE
     - echo "EXTERNAL_SERVICE_KEY=$EXTERNAL_SERVICE_PROD_KEY" >> .env
     - echo "IMAGE_APP_TAG=$PROD_IMAGE_APP_TAG" >> .env
