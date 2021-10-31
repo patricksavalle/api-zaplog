@@ -9,13 +9,12 @@ namespace Zaplog\Plugins {
 
     // composite design pattern
 
-    class ParsedownFilterIterator extends AbstractParsedownFilter
+    class ParsedownFilter extends AbstractParsedownFilter
     {
         protected $processors = [];
 
         public function __construct()
         {
-            error_log(__METHOD__);
             // scan plugin direcory for plugins
             foreach (glob("Plugins/ParsedownFilters/*.php") as $file) {
                 //instantiate the plugin

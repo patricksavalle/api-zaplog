@@ -29,8 +29,8 @@ namespace Zaplog {
     use Zaplog\Library\TwoFactorAction;
     use Zaplog\Library\Avatar;
     use Zaplog\Middleware\Authentication;
-    use Zaplog\Plugins\ParsedownFilterIterator;
-    use Zaplog\Plugins\ResponseFilterIterator;
+    use Zaplog\Plugins\ParsedownFilter;
+    use Zaplog\Plugins\ResponseFilter;
 
     class Api extends SlimRestApi
     {
@@ -41,8 +41,8 @@ namespace Zaplog {
 
         static protected function response(Request $request, Response $response, stdClass $args, $data): Response
         {
-            $iterator = new ResponseFilterIterator($request->getMethod(), $request->getUri()->getPath());
-            $iterator($request->getUri()->getPath(), $args, $data);
+            $filter = new ResponseFilter($request->getMethod(), $request->getUri()->getPath());
+            $filter($request->getUri()->getPath(), $args, $data);
             return $response->withJson($data);
         }
 
@@ -275,10 +275,10 @@ namespace Zaplog {
                 Response $response,
                 stdClass $args): Response {
                 return self::response($request, $response, $args, [
-                    "links.description" => (string)(new Text($args->markdown))->parseDown(new ParsedownFilterIterator)->blurbify(),
-                    "links.xtext" => (string)(new Text($args->markdown))->parseDown(new ParsedownFilterIterator),
-                    "reactions.description" => (string)(new Text($args->markdown))->parseDownLine(new ParsedownFilterIterator)->blurbify(),
-                    "reactions.xtext" => (string)(new Text($args->markdown))->parseDownLine(new ParsedownFilterIterator),
+                    "links.description" => (string)(new Text($args->markdown))->parseDown(new ParsedownFilter)->blurbify(),
+                    "links.xtext" => (string)(new Text($args->markdown))->parseDown(new ParsedownFilter),
+                    "reactions.description" => (string)(new Text($args->markdown))->parseDownLine(new ParsedownFilter)->blurbify(),
+                    "reactions.xtext" => (string)(new Text($args->markdown))->parseDownLine(new ParsedownFilter),
                 ]);
             })
                 ->add(new BodyParameters(['{markdown:\raw}']));
@@ -544,7 +544,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    $xtext = (string)(new Text($args->markdown))->parseDownLine(new ParsedownFilterIterator);
+                    $xtext = (string)(new Text($args->markdown))->parseDownLine(new ParsedownFilter);
                     Db::execute("CALL insert_reaction(:channelid,:linkid,:xtext,:description)", [
                         ":linkid" => $args->id,
                         ":channelid" => 1, Authentication::getSession()->id,

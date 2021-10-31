@@ -7,7 +7,7 @@ namespace Zaplog\Plugins {
 
     use stdClass;
 
-    class ResponseFilterIterator extends AbstractResponseFilter
+    class ResponseFilter extends AbstractResponseFilter
     {
         protected $processors = [];
 

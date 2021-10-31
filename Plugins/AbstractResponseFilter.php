@@ -20,7 +20,7 @@ namespace Zaplog\Plugins {
         abstract public function __invoke(string $requestUri, stdClass $requestArgs, &$responseData);
 
         /*
-            responsedata is the payload as it will be translated into JSON upon response, often an array
+            responsedata is the payload just before it will be translated into JSON and returned, often an array
          */
     }
 }

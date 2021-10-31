@@ -7,7 +7,7 @@ namespace Zaplog {
     require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
 
     use ContentSyndication\ArchiveOrg;
-    use ContentSyndication\HtmlMetadata;
+    use ContentSyndication\HttpRequest;
     use ContentSyndication\Text;
     use ContentSyndication\Url;
     use ContentSyndication\XmlFeed;
@@ -18,7 +18,8 @@ namespace Zaplog {
     use Zaplog\Exception\ResourceNotFoundException;
     use Zaplog\Exception\ServerException;
     use Zaplog\Exception\UserException;
-    use Zaplog\Plugins\ParsedownFilterIterator;
+    use Zaplog\Plugins\MetadataParser;
+    use Zaplog\Plugins\ParsedownFilter;
     use Zaplog\Library\TwoFactorAction;
 
     class Methods
@@ -143,7 +144,7 @@ namespace Zaplog {
 
         static public function postLinkFromUrl(string $channelid, string $url): string
         {
-            $metadata = (new HtmlMetadata)($url);
+            $metadata = (new MetadataParser)($url);
 
             // external input must be validated
             (new UserException("Invalid link"))(filter_var($metadata["url"] ?? "", FILTER_VALIDATE_URL) !== false);
@@ -238,7 +239,7 @@ namespace Zaplog {
                         ":channelid" => $channelid,
                         ":title" => $title,
                         ":markdown" => $markdown,
-                        ":description" => (new Text($markdown))->parseDown(new ParsedownFilterIterator)->blurbify(),
+                        ":description" => (new Text($markdown))->parseDown(new ParsedownFilter)->blurbify(),
                         ":image" => $image,
                     ])->rowCount() > 0);
 
@@ -265,7 +266,7 @@ namespace Zaplog {
                 WHERE id=:id AND published=TRUE", [":id" => $id]));
 
             // parse and filter the original markdown into safe xhtml
-            $link->xtext = (string)(new Text($link->markdown))->parseDown(new ParsedownFilterIterator);
+            $link->xtext = (string)(new Text($link->markdown))->parseDown(new ParsedownFilter);
             $link->goto_endpoint = Ini::get("broken_link_redirector");
 
             return [

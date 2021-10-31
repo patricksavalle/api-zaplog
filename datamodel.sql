@@ -236,7 +236,7 @@ BEGIN
     END IF;
     SELECT DISTINCT links.* FROM links WHERE published=TRUE AND createdatetime<SUBDATE(arg_datetime, INTERVAL 3 HOUR)
       -- order by score, give old posts some half life decay after 3 hours
-    ORDER BY (score / GREATEST(9, POW(TIMESTAMPDIFF(HOUR, arg_datetime, createdatetime)))) DESC LIMIT 24;
+    ORDER BY (score / GREATEST(9, POW(TIMESTAMPDIFF(HOUR, arg_datetime, createdatetime),2))) DESC LIMIT 24;
 END //
 DELIMITER ;
 
@@ -244,7 +244,7 @@ DELIMITER ;
 CREATE TABLE frontpage_current SELECT * FROM links LIMIT 0;
 
 CREATE VIEW frontpage AS
-    SELECT a.* FROM frontpage_current AS a JOIN frontpage AS b ON a.id=b.id WHERE b.published=TRUE;
+    SELECT a.* FROM frontpage_current AS a JOIN links AS b ON a.id=b.id WHERE b.published=TRUE;
 
 DELIMITER //
 CREATE EVENT select_frontpage ON SCHEDULE EVERY 60 MINUTE DO
