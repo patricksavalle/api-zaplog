@@ -160,7 +160,8 @@ namespace Zaplog {
                 $metadata["title"],
                 $metadata["description"] ?? "",
                 $metadata["image"],
-                $metadata["keywords"] ?? []);
+                $metadata["keywords"] ?? [],
+                $metadata["mimetype"] ?? null);
         }
 
         // ----------------------------------------------------------
@@ -229,11 +230,11 @@ namespace Zaplog {
         //
         // ----------------------------------------------------------
 
-        static public function postLink(string $channelid, string $url, string $title, $markdown, $image, $keywords = []): string
+        static public function postLink(string $channelid, string $url, string $title, $markdown, $image, $keywords, $mimetype): string
         {
             // Insert into database
-            (new ServerException)(Db::execute("INSERT INTO links(url, channelid, title, markdown, description, image)
-                    VALUES (:url, :channelid, :title, :markdown, :description, :image)",
+            (new ServerException)(Db::execute("INSERT INTO links(url, channelid, title, markdown, description, image, mimetype)
+                    VALUES (:url, :channelid, :title, :markdown, :description, :image, :mimetype)",
                     [
                         ":url" => $url,
                         ":channelid" => $channelid,
@@ -241,6 +242,7 @@ namespace Zaplog {
                         ":markdown" => $markdown,
                         ":description" => (new Text($markdown))->parseDown(new ParsedownFilter)->blurbify(),
                         ":image" => $image,
+                        ":mimetype" => $mimetype,
                     ])->rowCount() > 0);
 
             $linkid = Db::lastInsertId();

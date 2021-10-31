@@ -14,13 +14,13 @@ namespace Zaplog\Plugins\ResponseFilters {
     // The API has already normalized the url, no need to check all possible patterns
     // ------------------------------------------------------------------------------
 
-    class get_links_id__MediaEmbedder extends AbstractResponseFilter
+    class get_links_id__VideoEmbedder extends AbstractResponseFilter
     {
         public function __invoke(string $uri, stdClass $args, &$data)
         {
             $normalized_url = $data["link"]->url ?? null;
             if ($normalized_url !== null) {
-                foreach (["Youtube", "Bitchute", "Odysee", "Vimeo", "Rumble", "Soundcloud"] as $service) {
+                foreach (["Youtube", "Bitchute", "Odysee", "Vimeo", "Rumble"] as $service) {
                     if (($embed = $this->{$service}($normalized_url)) !== null) {
                         $data["link"]->xtext .= $embed;
                         return;
@@ -57,11 +57,6 @@ namespace Zaplog\Plugins\ResponseFilters {
         }
 
         protected function Rumble(string $normalized_url): ?string
-        {
-            return null;
-        }
-
-        protected function Soundcloud(string $normalized_url): ?string
         {
             return null;
         }

@@ -102,6 +102,7 @@ CREATE TABLE links
     published      BOOL          NOT NULL DEFAULT TRUE,
     urlhash        CHAR(32) GENERATED ALWAYS AS (MD5(url)),
     url            VARCHAR(1024) NOT NULL,
+    mimetype       VARCHAR(128)  NULL     DEFAULT NULL,
     source         ENUM ('feed','api','site') DEFAULT 'site',
     waybackurl     VARCHAR(1024) NULL     DEFAULT NULL,
     location       VARCHAR(256)  NULL     DEFAULT NULL,

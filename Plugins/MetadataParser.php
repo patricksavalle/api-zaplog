@@ -44,7 +44,15 @@ namespace Zaplog\Plugins {
 
             // instantiate and execute parser
             $class = "Zaplog\\Plugins\\MetadataParsers\\$name";
-            return (new $class)($url);
+            $metadata = (new $class)($url);
+
+            // sanity checks
+            assert(isset($metadata["url"]));
+            assert(isset($metadata["title"]));
+
+            // add the mimetype
+            $metadata['mimetype'] = $mimetype;
+            return $metadata;
         }
     }
 }

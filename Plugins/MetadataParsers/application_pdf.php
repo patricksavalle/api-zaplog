@@ -4,22 +4,24 @@ declare(strict_types=1);
 
 namespace Zaplog\Plugins\MetadataParsers {
 
-    // ----------------------------------------------------------
-    // This filter is called on every HTML element that is
-    // about to be outputted by the Parsedown conversion
-    //
-    // Element structure
-    // ----------------------------------------------------------
-
     use Exception;
+    use Smalot\PdfParser\Parser;
     use Zaplog\Plugins\AbstractMetadataParser;
 
     class application_pdf extends AbstractMetadataParser
     {
         public function __invoke(string $url): array
         {
-            // return (new PdfMetadata)($url);
-            throw new Exception("Unsupported file type", 400);
+            try {
+                $parser = new Parser();
+                $pdf = $parser->parseFile($url);
+                $details = $pdf->getDetails();
+            } catch (Exception $e) {
+                throw new Exception($e->getMessage(), 400);
+            }
+            $metadata['url'] = $url;
+            $metadata['title'] = $details['Title'] ?? null;
+            return $metadata;
         }
     }
 }
