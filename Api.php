@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Zaplog {
 
-    define("VERSION", "v0.91");
+    define("VERSION", "v0.92");
 
     define("BASE_PATH", __DIR__);
 
@@ -64,6 +64,8 @@ namespace Zaplog {
 
                 // Initialization
                 Authentication::createSession("dummy@dummy.dummy");
+                Db::execute("UPDATE channels SET userid=IF(LENGTH(userid)=0,MD5(:email),userid) 
+                    WHERE id=1", [":email" => Ini::get("email_admin")]);
 
                 echo "<p>Repositories: https://gitlab.com/zaplog/api-zaplog</p>";
                 echo "<h1>" . __CLASS__ . " version " . VERSION . "</h1>";
@@ -105,9 +107,8 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                return self::response($request, $response, $args, ["bitcoinaddress" => Ini::get("bitcoinaddress"), "shares" => Methods::getPaymentShares()]);
-            })
-                ->add(new Memcaching(60/*sec*/));
+                return self::response($request, $response, $args, Methods::getPaymentShares());
+            });
 
             // -----------------------------------------------------
             // Authenticated methods can only be used with a session

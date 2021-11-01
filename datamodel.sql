@@ -72,12 +72,14 @@ BEGIN
 END//
 DELIMITER ;
 
--- -----------------------------------------------------
--- Posts that are placed on this channel are collaborative
--- (can be edited by any member with enough reputation)
--- -----------------------------------------------------
+-- ------------------------------------------------------------
+-- Channel 1 has a special status
+-- - Language setting is used for frontpage language
+-- - cryptoaddress is used for incoming group payments
+-- - administrative / editorial notes show in sidebar
+-- ------------------------------------------------------------
 
-INSERT INTO channels(name,bio,userid,avatar) VALUES ("zaplog", "Next-generation social blogging platform.", MD5("zaplog@patricksavalle.com"), "https://gitlab.com/uploads/-/system/group/avatar/13533618/zapruderlogo.png");
+INSERT INTO channels(name,userid) VALUES ("admin", "");
 
 -- -----------------------------------------------------
 -- For public queries. Hide privacy data.
@@ -235,9 +237,12 @@ BEGIN
     IF (arg_datetime IS NULL) THEN
         SET arg_datetime=CURRENT_TIMESTAMP;
     END IF;
-    SELECT DISTINCT links.* FROM links WHERE published=TRUE AND createdatetime<SUBDATE(arg_datetime, INTERVAL 3 HOUR)
+    SELECT DISTINCT links.* FROM links
+        WHERE published=TRUE
+        AND language=(SELECT IFNULL(language,"nl") FROM channels WHERE id=1)
+        AND createdatetime<SUBDATE(arg_datetime, INTERVAL 3 HOUR)
       -- order by score, give old posts some half life decay after 3 hours
-    ORDER BY (score / GREATEST(9, POW(TIMESTAMPDIFF(HOUR, arg_datetime, createdatetime),2))) DESC LIMIT 24;
+    ORDER BY (score / GREATEST(9, POW(TIMESTAMPDIFF(HOUR, arg_datetime, createdatetime),2))) DESC LIMIT 18;
 END //
 DELIMITER ;
 
@@ -253,8 +258,10 @@ CREATE EVENT select_frontpage ON SCHEDULE EVERY 60 MINUTE DO
         CREATE TABLE frontpage_new LIKE frontpage_current;
         INSERT INTO frontpage_new
         SELECT DISTINCT links.* FROM links
-            WHERE published=TRUE AND createdatetime<SUBDATE(CURRENT_TIMESTAMP, INTERVAL 3 HOUR)
-            ORDER BY (score / GREATEST(9, POW(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, createdatetime),2))) DESC LIMIT 24;
+            WHERE published=TRUE
+              AND language=(SELECT IFNULL(language,"nl") FROM channels WHERE id=1)
+              AND createdatetime<SUBDATE(CURRENT_TIMESTAMP, INTERVAL 3 HOUR)
+            ORDER BY (score / GREATEST(9, POW(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, createdatetime),2))) DESC LIMIT 18;
         -- atomic swap
         RENAME TABLE frontpage_current TO frontpage_old, frontpage_new TO frontpage_current;
         DROP TABLE frontpage_old;

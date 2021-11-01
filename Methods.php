@@ -29,22 +29,29 @@ namespace Zaplog {
 
         static public function getPaymentShares(): array
         {
-            $channels = Db::fetchAll("SELECT avatar, name, reputation AS share FROM topchannels WHERE moneroaddress <> NULL");
+            $in_address = Db::fetchAll("SELECT moneroaddress FROM channels WHERE id=1");
+            $channels = Db::fetchAll("SELECT avatar, name, reputation AS share FROM channels WHERE moneroaddress <> NULL ORDER BY reputation DESC LIMIT 50");
+            // normalize to ratio's of 1
             if (sizeof($channels) > 0) {
-                // normalize to ratio's of 1
+                // get smallest share (last in set)
                 $minshare = $channels[sizeof($channels) - 1]->share;
                 foreach ($channels as $channel) {
                     $channel->share = floor($channel->share / $minshare);
                 }
+                // calculate total shares combined
                 $sumshare = 0;
                 foreach ($channels as $channel) {
                     $sumshare += $channel->share;
                 }
+                // 50% will be divided among channels
                 foreach ($channels as $channel) {
                     $channel->share = $channel->share / $sumshare / 0.5;
                 }
             }
-            return array_merge([["avatar" => "", "name" => "Zaplog", "share" => 0.5]], $channels);
+            return [
+                "in_address" => $in_address,
+                "out_shares" => $channels,
+            ];
         }
 
         // ----------------------------------------------------------
