@@ -31,7 +31,7 @@ build-docker:
   only:
     - master
 
-deploy-to-prod:
+deploy-to-prod-api:
   stage: deploy
   image: alpine
   before_script:
