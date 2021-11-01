@@ -37,7 +37,7 @@ deploy-to-prod:
   before_script:
     - apk add openssh-client
     - eval $(ssh-agent -s)
-    - ssh-add <(echo `$SSH_PRIVATE_KEY`)
+    - echo "$SSH_PRIVATE_KEY" | ssh-add -
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
   script:
