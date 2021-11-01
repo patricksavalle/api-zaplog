@@ -30,10 +30,7 @@ namespace Zaplog\Plugins {
                 require $file;
                 $classname = "Zaplog\\Plugins\\ParsedownFilters\\" . $match[1];
                 $plugin = new $classname;
-                if (!($plugin instanceof AbstractParsedownFilter)) {
-                    error_log("$file is not an instance of AbstractParsedownFilter -> ignored");
-                    continue;
-                }
+                assert($plugin instanceof AbstractParsedownFilter);
                 $this->processors[] = $plugin;
             }
         }

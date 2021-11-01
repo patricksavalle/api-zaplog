@@ -65,10 +65,7 @@ namespace Zaplog\Plugins {
                 require $file;
                 $classname = "Zaplog\\Plugins\\ResponseFilters\\" . $classname;
                 $filter = new $classname;
-                if (!($filter instanceof AbstractResponseFilter)) {
-                    error_log("$classname is not an instance of AbstractResponseFilter -> ignored");
-                    continue;
-                }
+                assert($filter instanceof AbstractResponseFilter);
                 $filter($requestUri, $requestArgs, $responseData);
             }
         }

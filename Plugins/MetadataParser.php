@@ -53,10 +53,7 @@ namespace Zaplog\Plugins {
             // instantiate and execute parser
             $class = "Zaplog\\Plugins\\MetadataParsers\\$name";
             $parser = (new $class);
-            if (!($parser instanceof AbstractMetadataParser)) {
-                error_log("$path is not an instance of AbstractMetadataParser -> ignored");
-                return [];
-            }
+            assert($parser instanceof AbstractMetadataParser);
             $metadata = $parser($url);
 
             // sanity checks
