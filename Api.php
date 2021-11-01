@@ -53,7 +53,8 @@ namespace Zaplog {
             parent::__construct();
 
             $this->add(function (Request $request, Response $response, callable $next): Response {
-                return $next($request, $response)->withHeader("X-Api-Version", VERSION);});
+                return $next($request, $response)->withHeader("X-Api-Version", VERSION);
+            });
 
             // -----------------------------------------
             // show the API homepage
@@ -411,13 +412,15 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, Methods::postLink(
-                        (string)Authentication::getSession()->id, $args->link, $args->title, $args->description, $args->image));
+                    $args->channelid = Authentication::getSession()->id;
+                    return self::response($request, $response, $args, Methods::postLink($args));
                 })
                     ->add(new BodyParameters([
                         '{link:\url},null',
+                        '{mimetype:[-\w.]+/[-\w.]+},null',
                         '{title:[\w-]{3,55}}',
-                        '{description:\raw}',
+                        '{markdown:\raw}',
+                        '{language:[a-z]{2}}, null',
                         '{image:\url},null']))
                     ->add(new Authentication);
 

@@ -7,7 +7,6 @@ namespace Zaplog {
     require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
 
     use ContentSyndication\ArchiveOrg;
-    use ContentSyndication\HttpRequest;
     use ContentSyndication\Text;
     use ContentSyndication\Url;
     use ContentSyndication\XmlFeed;
@@ -154,14 +153,16 @@ namespace Zaplog {
                 $metadata["image"] = Ini::get("default_post_image");
             }
 
-            return self::postLink(
-                $channelid,
-                $metadata["url"],
-                $metadata["title"],
-                $metadata["description"] ?? "",
-                $metadata["image"],
-                $metadata["keywords"] ?? [],
-                $metadata["mimetype"] ?? null);
+            $args = new stdClass;
+            $args->channelid = $channelid;
+            $args->url = $metadata["url"];
+            $args->title = $metadata["title"];
+            $args->markdown = $metadata["description"];
+            $args->image = $metadata["image"];
+            $args->mimetype = $metadata["mimetype"];
+            $args->language = $metadata["language"];
+
+            return self::postLink($args, $metadata["keywords"] ?? []);
         }
 
         // ----------------------------------------------------------
@@ -230,26 +231,27 @@ namespace Zaplog {
         //
         // ----------------------------------------------------------
 
-        static public function postLink(string $channelid, string $url, string $title, $markdown, $image, $keywords = [], $mimetype = null): string
+        static public function postLink(stdClass $link, $keywords = []): string
         {
             // Insert into database
-            (new ServerException)(Db::execute("INSERT INTO links(url, channelid, title, markdown, description, image, mimetype)
-                    VALUES (:url, :channelid, :title, :markdown, :description, :image, :mimetype)",
+            (new ServerException)(Db::execute("INSERT INTO links(url, channelid, title, markdown, description, image, mimetype, language)
+                    VALUES (:url, :channelid, :title, :markdown, :description, :image, :mimetype, :language)",
                     [
-                        ":url" => $url,
-                        ":channelid" => $channelid,
-                        ":title" => $title,
-                        ":markdown" => $markdown,
-                        ":description" => (new Text($markdown))->parseDown(new ParsedownFilter)->blurbify(),
-                        ":image" => $image,
-                        ":mimetype" => $mimetype,
+                        ":url" => $link->url,
+                        ":channelid" => $link->channelid,
+                        ":title" => $link->title,
+                        ":markdown" => $link->markdown,
+                        ":description" => (new Text($link->markdown))->parseDown(new ParsedownFilter)->blurbify(),
+                        ":image" => $link->image,
+                        ":mimetype" => $link->mimetype,
+                        ":language" => $link->language,
                     ])->rowCount() > 0);
 
             $linkid = Db::lastInsertId();
 
-            self::postTags($channelid, $linkid, $keywords);
+            self::postTags($link->channelid, $linkid, $keywords);
 
-            ArchiveOrg::archiveAsync($url);
+            ArchiveOrg::archiveAsync($link->url);
 
             return $linkid;
         }

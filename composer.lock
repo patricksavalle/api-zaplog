@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "deb877ad4bbb70c640323a9689c5d402",
+    "content-hash": "1a5431258aab37e279310fa0c1369c97",
     "packages": [
         {
             "name": "atrox/haikunator",
@@ -401,12 +401,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/patricksavalle/php-content-syndication.git",
-                "reference": "7d9610eb24a023e1028e1927c0a4b1e1769dea89"
+                "reference": "d027167e1e98dc97095e536df07409cafdce42c7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/patricksavalle/php-content-syndication/zipball/7d9610eb24a023e1028e1927c0a4b1e1769dea89",
-                "reference": "7d9610eb24a023e1028e1927c0a4b1e1769dea89",
+                "url": "https://api.github.com/repos/patricksavalle/php-content-syndication/zipball/d027167e1e98dc97095e536df07409cafdce42c7",
+                "reference": "d027167e1e98dc97095e536df07409cafdce42c7",
                 "shasum": ""
             },
             "require": {
@@ -451,7 +451,7 @@
                 "issues": "https://github.com/patricksavalle/php-content-syndication/issues",
                 "source": "https://github.com/patricksavalle/php-content-syndication/tree/master"
             },
-            "time": "2021-10-30T21:17:33+00:00"
+            "time": "2021-11-01T17:35:45+00:00"
         },
         {
             "name": "patricksavalle/slim-request-params",
