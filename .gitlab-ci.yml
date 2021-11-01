@@ -32,6 +32,7 @@ build-docker:
     - master
 
 deploy-to-prod:
+  stage: build
   image: alpine
   before_script:
     - apk add openssh-client
