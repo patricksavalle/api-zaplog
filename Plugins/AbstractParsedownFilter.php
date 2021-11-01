@@ -8,7 +8,7 @@ namespace Zaplog\Plugins {
     // This filter is called on every HTML element that is
     // about to be outputted by the Parsedown conversion
     //
-    // Element structure
+    // The iterator will call every plugin in undetermined order
     // ----------------------------------------------------------
 
     abstract class AbstractParsedownFilter

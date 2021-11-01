@@ -4,9 +4,17 @@ declare(strict_types=1);
 
 namespace Zaplog\Plugins {
 
-    // --------------------------------------------------------------
+    // ------------------------------------------------------------------
     // factory pattern: instantiates and executes the matching parser
-    // --------------------------------------------------------------
+    //
+    // This factory looks for a file that matches the required mimetype.
+    // All non alphanumeric characters in the mimetype are translated to
+    // underscores to determine the filename. Examples:
+    //
+    // application/pdf  -> application_pdf.php
+    // application/xml+rss -> application_xml_rss.php
+    // etc.
+    // -----------------------------------------------------------------
 
     use Exception;
 
@@ -44,7 +52,12 @@ namespace Zaplog\Plugins {
 
             // instantiate and execute parser
             $class = "Zaplog\\Plugins\\MetadataParsers\\$name";
-            $metadata = (new $class)($url);
+            $parser = (new $class);
+            if (!($parser instanceof AbstractMetadataParser)) {
+                error_log("$path is not an instance of AbstractMetadataParser -> ignored");
+                return [];
+            }
+            $metadata = $parser($url);
 
             // sanity checks
             assert(isset($metadata["url"]));
