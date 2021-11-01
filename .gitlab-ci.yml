@@ -40,6 +40,7 @@ deploy-to-prod:
     - echo "$SSH_PRIVATE_KEY" | ssh-add -
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
+    - echo hallo
   script:
     - ssh -o StrictHostKeyChecking=no $SSH_USER@$PROD_SERVER_IP "cd ~; touch test.txt"
   only:
