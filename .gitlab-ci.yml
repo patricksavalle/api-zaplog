@@ -5,7 +5,7 @@ services:
 
 stages:
   - build
-  - deploy
+ # - deploy
  # - package
  # - release
  # - deploy
@@ -21,7 +21,6 @@ variables:
   PROD_SERVER_USER: owner
   PROD_IMAGE_APP_TAG: registry.gitlab.com/zaplog/api-zaplog:master
 
-
 build-docker:
   stage: build
   script:
@@ -32,21 +31,11 @@ build-docker:
   only:
     - master
 
-deploy-prod:
-  stage: deploy
-  tags: 
-    - zaplog
-  #only: 
-  #  - master
-  script:
-    - ls -l
-
 deploy-to-prod:
-  image: creatiwww/docker-compose
-  stage: deploy
+  stage: build
   script:
     - eval $(ssh-agent -s)
-    - ssh-add <(echo "$SSH_PRIVATE_KEY" | base64 -d)
+    - echo "$SSH_PRIVATE_KEY" | ssh-add - >/dev/null
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY_IMAGE
     - echo "EXTERNAL_SERVICE_KEY=$EXTERNAL_SERVICE_PROD_KEY" >> .env
     - echo "IMAGE_APP_TAG=$PROD_IMAGE_APP_TAG" >> .env
