@@ -41,7 +41,7 @@ deploy-to-prod:
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
   script:
-    - ssh -o StrictHostKeyChecking=no $SSH_USER@$PROD_SERVER_IP "cd ~; touch test.txt"
+    - ssh -o StrictHostKeyChecking=no $SSH_USER@$PROD_SERVER_IP "cd /media/sda/zaplog/ docker-compose up -d"
   only:
     - master
   when: manual
