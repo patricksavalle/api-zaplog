@@ -230,7 +230,7 @@ namespace Zaplog {
         //
         // ----------------------------------------------------------
 
-        static public function postLink(string $channelid, string $url, string $title, $markdown, $image, $keywords, $mimetype): string
+        static public function postLink(string $channelid, string $url, string $title, $markdown, $image, $keywords = [], $mimetype = null): string
         {
             // Insert into database
             (new ServerException)(Db::execute("INSERT INTO links(url, channelid, title, markdown, description, image, mimetype)

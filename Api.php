@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Zaplog {
 
+    define("VERSION", "v0.91");
+
     define("BASE_PATH", __DIR__);
 
     require_once BASE_PATH . '/vendor/autoload.php';
@@ -50,6 +52,9 @@ namespace Zaplog {
         {
             parent::__construct();
 
+            $this->add(function (Request $request, Response $response, callable $next): Response {
+                return $next($request, $response)->withHeader("X-Api-Version", VERSION);});
+
             // -----------------------------------------
             // show the API homepage
             // -----------------------------------------
@@ -60,7 +65,7 @@ namespace Zaplog {
                 Authentication::createSession("dummy@dummy.dummy");
 
                 echo "<p>Repositories: https://gitlab.com/zaplog/api-zaplog</p>";
-                echo "<h1>" . __CLASS__ . "</h1>";
+                echo "<h1>" . __CLASS__ . " version " . VERSION . "</h1>";
                 echo "<table>";
                 /** @noinspection PhpUndefinedFieldInspection */
                 foreach ($this->router->getRoutes() as $route) {
@@ -81,7 +86,7 @@ namespace Zaplog {
                 Response $response,
                 stdClass $args): Response {
                 return $response->withStatus(307)->withHeader("Location",
-                    (new MemcachedFunction)(["\ContentSyndication\ArchiveOrg", "originalOrClosest"], [urldecode($args->urlencoded)], 60 * 60));
+                    (new MemcachedFunction)(["\ContentSyndication\ArchiveOrg", "originalOrClosest"], [urldecode($args->urlencoded)], 24 * 60 * 60));
             })
                 ->add(new QueryParameters(['{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}']));
 
@@ -282,7 +287,7 @@ namespace Zaplog {
                 ]);
             })
                 ->add(new BodyParameters(['{markdown:\raw}']));
-                //->add(new Authentication);
+            //->add(new Authentication);
 
             // ----------------------------------------------------------------
             // Channels show posts and activity for a specific user / email
@@ -441,7 +446,7 @@ namespace Zaplog {
                     return self::response($request, $response, $args, (new HtmlMetadata)($url));
                 })
                     ->add(new QueryParameters(['{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}']));
-                   // ->add(new Authentication);
+                // ->add(new Authentication);
 
                 // ----------------------------------------------------------------
                 // Change post
