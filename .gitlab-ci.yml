@@ -24,7 +24,7 @@ variables:
 before_script:
   - 'command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )'
   - eval $(ssh-agent -s)
-  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+  - echo "${SSH_PRIVATE_KEY}" | tr -d '\r' | ssh-add - > /dev/null
 
 build-docker:
   stage: build
@@ -37,7 +37,6 @@ build-docker:
     - master
 
 deploy-to-prod:
-  image: creatiwww/docker-compose
   stage: build
   script:
     - eval $(ssh-agent -s)
