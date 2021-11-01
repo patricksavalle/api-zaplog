@@ -67,7 +67,7 @@ namespace Zaplog\Plugins\ResponseFilters {
             if (preg_match("/.*youtube\.com\/watch\?v=(.*)/", $normalized_url, $matches) === 0) {
                 return null;
             }
-            return "<iframe width='100%' class='video youtube' src='http://www.youtube.com/embed/$matches[1]'></iframe>";
+            return "<iframe width='100%' class='video youtube' src='https://www.youtube.com/embed/$matches[1]'></iframe>";
         }
     }
 }
