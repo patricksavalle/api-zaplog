@@ -21,15 +21,6 @@ variables:
   PROD_SERVER_USER: owner
   PROD_IMAGE_APP_TAG: registry.gitlab.com/zaplog/api-zaplog:master
 
-before_script:
-  - apt-get update -qq
-  - apt-get install -qq git
-  - 'which ssh-agent || ( apt-get install -qq openssh-client )'
-  - eval $(ssh-agent -s)
-  - ssh-add <(echo "$SSH_PRIVATE_KEY")
-  - mkdir -p ~/.ssh
-  - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
-
 build-docker:
   stage: build
   script:
@@ -43,11 +34,14 @@ build-docker:
 deploy-to-prod:
   stage: build
   script:
+    - apt-get update -qq
+    - apt-get install -qq git
+    - 'which ssh-agent || ( apt-get install -qq openssh-client )'
     - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | ssh-add - >/dev/null
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY_IMAGE
-    - echo "EXTERNAL_SERVICE_KEY=$EXTERNAL_SERVICE_PROD_KEY" >> .env
-    - echo "IMAGE_APP_TAG=$PROD_IMAGE_APP_TAG" >> .env
+    - ssh-add <(echo "$SSH_PRIVATE_KEY")
+    - mkdir -p ~/.ssh
+    - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+    - eval $(ssh-agent -s)
     #- docker-compose -H "ssh://$PROD_SERVER_USER@$PROD_SERVER_IP" down --remove-orphans
     - docker-compose -H "ssh://$PROD_SERVER_USER@$PROD_SERVER_IP" pull
     #- docker-compose -H "ssh://$PROD_SERVER_USER@$PROD_SERVER_IP" up -d
