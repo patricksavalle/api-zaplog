@@ -5,7 +5,7 @@ services:
 
 stages:
   - build
- # - deploy
+  - deploy
  # - package
  # - release
  # - deploy
@@ -31,16 +31,17 @@ build-docker:
   only:
     - master
 
-deploy-to-prod:
+deploy-to-prod-api:
+  stage: deploy
   image: alpine
   before_script:
     - apk add openssh-client
     - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - echo "$SSH_PROD_ZAPLOG" | tr -d '\r' | ssh-add - > /dev/null
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
   script:
-    - ssh -o StrictHostKeyChecking=no owner@zaplog.pro "cd ~; touch test.txt"
+    - ssh -o StrictHostKeyChecking=no $SSH_USER@$PROD_SERVER_IP "cd $DOCKER_PATH && docker-compose pull && docker-compose up -d"
   only:
     - master
-  when: manual
+
