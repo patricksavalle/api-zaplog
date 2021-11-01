@@ -5,7 +5,7 @@ services:
 
 stages:
   - build
- # - deploy
+  - deploy
  # - package
  # - release
  # - deploy
@@ -32,7 +32,7 @@ build-docker:
     - master
 
 deploy-to-prod:
-  stage: build
+  stage: deploy
   image: alpine
   before_script:
     - apk add openssh-client
@@ -44,4 +44,4 @@ deploy-to-prod:
     - ssh -o StrictHostKeyChecking=no $SSH_USER@$PROD_SERVER_IP "cd /media/sda/zaplog/ && docker-compose pull && docker-compose up -d"
   only:
     - master
-  when: manual
+
