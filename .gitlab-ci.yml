@@ -32,8 +32,7 @@ build-docker:
     - master
 
 deploy-to-prod:
-  stage: build
-  image: creatiwww/docker-compose
+  image: alpine
   before_script:
     - apk add openssh-client
     - eval $(ssh-agent -s)
@@ -41,14 +40,7 @@ deploy-to-prod:
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
   script:
-    - 'which ssh-agent || ( apt-get install -qq openssh-client )'
-    - eval $(ssh-agent -s)
-    - ssh-add <(echo "$SSH_PRIVATE_KEY")
-    - mkdir -p ~/.ssh
-    - eval $(ssh-agent -s)
-    #- docker-compose -H "ssh://$PROD_SERVER_USER@$PROD_SERVER_IP" down --remove-orphans
-    - docker-compose -H "ssh://$PROD_SERVER_USER@$PROD_SERVER_IP" pull
-    #- docker-compose -H "ssh://$PROD_SERVER_USER@$PROD_SERVER_IP" up -d
+    - ssh -o StrictHostKeyChecking=no owner@zaplog.pro "cd ~; touch test.txt"
   only:
     - master
   when: manual
