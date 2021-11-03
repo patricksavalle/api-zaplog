@@ -1,9 +1,10 @@
 ; Example ini, needs to be placed in webroot
 
 [general]
-api_domain=
+api_domain=${api_domain}
 webarchive_save_link=https://web.archive.org/save/
 admins[]=
+frontpage_language=nl
 
 [content]
 default_post_image=https://cdn.pixabay.com/photo/2018/06/24/08/01/dark-background-3494082_1280.jpg
