@@ -4,6 +4,7 @@
 api_domain=${api_domain}
 webarchive_save_link=https://web.archive.org/save/
 admins[]=
+email_admin=${email_admin}
 frontpage_language=nl
 
 [content]
