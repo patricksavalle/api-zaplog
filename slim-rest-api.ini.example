@@ -3,7 +3,8 @@
 [general]
 api_domain=http://127.0.0.1:8080
 admins[]=
-bitcoinaddress=
+email_admin=
+frontpage_language=nl
 
 [content]
 default_post_image=https://cdn.pixabay.com/photo/2018/06/24/08/01/dark-background-3494082_1280.jpg
