@@ -20,15 +20,6 @@ variables:
   PROD_SERVER_USER: owner
   PROD_IMAGE_APP_TAG: registry.gitlab.com/zaplog/api-zaplog:master
 
-compliance_job:
-  stage: compliance
-  only:
-    changes:
-      - patman.txt
-  script:
-    - ./compliance_check.sh
-
-
 build-docker:
   stage: build
   script:
@@ -52,4 +43,13 @@ deploy-to-prod-api:
     - ssh -o StrictHostKeyChecking=no $SSH_USER@$PROD_SERVER_IP "cd $DOCKER_PATH && docker-compose pull && docker-compose up -d"
   only:
     - master
+
+
+execute_sql:
+  stage: deploy
+  only:
+    changes:
+      - patman.txt
+  script:
+    - ./compliance_check.sh
 
