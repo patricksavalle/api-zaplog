@@ -49,7 +49,7 @@ execute_sql:
   stage: deploy
   only:
     changes:
-      - patman.txt
+      - datamodel_change.sql
   script:
     - ./compliance_check.sh
 
