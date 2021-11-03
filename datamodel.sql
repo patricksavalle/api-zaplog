@@ -37,13 +37,13 @@ CREATE TABLE channels
     theme            VARCHAR(255)       DEFAULT NULL,
     createdatetime   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updatedatetime   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    refeeddatetime   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     lastseendatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     -- inline base64 encoded avatars
     avatar           VARCHAR(16384)     DEFAULT NULL,
+    -- url to image
     header           VARCHAR(255)       DEFAULT NULL,
     bio              VARCHAR(255) NOT NULL DEFAULT "",
-    moneroaddress    CHAR(93)           DEFAULT NULL,
+    bitcoinaddress   VARCHAR(60)        DEFAULT NULL,
     -- sum of all related link scores
     score            INT                DEFAULT 0,
     -- for internal bookkeeping during reputation calculations
@@ -65,7 +65,7 @@ CREATE TRIGGER on_before_update_channel BEFORE UPDATE ON channels FOR EACH ROW
 BEGIN
     IF NEW.bio<>OLD.bio
         OR NEW.name<>OLD.name
-        OR NEW.moneroaddress<>OLD.moneroaddress
+        OR NEW.bitcoinaddress<>OLD.bitcoinaddress
         OR NEW.avatar<>OLD.avatar THEN
         SET NEW.updatedatetime = CURRENT_TIMESTAMP;
     END IF;
@@ -97,29 +97,26 @@ CREATE TABLE links
     id             INT           NOT NULL AUTO_INCREMENT,
     createdatetime TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updatedatetime TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    checkdatetime  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     -- datetime of the original publication
     origdatetime   DATETIME               DEFAULT NULL,
     channelid      INT           NOT NULL,
     published      BOOL          NOT NULL DEFAULT TRUE,
     urlhash        CHAR(32) GENERATED ALWAYS AS (MD5(url)),
     url            VARCHAR(1024) NOT NULL,
-    mimetype       VARCHAR(128)  NULL     DEFAULT NULL,
-    source         ENUM ('feed','api','site') DEFAULT 'site',
-    waybackurl     VARCHAR(1024) NULL     DEFAULT NULL,
-    location       VARCHAR(256)  NULL     DEFAULT NULL,
-    latitude       FLOAT         NULL     DEFAULT NULL,
-    longitude      FLOAT         NULL     DEFAULT NULL,
+    mimetype       VARCHAR(128)           DEFAULT NULL,
+    location       VARCHAR(256)           DEFAULT NULL,
+    latitude       FLOAT                  DEFAULT NULL,
+    longitude      FLOAT                  DEFAULT NULL,
     language       CHAR(2)                DEFAULT NULL,
     title          VARCHAR(256)  NOT NULL,
     copyright      ENUM (
-        'No Rights Apply',
+        'No Rights Apply', -- linkdump
         'All Rights Reserved',
         'No Rights Reserved (CC0 1.0)',
-        'Some Rights Reserved (CC BY-NC-SA 4.0)' ) DEFAULT NULL,
+        'Some Rights Reserved (CC BY-SA 4.0)' ) DEFAULT NULL,
     -- Original raw markdown input
     markdown       TEXT                   DEFAULT NULL,
-    -- Clean text blurb
+    -- Clean text blurb, set on insert
     description    VARCHAR(256)           DEFAULT NULL,
     -- Parsed and filtered XHTML output, placeholder, set on output by PHP layer
     xtext          TEXT GENERATED ALWAYS AS (''),
@@ -132,23 +129,36 @@ CREATE TABLE links
     viewscount     INT                    DEFAULT 0,
     votescount     INT                    DEFAULT 0,
     tagscount      INT                    DEFAULT 0,
+    -- the scoring algorithm
     score          INT GENERATED ALWAYS AS (
 
-            -- the scoring algorithm
-            (votescount+1) *
+            -- no votes no score
+            votescount *
             -- no tags, no score
             IF(tagscount = 0 , 0, 1) *
-            -- no content, no score
-            IF(markdown IS NULL OR LENGTH(markdown) = 0, 0, 1) *
+            -- little content, no score
+            IF(markdown IS NULL OR LENGTH(markdown) < 100, 0, 1) *
             -- double score for real articles
-            IF(copyright IS NULL OR copyright = 'No Rights Apply', 1, 2) *
-            -- weigh the active and passive factors
+            (
+                CASE copyright
+                    WHEN 'No Rights Apply' THEN 1
+                    WHEN 'All Rights Reserved' THEN 2
+                    WHEN 'No Rights Reserved (CC0 1.0)' THEN 2
+                    WHEN 'Some Rights Reserved (CC BY-SA 4.0)' THEN 2
+                    ELSE 1 END
+            ) *
+            -- weigh the passive factors, decreasing returns
             (
                 ROUND(
+                    -- more different interactors is better
                     LOG(10, 1 + uniquereactors * 10) +
+                    -- longer articles are better
                     LOG(10, 1 + IF(markdown IS NULL, 0, LENGTH(markdown))) +
+                    -- more external reach is better
                     LOG(10, 1 + uniquereferrers) +
-                    LOG(10, 1 + reactionscount) +
+                    -- more reactions is better
+                    LOG(10, 1 + reactionscount) / 5 +
+                    -- more views always better
                     LOG(10, 1 + viewscount / 10)
                 )
             )
@@ -158,7 +168,7 @@ CREATE TABLE links
     INDEX (channelid),
     INDEX (published),
     INDEX (createdatetime),
-    INDEX (updatedatetime),
+    INDEX (urlhash),
     INDEX (score),
     FOREIGN KEY (channelid) REFERENCES channels (id)
         ON DELETE CASCADE
@@ -246,7 +256,7 @@ END //
 DELIMITER ;
 
 -- We need a table WITHOUT indexes, preserve order of inserts, this will do that
-CREATE TABLE frontpage_current SELECT * FROM links LIMIT 0;
+CREATE TABLE frontpage_current SELECT * FROM links;
 
 CREATE VIEW frontpage AS
     SELECT a.* FROM frontpage_current AS a JOIN links AS b ON a.id=b.id WHERE b.published=TRUE;
@@ -299,7 +309,7 @@ CREATE TRIGGER on_update_channel AFTER UPDATE ON channels FOR EACH ROW
 BEGIN
     IF (NEW.bio<>OLD.bio
         OR NEW.name<>OLD.name
-        OR NEW.moneroaddress<>OLD.moneroaddress
+        OR NEW.bitcoinaddress<>OLD.bitcoinaddress
         OR NEW.avatar<>OLD.avatar) THEN
         INSERT INTO interactions(channelid,type) VALUES (NEW.id,'on_update_channel');
     END IF;
@@ -354,7 +364,7 @@ CREATE TABLE reactions
     linkid         INT       NOT NULL,
     channelid      INT       NOT NULL,
     published      BOOL      NOT NULL DEFAULT TRUE,
-    -- Clean text blurb
+    -- Clean text blurb, set on insert
     description    VARCHAR(256)       DEFAULT NULL,
     -- Purified xhtml from markdown input, no need to store original input because immutable
     xtext          TEXT               DEFAULT NULL,
@@ -398,7 +408,9 @@ CREATE TABLE tags
     linkid         INT         NOT NULL,
     -- channel (=user) that added the tags
     channelid      INT         NOT NULL,
-    tag            VARCHAR(50) NOT NULL,
+    -- analyzed 340.000 tags on old zaplog, 40 is usefull max
+    -- most used table in the system, optimize for speed (no VARCHAR)
+    tag            CHAR(40)    NOT NULL,
     PRIMARY KEY (id),
     INDEX (linkid),
     INDEX (channelid),

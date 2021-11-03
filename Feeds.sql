@@ -15,7 +15,10 @@ INSERT INTO channels(name, feedurl, avatar, userid) VALUES
     ("herstel-de-republiek", "https://herstelderepubliek.wordpress.com/feed/", "https://api.multiavatar.com/herstelderepubliek.svg", "redactie@herstelderepubliek.wordpress.com"),
     ("het-andere-nieuws", "https://hetanderenieuws.nl/feed/", "https://api.multiavatar.com/devrijeomroep.svg", "redactie@hetanderenieuws.nl"),
     ("de-vrije-omroep", "https://odysee.com/$/rss/@devrijeomroep:6", "https://api.multiavatar.com/devrijeomroep.svg", "redactie@devrijeomroep.nl"),
-    ("frontnieuws", "https://www.frontnieuws.com/feed/", "https://api.multiavatar.com/frontnieuws.svg", "redactie@frontnieuws.nl");
+    ("frontnieuws", "https://www.frontnieuws.com/feed/", "https://api.multiavatar.com/frontnieuws.svg", "redactie@frontnieuws.nl"),
+    ("hnmda", "https://www.hetnieuwsmaardananders.nl/feed/", "https://api.multiavatar.com/hetnieuwsmaardananders.svg", "redactie@hetnieuwsmaardananders.nl");
+
+
 
 
 

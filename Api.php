@@ -8,13 +8,12 @@ declare(strict_types=1);
 
 namespace Zaplog {
 
-    define("VERSION", "v0.92");
+    define("VERSION", "v0.93");
 
     define("BASE_PATH", __DIR__);
 
     require_once BASE_PATH . '/vendor/autoload.php';
 
-    use ContentSyndication\HtmlMetadata;
     use ContentSyndication\Text;
     use SlimRestApi\Infra\Ini;
     use SlimRestApi\Infra\MemcachedFunction;
@@ -31,6 +30,7 @@ namespace Zaplog {
     use Zaplog\Library\TwoFactorAction;
     use Zaplog\Library\Avatar;
     use Zaplog\Middleware\Authentication;
+    use Zaplog\Plugins\MetadataParser;
     use Zaplog\Plugins\ParsedownFilter;
     use Zaplog\Plugins\ResponseFilter;
 
@@ -62,10 +62,13 @@ namespace Zaplog {
 
             $this->get("/", function ($rq, $rp, $args): Response {
 
+                //(new ZaplogImport)();
+
                 // Initialization
                 Authentication::createSession("dummy@dummy.dummy");
-                Db::execute("UPDATE channels SET userid=IF(LENGTH(userid)=0,MD5(:email),userid) 
-                    WHERE id=1", [":email" => Ini::get("email_admin")]);
+                Db::execute("UPDATE channels SET userid=IF(LENGTH(userid)=0,MD5(:email),userid) WHERE id=1", [":email" => Ini::get("email_admin")]);
+                Db::execute("SET GLOBAL event_scheduler = ON");
+                Db::execute("SET GLOBAL TRANSACTION ISOLATION LEVEL READ UNCOMMITTED");
 
                 echo "<p>Repositories: https://gitlab.com/zaplog/api-zaplog</p>";
                 echo "<h1>" . __CLASS__ . " version " . VERSION . "</h1>";
@@ -89,9 +92,9 @@ namespace Zaplog {
                 Response $response,
                 stdClass $args): Response {
                 return $response->withStatus(307)->withHeader("Location",
-                    (new MemcachedFunction)(["\ContentSyndication\ArchiveOrg", "originalOrClosest"], [urldecode($args->urlencoded)], 24 * 60 * 60));
+                    (new MemcachedFunction)(["\ContentSyndication\ArchiveOrg", "originalOrClosest"], [$args->urlencoded], 24 * 60 * 60));
             })
-                ->add(new QueryParameters(['{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}']));
+                ->add(new QueryParameters(['{urlencoded:\urlencoded}']));
 
             // -----------------------------------------
             // Add the two factor handler to the server
@@ -277,7 +280,7 @@ namespace Zaplog {
             // Preview comment or post text after parsing and filtering
             // --------------------------------------------------------
 
-            $this->post("/textpreview", function (
+            $this->post("/postpreview", function (
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
@@ -288,8 +291,23 @@ namespace Zaplog {
                     "reactions.xtext" => (string)(new Text($args->markdown))->parseDownLine(new ParsedownFilter),
                 ]);
             })
-                ->add(new BodyParameters(['{markdown:\raw}']));
-            //->add(new Authentication);
+                ->add(new BodyParameters(['{markdown:\raw}']))
+                ->add(new Authentication);
+
+            // ----------------------------------------------------------------
+            // Return an URL's metadata and the duplicate URL's in de database
+            // ----------------------------------------------------------------
+
+            $this->get("/urlmetadata", function (
+                Request  $request,
+                Response $response,
+                stdClass $args): Response {
+                $metadata = (new MetadataParser)($args->urlencoded);
+                $duplicates = Db::fetchAll("SELECT * FROM links WHERE urlhash=MD5(:url)", [":url" => $metadata["url"]]);
+                return self::response($request, $response, $args, ["metadata" => $metadata, "duplicaties" => $duplicates]);
+            })
+                ->add(new QueryParameters(['{urlencoded:\urlencoded}']));
+                //->add(new Authentication);
 
             // ----------------------------------------------------------------
             // Channels show posts and activity for a specific user / email
@@ -357,11 +375,11 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     return self::response($request, $response, $args, Db::execute("UPDATE channels SET 
-                        name=:name, avatar=IFNULL(:avatar,avatar), bio=:bio, moneroaddress=:moneroaddress WHERE id=:channelid", [
+                        name=:name, avatar=IFNULL(:avatar,avatar), bio=:bio, bitcoinaddress=:bitcoinaddress WHERE id=:channelid", [
                         ":name" => (new Text($args->name))->convertToAscii()->hyphenize(),
                         ":avatar" => empty($args->avatar) ? null : (new Avatar($args->avatar))->inlineBase64(),
                         ":bio" => $args->bio,
-                        ":moneroaddress" => $args->moneroaddress,
+                        ":bitcoinaddress" => $args->bitcoinaddress,
                         ":channelid" => Authentication::getSession()->id,
                     ])->rowCount());
                 })
@@ -369,7 +387,7 @@ namespace Zaplog {
                         '{name:[.\w-]{3,55}}',
                         '{avatar:\url},null',
                         '{bio:\xtext},""',
-                        '{moneroaddress:\moneroaddress},null']))
+                        '{bitcoinaddress:\bitcoinaddress},null']))
                     ->add(new Authentication);
 
                 // ----------------------------------------------------------------
@@ -422,6 +440,7 @@ namespace Zaplog {
                         '{title:[\w-]{3,55}}',
                         '{markdown:\raw}',
                         '{language:[a-z]{2}}, null',
+                        '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved (CC0 1.0)|Some Rights Reserved (CC BY-SA 4.0)}, null',
                         '{image:\url},null']))
                     ->add(new Authentication);
 
@@ -436,21 +455,6 @@ namespace Zaplog {
                     return self::response($request, $response, $args, Methods::getSingleLink($args->id));
                 })
                     ->add(new QueryParameters(['{http_referer:\url},null']));
-
-                // ----------------------------------------------------------------
-                // Return a link's metadata
-                // ----------------------------------------------------------------
-
-                $this->get("/metadata", function (
-                    Request  $request,
-                    Response $response,
-                    stdClass $args): Response {
-                    $url = trim(urldecode($args->urlencoded));
-                    (new UserException)(filter_var($url, FILTER_VALIDATE_URL));
-                    return self::response($request, $response, $args, (new HtmlMetadata)($url));
-                })
-                    ->add(new QueryParameters(['{urlencoded:(?:[^%]|%[0-9A-Fa-f]{2})+}']));
-                // ->add(new Authentication);
 
                 // ----------------------------------------------------------------
                 // Change post

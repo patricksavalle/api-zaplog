@@ -39,6 +39,7 @@
     "erusev/parsedown": "^1.7",
     "multiavatar/multiavatar-php": "^1.0",
     "ext-fileinfo": "*",
+    "ezyang/htmlpurifier": "^4.13",
     "smalot/pdfparser": "^1.1"
   },
   "autoload": {

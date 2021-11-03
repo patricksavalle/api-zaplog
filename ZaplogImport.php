@@ -50,14 +50,26 @@ namespace Zaplog {
                 ]);
             }
 
-            Db::execute("ALTER TABLE links ADD COLUMN entryid INT NULL AFTER id, ADD INDEX (entryid);");
+            Db::execute("ALTER TABLE links ADD COLUMN IF NOT EXISTS entryid INT NULL AFTER id, ADD INDEX (entryid);");
+
+            $copyright_map = function (string $copyright) {
+                return [
+                        "Some rights reserved" => "Some Rights Reserved (CC BY-SA 4.0)",
+                        "Linkdump / summary" => "No Rights Apply",
+                        "All rights reserved" => "All Rights Reserved",
+                        "ZapLog vrij wijzigbaar" => "Some Rights Reserved (CC BY-SA 4.0)",
+                        "Public domain" => "No Rights Reserved (CC0 1.0)",
+                        "Newsarticle" => "No Rights Reserved (CC0 1.0)",
+                        "open-source" => "No Rights Reserved (CC0 1.0)",
+                    ][trim($copyright)] ?? "No Rights Apply";
+            };
 
             // import posts
             $offset = 0;
             do {
                 $batchsize = 0;
                 error_log("post: " . $offset);
-                foreach (Db::fetchAll("SELECT channels.id AS channelid, entry_id, title, link, description, posts.createdatetime, viewscount
+                foreach (Db::fetchAll("SELECT channels.id AS channelid, entry_id, title, link, description, posts.createdatetime, viewscount, copyright
                     FROM imported_posts AS posts
                     JOIN channels ON posts.userid=channels.userid
                     ORDER BY entry_id ASC
@@ -65,9 +77,9 @@ namespace Zaplog {
                     $batchsize++;
                     $purified = $this->purify((string)(new Text($post->description))->nl2br()->BBtoHTML());
                     $markdown = (string)(new Text($purified))->parseUp();
-                    if (strlen($markdown)<50) continue;
-                    Db::execute("INSERT INTO links(entryid,channelid,title,markdown,description,createdatetime,viewscount,url, image)
-                        VALUES(:entryid,:channelid,:title,:markdown,:description,:createdatetime,:viewscount,:url, :image)", [
+                    if (strlen($markdown) < 50) continue;
+                    Db::execute("INSERT INTO links(entryid,channelid,title,markdown,description,createdatetime,viewscount,url, image, copyright)
+                        VALUES(:entryid,:channelid,:title,:markdown,:description,:createdatetime,:viewscount,:url, :image, :copyright)", [
                         ":entryid" => $post->entry_id,
                         ":channelid" => $post->channelid,
                         ":title" => (string)(new Text($post->title)),
@@ -77,6 +89,7 @@ namespace Zaplog {
                         ":viewscount" => $post->viewscount * 3,
                         ":url" => $post->link,
                         ":image" => "https://cdn.pixabay.com/photo/2018/06/24/08/01/dark-background-3494082_1280.jpg",
+                        ":copyright" => $copyright_map($post->copyright ?? ""),
                     ]);
                 }
                 $offset += 1000;
@@ -92,10 +105,12 @@ namespace Zaplog {
                     JOIN links ON links.entryid=tags.entry_id
                     LIMIT :offset, 1000", [":offset" => $offset]) as $tag) {
                     $batchsize++;
+                    $tagname = (string)(new Text($tag->tag_name))->convertToAscii()->hyphenize();
+                    if (strlen($tagname) > 40) continue;
                     Db::execute("INSERT IGNORE INTO tags(linkid,channelid,tag) VALUES(:linkid,:channelid,:tag)", [
                         ":channelid" => $tag->channelid,
                         ":linkid" => $tag->linkid,
-                        ":tag" => (new Text($tag->tag_name))->convertToAscii()->hyphenize(),
+                        ":tag" => $tagname,
                     ]);
                 }
                 $offset += 1000;
@@ -143,13 +158,18 @@ namespace Zaplog {
             } while ($batchsize > 0);
 
             // update the threadid's
-            $counter = 0;
-            foreach (Db::fetchAll("SELECT id, linkid FROM reactions") as $reaction)
-            {
-                error_log( "" . $counter++ );
-                Db::execute("UPDATE reactions SET threadid=(SELECT MAX(id) FROM reactions WHERE linkid=:linkid) WHERE id=:id",
-                    [":linkid" => $reaction->linkid, ":id" => $reaction->id]);
-            }
+            $offset = 0;
+            do {
+                $batchsize = 0;
+                error_log("threadids: " . $offset);
+                foreach (Db::fetchAll("SELECT id, linkid FROM reactions
+                    LIMIT :offset, 1000", [":offset" => $offset]) as $reaction) {
+                    $batchsize++;
+                     Db::execute("UPDATE reactions SET threadid=(SELECT MAX(id) FROM reactions WHERE linkid=:linkid) WHERE id=:id",
+                        [":linkid" => $reaction->linkid, ":id" => $reaction->id]);
+                }
+                $offset += 1000;
+            } while ($batchsize > 0);
 
             Db::execute("UPDATE IGNORE tags SET tag='amerika' WHERE tag='vs'");
             Db::execute("DELETE FROM tags WHERE tag='vs'");
@@ -170,7 +190,7 @@ namespace Zaplog {
             Db::execute("OPTIMIZE TABLE reactions");
 
             Db::execute("DROP TABLE imported_comments");
-            Db::execute("DROP TABLE imported_post");
+            Db::execute("DROP TABLE imported_posts");
             Db::execute("DROP TABLE imported_tags");
             Db::execute("DROP TABLE imported_users");
             Db::execute("DROP TABLE imported_votes");

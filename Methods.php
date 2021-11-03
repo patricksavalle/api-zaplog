@@ -29,8 +29,8 @@ namespace Zaplog {
 
         static public function getPaymentShares(): array
         {
-            $in_address = Db::fetchAll("SELECT moneroaddress FROM channels WHERE id=1");
-            $channels = Db::fetchAll("SELECT avatar, name, reputation AS share FROM channels WHERE moneroaddress <> NULL ORDER BY reputation DESC LIMIT 50");
+            $in_address = Db::fetchAll("SELECT bitcoinaddress FROM channels WHERE id=1");
+            $channels = Db::fetchAll("SELECT avatar, name, reputation AS share FROM channels WHERE bitcoinaddress <> NULL ORDER BY reputation DESC LIMIT 50");
             // normalize to ratio's of 1
             if (sizeof($channels) > 0) {
                 // get smallest share (last in set)
@@ -155,7 +155,6 @@ namespace Zaplog {
             // external input must be validated
             (new UserException("Invalid link"))(filter_var($metadata["url"] ?? "", FILTER_VALIDATE_URL) !== false);
             (new UserException("Invalid title"))(!empty($metadata["title"]));
-            //(new UserException("Invalid description"))(!empty($metadata["description"]));
             if (filter_var($metadata["image"] ?? "", FILTER_VALIDATE_URL) === false) {
                 $metadata["image"] = Ini::get("default_post_image");
             }
@@ -168,6 +167,7 @@ namespace Zaplog {
             $args->image = $metadata["image"];
             $args->mimetype = $metadata["mimetype"];
             $args->language = $metadata["language"];
+            $args->copyright = "No Rights Apply";
 
             return self::postLink($args, $metadata["keywords"] ?? []);
         }
@@ -241,8 +241,9 @@ namespace Zaplog {
         static public function postLink(stdClass $link, $keywords = []): string
         {
             // Insert into database
-            (new ServerException)(Db::execute("INSERT INTO links(url, channelid, title, markdown, description, image, mimetype, language)
-                    VALUES (:url, :channelid, :title, :markdown, :description, :image, :mimetype, :language)",
+            (new ServerException)(Db::execute(
+                    "INSERT INTO links(url, channelid, title, markdown, description, image, mimetype, language, copyright)
+                    VALUES (:url, :channelid, :title, :markdown, :description, :image, :mimetype, :language, :copyright)",
                     [
                         ":url" => $link->url,
                         ":channelid" => $link->channelid,
@@ -252,6 +253,7 @@ namespace Zaplog {
                         ":image" => $link->image,
                         ":mimetype" => $link->mimetype,
                         ":language" => $link->language,
+                        ":copyright" => $link->copyright,
                     ])->rowCount() > 0);
 
             $linkid = Db::lastInsertId();
