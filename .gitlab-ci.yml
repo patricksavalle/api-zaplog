@@ -4,6 +4,7 @@ services:
   - docker:18.09-dind
 
 stages:
+  - compliance
   - build
   - deploy
  # - package
@@ -42,4 +43,13 @@ deploy-to-prod-api:
     - ssh -o StrictHostKeyChecking=no $SSH_USER@$PROD_SERVER_IP "cd $DOCKER_PATH && docker-compose pull && docker-compose up -d"
   only:
     - master
+
+
+execute_sql:
+  stage: deploy
+  only:
+    changes:
+      - datamodel_change.sql
+  script:
+    - ./compliance_check.sh
 
