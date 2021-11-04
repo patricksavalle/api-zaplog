@@ -249,7 +249,7 @@ namespace Zaplog {
                         ":channelid" => $link->channelid,
                         ":title" => $link->title,
                         ":markdown" => $link->markdown,
-                        ":description" => (new Text($link->markdown))->parseDown(new ParsedownFilter)->blurbify(),
+                        ":description" => (new Text($link->markdown ?? ""))->parseDown(new ParsedownFilter)->blurbify(),
                         ":image" => $link->image,
                         ":mimetype" => $link->mimetype,
                         ":language" => $link->language,
@@ -279,7 +279,7 @@ namespace Zaplog {
                 WHERE id=:id AND published=TRUE", [":id" => $id]));
 
             // parse and filter the original markdown into safe xhtml
-            $link->xtext = (string)(new Text($link->markdown))->parseDown(new ParsedownFilter);
+            $link->xtext = (string)(new Text($link->markdown ?? ""))->parseDown(new ParsedownFilter);
             $link->goto_endpoint = Ini::get("broken_link_redirector");
 
             return [
