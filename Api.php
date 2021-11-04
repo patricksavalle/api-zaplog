@@ -136,7 +136,7 @@ namespace Zaplog {
                 })
                     ->add(new BodyParameters([
                         '{email:\email}',
-                        '{subject:.{10,100}},Your single-use login link',
+                        '{subject:.{10,100}},Hier is jouw Zaplog login!',
                         '{template:\url},null',
                         '{*}' /* all {{variables}} used in template */,
                     ]));
@@ -157,7 +157,7 @@ namespace Zaplog {
                 })
                     ->add(new BodyParameters([
                         '{email:\email}',
-                        '{subject:.{10,100}},Your email confirmation link',
+                        '{subject:.{10,100}},Bevestig dit nieuwe email adres!',
                         '{template:\url},null',
                         '{*}' /* all {{variables}} used in template */,]))
                     ->add(new Authentication);
