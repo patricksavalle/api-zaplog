@@ -150,13 +150,16 @@ namespace Zaplog {
 
         static public function postLinkFromUrl(string $channelid, string $url): string
         {
-            $metadata = (new MetadataParser)($url);
+            $metadata = MetadataParser::getMetadata($url);
 
             // external input must be validated
             (new UserException("Invalid link"))(filter_var($metadata["url"] ?? "", FILTER_VALIDATE_URL) !== false);
             (new UserException("Invalid title"))(!empty($metadata["title"]));
-            if (filter_var($metadata["image"] ?? "", FILTER_VALIDATE_URL) === false) {
-                $metadata["image"] = Ini::get("default_post_image");
+            if (!empty($metadata["image"])) {
+                $image_mimetype = MetadataParser::getMimetype($metadata["image"]);
+                if (strpos($image_mimetype, "image/") !== 0) {
+                    $metadata["image"] = null;
+                }
             }
 
             $args = new stdClass;
@@ -249,7 +252,7 @@ namespace Zaplog {
                         ":channelid" => $link->channelid,
                         ":title" => $link->title,
                         ":markdown" => $link->markdown,
-                        ":description" => (new Text($link->markdown ?? ""))->parseDown(new ParsedownFilter)->blurbify(),
+                        ":description" => empty($link->markdown) ? "" : (new Text($link->markdown))->parseDown(new ParsedownFilter)->blurbify(),
                         ":image" => $link->image,
                         ":mimetype" => $link->mimetype,
                         ":language" => $link->language,
@@ -281,6 +284,7 @@ namespace Zaplog {
             // parse and filter the original markdown into safe xhtml
             $link->xtext = (string)(new Text($link->markdown ?? ""))->parseDown(new ParsedownFilter);
             $link->goto_endpoint = Ini::get("broken_link_redirector");
+            if (empty($link->image)) $link->image = Ini::get("default_post_image");
 
             return [
                 "link" => $link,

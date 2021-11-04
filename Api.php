@@ -302,7 +302,7 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                $metadata = (new MetadataParser)($args->urlencoded);
+                $metadata = MetadataParser::getMetadata($args->urlencoded);
                 $duplicates = Db::fetchAll("SELECT * FROM links WHERE urlhash=MD5(:url)", [":url" => $metadata["url"]]);
                 return self::response($request, $response, $args, ["metadata" => $metadata, "duplicaties" => $duplicates]);
             })

@@ -20,27 +20,29 @@ namespace Zaplog\Plugins {
 
     class MetadataParser
     {
-        private $curl;
-
-        public function __destruct()
+        static public function getMimetype(string $url): string
         {
-            curl_close($this->curl);
+            $curl = curl_init($url);
+            try {
+                // HEAD request to check mimetype
+                curl_setopt($curl, CURLOPT_NOBODY, true);
+                curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+                curl_exec($curl);
+                if (($errno = curl_errno($curl)) !== 0) {
+                    throw new Exception(curl_strerror($errno), 400);
+                }
+                preg_match("/([^;]+)/", curl_getinfo($curl, CURLINFO_CONTENT_TYPE), $matches);
+                return $matches[1];
+            } finally {
+                curl_close($curl);
+            }
         }
 
-        public function __invoke(string $url): array
+        static public function getMetadata(string $url): array
         {
-            // HEAD request to check mimetype
-            $this->curl = curl_init($url);
-            curl_setopt($this->curl, CURLOPT_NOBODY, true);
-            curl_setopt($this->curl, CURLOPT_RETURNTRANSFER, true);
-            curl_exec($this->curl);
-            if (($errno = curl_errno($this->curl)) !== 0) {
-                throw new Exception(curl_strerror($errno), 400);
-            }
+            $mimetype = static::getMimetype($url);
 
             // prepare file + class name
-            preg_match("/([^;]+)/", curl_getinfo($this->curl, CURLINFO_CONTENT_TYPE), $matches);
-            $mimetype = $matches[1];
             $name = strtolower(preg_replace("/[^\w]/", "_", $mimetype));
 
             // load matching parser (if any)
