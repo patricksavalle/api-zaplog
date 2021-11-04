@@ -95,14 +95,14 @@ CREATE VIEW channels_public_view AS
 CREATE TABLE links
 (
     id             INT           NOT NULL AUTO_INCREMENT,
+    channelid      INT           NOT NULL,
     createdatetime TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updatedatetime TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     -- datetime of the original publication
     origdatetime   DATETIME               DEFAULT NULL,
-    channelid      INT           NOT NULL,
     published      BOOL          NOT NULL DEFAULT TRUE,
+    url            VARCHAR(1024)          DEFAULT NULL,
     urlhash        CHAR(32) GENERATED ALWAYS AS (MD5(url)),
-    url            VARCHAR(1024) NOT NULL,
     mimetype       VARCHAR(128)           DEFAULT NULL,
     location       VARCHAR(256)           DEFAULT NULL,
     latitude       FLOAT                  DEFAULT NULL,
@@ -118,8 +118,6 @@ CREATE TABLE links
     markdown       TEXT                   DEFAULT NULL,
     -- Clean text blurb, set on insert
     description    VARCHAR(256)           DEFAULT NULL,
-    -- Parsed and filtered XHTML output, placeholder, set on output by PHP layer
-    xtext          TEXT GENERATED ALWAYS AS (''),
     image          VARCHAR(256)           DEFAULT NULL,
     -- because this system is very read intensive we will keep totals in this table
     -- instead of counting/joining the respective tables each time

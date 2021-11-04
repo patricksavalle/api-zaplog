@@ -77,6 +77,9 @@ namespace Zaplog {
                     $batchsize++;
                     $purified = $this->purify((string)(new Text($post->description))->nl2br()->BBtoHTML());
                     $markdown = (string)(new Text($purified))->parseUp();
+                    if (filter_var($post->link ?? "", FILTER_VALIDATE_URL) === false) {
+                        $post->link = null;
+                    }
                     if (strlen($markdown) < 50) continue;
                     Db::execute("INSERT INTO links(entryid,channelid,title,markdown,description,createdatetime,viewscount,url, image, copyright)
                         VALUES(:entryid,:channelid,:title,:markdown,:description,:createdatetime,:viewscount,:url, :image, :copyright)", [
@@ -88,7 +91,7 @@ namespace Zaplog {
                         ":createdatetime" => $post->createdatetime,
                         ":viewscount" => $post->viewscount * 3,
                         ":url" => $post->link,
-                        ":image" => "https://cdn.pixabay.com/photo/2018/06/24/08/01/dark-background-3494082_1280.jpg",
+                        ":image" => "https://api.zaplog.pro/content/dark-background-3494082_1280.jpg",
                         ":copyright" => $copyright_map($post->copyright ?? ""),
                     ]);
                 }
