@@ -306,8 +306,8 @@ namespace Zaplog {
                 $duplicates = Db::fetchAll("SELECT * FROM links WHERE urlhash=MD5(:url)", [":url" => $metadata["url"]]);
                 return self::response($request, $response, $args, ["metadata" => $metadata, "duplicaties" => $duplicates]);
             })
-                ->add(new QueryParameters(['{urlencoded:\urlencoded}']));
-                //->add(new Authentication);
+                ->add(new QueryParameters(['{urlencoded:\urlencoded}']))
+                ->add(new Authentication);
 
             // ----------------------------------------------------------------
             // Channels show posts and activity for a specific user / email
@@ -324,8 +324,8 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM channels_public_view ORDER BY name LIMIT :offset,:count",
-                        [":offset" => $args->offset, ":count" => $args->count]));
+                    return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM channels_public_view
+                        ORDER BY name LIMIT :offset,:count", [":offset" => $args->offset, ":count" => $args->count]));
                 })
                     ->add(new QueryParameters([
                         '{offset:\int},0',
@@ -576,8 +576,11 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, Db::fetchAll("SELECT reactions.* FROM reactions JOIN links ON links.id=reactions.linkid
-                        WHERE linkid=:id AND published=TRUE ORDER BY id", [":id" => $args->id]));
+                    return self::response($request, $response, $args, Db::fetchAll(
+                        "SELECT reactions.* FROM reactions 
+                        JOIN links ON links.id=reactions.linkid
+                        WHERE linkid=:id AND reactions.published=TRUE AND links.published=TRUE 
+                        ORDER BY id", [":id" => $args->id]));
                 });
 
                 // ----------------------------------------------------------------

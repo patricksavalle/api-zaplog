@@ -86,7 +86,7 @@ INSERT INTO channels(name,userid) VALUES ("admin", "");
 -- -----------------------------------------------------
 
 CREATE VIEW channels_public_view AS
-    SELECT id,name,createdatetime,updatedatetime,bio,avatar,ROUND(reputation) AS reputation FROM channels;
+    SELECT id,name,createdatetime,updatedatetime,bio,avatar,score,ROUND(reputation) AS reputation FROM channels;
 
 -- -----------------------------------------------------
 -- The links that are being shared, rated, etc.
@@ -580,6 +580,8 @@ DELIMITER //
 CREATE PROCEDURE select_discussion(IN arg_channelid INT, IN arg_offset INT, IN arg_count INT)
 BEGIN
     SELECT
+        r.threadid,
+        r.rownum,
         reactions.id,
         reactions.createdatetime,
         reactions.description,
@@ -590,8 +592,8 @@ BEGIN
         links.title,
         links.createdatetime AS linkdatetime
     FROM (
-         SELECT id, channelid, linkid, x.threadid FROM (
-            SELECT r.threadid, r.id, r.channelid, r.linkid, (@num:=if(@threadid = r.threadid, @num +1, if(@threadid := r.threadid, 1, 1))) AS row_num
+         SELECT id, channelid, linkid, x.threadid, x.rownum FROM (
+            SELECT r.threadid, r.id, r.channelid, r.linkid, (@num:=if(@threadid = r.threadid, @num +1, if(@threadid := r.threadid, 1, 1))) AS rownum
             FROM reactions AS r
             ORDER BY r.threadid DESC, r.id DESC
          ) AS x
@@ -600,7 +602,7 @@ BEGIN
             WHERE (arg_channelid IS NULL OR channelid=arg_channelid)
             GROUP BY threadid
             ORDER BY threadid DESC LIMIT arg_offset, arg_count) AS t ON x.threadid=t.threadid
-         WHERE x.row_num <= 3
+         WHERE x.rownum <= 3
     ) AS r
     JOIN reactions ON reactions.id=r.id
     JOIN channels ON channels.id=r.channelid
