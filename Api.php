@@ -569,7 +569,7 @@ namespace Zaplog {
                     ->add(new Authentication);
 
                 // ------------------------------------------------
-                // get reActions
+                // get reactions
                 // ------------------------------------------------
 
                 $this->get("/link/{id:\d{1,10}}", function (
@@ -577,10 +577,10 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     return self::response($request, $response, $args, Db::fetchAll(
-                        "SELECT reactions.* FROM reactions 
-                        JOIN links ON links.id=reactions.linkid
-                        WHERE linkid=:id AND reactions.published=TRUE AND links.published=TRUE 
-                        ORDER BY id", [":id" => $args->id]));
+                        "SELECT reactions.*, channels.name, channels.avatar FROM reactions 
+                        JOIN channels ON channels.id=reactions.channelid
+                        WHERE linkid=:id AND reactions.published=TRUE 
+                        ORDER BY reactions.id", [":id" => $args->id]));
                 });
 
                 // ----------------------------------------------------------------
