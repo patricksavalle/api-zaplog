@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7f1800e0951e2380f439ef9c2d9556a7",
+    "content-hash": "c7fe9a51387d9d2d7975ce49871736e5",
     "packages": [
         {
             "name": "atrox/haikunator",
@@ -455,12 +455,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/patricksavalle/php-content-syndication.git",
-                "reference": "b76ced6699d1a69bbfbb7c39e0a7903275d60aa4"
+                "reference": "efba6b5a6e4ddd8ba0cf77f0b0764a0fd3b13ab1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/patricksavalle/php-content-syndication/zipball/b76ced6699d1a69bbfbb7c39e0a7903275d60aa4",
-                "reference": "b76ced6699d1a69bbfbb7c39e0a7903275d60aa4",
+                "url": "https://api.github.com/repos/patricksavalle/php-content-syndication/zipball/efba6b5a6e4ddd8ba0cf77f0b0764a0fd3b13ab1",
+                "reference": "efba6b5a6e4ddd8ba0cf77f0b0764a0fd3b13ab1",
                 "shasum": ""
             },
             "require": {
@@ -505,7 +505,7 @@
                 "issues": "https://github.com/patricksavalle/php-content-syndication/issues",
                 "source": "https://github.com/patricksavalle/php-content-syndication/tree/master"
             },
-            "time": "2021-11-04T08:49:16+00:00"
+            "time": "2021-11-05T17:26:54+00:00"
         },
         {
             "name": "patricksavalle/slim-request-params",
@@ -807,20 +807,20 @@
         },
         {
             "name": "psr/container",
-            "version": "1.1.1",
+            "version": "1.1.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/php-fig/container.git",
-                "reference": "8622567409010282b7aeebe4bb841fe98b58dcaf"
+                "reference": "513e0666f7216c7459170d56df27dfcefe1689ea"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/php-fig/container/zipball/8622567409010282b7aeebe4bb841fe98b58dcaf",
-                "reference": "8622567409010282b7aeebe4bb841fe98b58dcaf",
+                "url": "https://api.github.com/repos/php-fig/container/zipball/513e0666f7216c7459170d56df27dfcefe1689ea",
+                "reference": "513e0666f7216c7459170d56df27dfcefe1689ea",
                 "shasum": ""
             },
             "require": {
-                "php": ">=7.2.0"
+                "php": ">=7.4.0"
             },
             "type": "library",
             "autoload": {
@@ -849,9 +849,9 @@
             ],
             "support": {
                 "issues": "https://github.com/php-fig/container/issues",
-                "source": "https://github.com/php-fig/container/tree/1.1.1"
+                "source": "https://github.com/php-fig/container/tree/1.1.2"
             },
-            "time": "2021-03-05T17:36:06+00:00"
+            "time": "2021-11-05T16:50:12+00:00"
         },
         {
             "name": "psr/http-message",
