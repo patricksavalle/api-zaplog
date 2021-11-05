@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Zaplog {
 
-    define("VERSION", "v0.94");
+    define("VERSION", "v0.95");
 
     define("BASE_PATH", __DIR__);
 
@@ -558,17 +558,19 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $xtext = (string)(new Text($args->markdown))->parseDownLine(new ParsedownFilter);
-                    Db::execute("CALL insert_reaction(:channelid,:linkid,:xtext,:description)", [
+                    (new UserException("Comment invalid or empty"))(strlen($xtext)>0);
+                    Db::execute("CALL insert_reaction(:channelid,:linkid,:markdown,:xtext,:description)", [
                         ":linkid" => $args->id,
-                        ":channelid" => 1, Authentication::getSession()->id,
+                        ":channelid" => Authentication::getSession()->id,
+                        ":markdown" => $args->markdown,
                         ":xtext" => $xtext,
                         ":description" => (new Text($xtext))->blurbify()]);
-                    return self::response($request, $response, $args, Db::lastInsertId());
+                    return self::response($request, $response, $args, true);
                 })
                     ->add(new BodyParameters(['{markdown:\raw}']))
                     ->add(new Authentication);
 
-                // ------------------------------------------------
+                // ------------------------------------------------+
                 // get reactions
                 // ------------------------------------------------
 
@@ -580,7 +582,7 @@ namespace Zaplog {
                         "SELECT reactions.*, channels.name, channels.avatar FROM reactions 
                         JOIN channels ON channels.id=reactions.channelid
                         WHERE linkid=:id AND reactions.published=TRUE 
-                        ORDER BY reactions.id", [":id" => $args->id]));
+                        ORDER BY reactions.id DESC", [":id" => $args->id]));
                 });
 
                 // ----------------------------------------------------------------

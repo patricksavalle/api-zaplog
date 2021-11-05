@@ -1,7 +1,7 @@
 {
   "name": "patricksavalle/zaplogv2",
   "description": "Social bookmarking and blogging",
-  "version": "v0.94",
+  "version": "v0.95",
   "type": "library",
   "keywords": [
     "news",
