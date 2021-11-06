@@ -546,7 +546,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    $xtext = (string)(new Text($args->markdown))->parseDownLine(new ParsedownFilter);
+                    $xtext = (string)(new Text($args->markdown))->stripTags()->parseDown();
                     (new UserException("Comment invalid or empty"))(strlen($xtext) > 0);
                     Db::execute("CALL insert_reaction(:channelid,:linkid,:markdown,:xtext,:description)", [
                         ":linkid" => $args->id,
