@@ -381,7 +381,13 @@ namespace Zaplog\Library {
 
         static public function getReactionsForLink(int $linkid): array
         {
-            return Db::fetchAll("SELECT reactions.*, channels.name, channels.avatar FROM reactions 
+            return Db::fetchAll("SELECT 
+                    reactions.id, 
+                    reactions.xtext, 
+                    reactions.createdatetime, 
+                    reactions.channelid, 
+                    channels.name, 
+                    channels.avatar FROM reactions 
                 JOIN channels ON channels.id=reactions.channelid
                 WHERE linkid=:id AND reactions.published=TRUE 
                 ORDER BY reactions.id DESC", [":id" => $linkid]);
