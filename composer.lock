@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c7fe9a51387d9d2d7975ce49871736e5",
+    "content-hash": "a20ad112536b16fd76aa8d44c0de4f07",
     "packages": [
         {
             "name": "atrox/haikunator",
@@ -214,16 +214,16 @@
         },
         {
             "name": "league/html-to-markdown",
-            "version": "5.0.1",
+            "version": "5.0.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/thephpleague/html-to-markdown.git",
-                "reference": "e5600a2c5ce7b7571b16732c7086940f56f7abec"
+                "reference": "4d0394e120dc14b0d5c52fd1755fd48656da2ec9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/thephpleague/html-to-markdown/zipball/e5600a2c5ce7b7571b16732c7086940f56f7abec",
-                "reference": "e5600a2c5ce7b7571b16732c7086940f56f7abec",
+                "url": "https://api.github.com/repos/thephpleague/html-to-markdown/zipball/4d0394e120dc14b0d5c52fd1755fd48656da2ec9",
+                "reference": "4d0394e120dc14b0d5c52fd1755fd48656da2ec9",
                 "shasum": ""
             },
             "require": {
@@ -279,7 +279,7 @@
             ],
             "support": {
                 "issues": "https://github.com/thephpleague/html-to-markdown/issues",
-                "source": "https://github.com/thephpleague/html-to-markdown/tree/5.0.1"
+                "source": "https://github.com/thephpleague/html-to-markdown/tree/5.0.2"
             },
             "funding": [
                 {
@@ -299,7 +299,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2021-09-17T20:00:27+00:00"
+            "time": "2021-11-06T05:38:26+00:00"
         },
         {
             "name": "multiavatar/multiavatar-php",
@@ -455,12 +455,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/patricksavalle/php-content-syndication.git",
-                "reference": "efba6b5a6e4ddd8ba0cf77f0b0764a0fd3b13ab1"
+                "reference": "d9b1a7a27638d3d855d58bf976533e21ad48138e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/patricksavalle/php-content-syndication/zipball/efba6b5a6e4ddd8ba0cf77f0b0764a0fd3b13ab1",
-                "reference": "efba6b5a6e4ddd8ba0cf77f0b0764a0fd3b13ab1",
+                "url": "https://api.github.com/repos/patricksavalle/php-content-syndication/zipball/d9b1a7a27638d3d855d58bf976533e21ad48138e",
+                "reference": "d9b1a7a27638d3d855d58bf976533e21ad48138e",
                 "shasum": ""
             },
             "require": {
@@ -505,7 +505,7 @@
                 "issues": "https://github.com/patricksavalle/php-content-syndication/issues",
                 "source": "https://github.com/patricksavalle/php-content-syndication/tree/master"
             },
-            "time": "2021-11-05T17:26:54+00:00"
+            "time": "2021-11-06T12:38:15+00:00"
         },
         {
             "name": "patricksavalle/slim-request-params",

@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Zaplog {
 
-    define("VERSION", "v0.95");
+    define("VERSION", "v0.96");
 
     define("BASE_PATH", __DIR__);
 
@@ -27,6 +27,7 @@ namespace Zaplog {
     use Psr\Http\Message\ServerRequestInterface as Request;
     use SlimRestApi\Infra\Db;
     use Zaplog\Exception\UserException;
+    use Zaplog\Library\Methods;
     use Zaplog\Library\TwoFactorAction;
     use Zaplog\Library\Avatar;
     use Zaplog\Middleware\Authentication;
@@ -197,10 +198,7 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                return self::response($request, $response, $args, [
-                    "trendingtags" => Db::fetchAll("SELECT * FROM trendingtopics LIMIT :count", [":count" => $args->count]),
-                    "trendingchannels" => Db::fetchAll("SELECT * FROM trendingchannels LIMIT :count", [":count" => $args->count]),
-                    "trendinglinks" => Db::fetchAll("SELECT * FROM frontpage LIMIT :count", [":count" => $args->count])]);
+                return self::response($request, $response, $args, Methods::getFrontpage($args->count));
             })
                 ->add(new QueryParameters(['{count:\int},25', '{datetime:\date},null',]))
                 ->add(new Memcaching(60 * 60/*sec*/));
@@ -353,13 +351,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, Db::fetchAll("SELECT channels.* FROM channels_public_view AS channels
-                        JOIN tags ON tags.channelid=channels.id
-                        JOIN links ON tags.linkid=links.id
-                        WHERE tag=:tag
-                        GROUP BY channels.id
-                        ORDER BY SUM(links.score)/COUNT(links.id) DESC LIMIT :count",
-                        [":tag" => $args->tag, ":count" => $args->count]));
+                    return self::response($request, $response, $args, Methods::getTopChannelsForTag($args->tag, $args->count));
                 })
                     ->add(new QueryParameters(['{count:\int},10',]))
                     ->add(new Memcaching(60/*sec*/));
@@ -517,8 +509,7 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM links WHERE channelid=:channel AND published=TRUE 
-                        ORDER BY id DESC LIMIT :offset,:count",
-                        [":channel" => $args->id, ":offset" => $args->offset, ":count" => $args->count]));
+                        ORDER BY id DESC LIMIT :offset,:count", [":channel" => $args->id, ":offset" => $args->offset, ":count" => $args->count]));
                 })
                     ->add(new QueryParameters([
                         '{offset:\int},0',
@@ -576,11 +567,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, Db::fetchAll(
-                        "SELECT reactions.*, channels.name, channels.avatar FROM reactions 
-                        JOIN channels ON channels.id=reactions.channelid
-                        WHERE linkid=:id AND reactions.published=TRUE 
-                        ORDER BY reactions.id DESC", [":id" => $args->id]));
+                    return self::response($request, $response, $args, Methods::getReactionsForLink((int)$args->id));
                 });
 
                 // ----------------------------------------------------------------
@@ -666,11 +653,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, [
-                        "top" => Db::fetchAll("SELECT * FROM toptopics LIMIT :count", [":count" => $args->count]),
-                        "new" => Db::fetchAll("SELECT * FROM newtopics LIMIT :count", [":count" => $args->count]),
-                        "trending" => Db::fetchAll("SELECT * FROM trendingtopics LIMIT :count", [":count" => $args->count]),
-                    ]);
+                    return self::response($request, $response, $args, Methods::getTopTags($args->count));
                 })
                     ->add(new QueryParameters(['{count:\int},20',]))
                     ->add(new Memcaching(60/*sec*/));

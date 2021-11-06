@@ -2,14 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Zaplog {
+namespace Zaplog\Library {
 
     require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
 
     use ContentSyndication\ArchiveOrg;
     use ContentSyndication\Text;
-    use ContentSyndication\Url;
-    use ContentSyndication\XmlFeed;
     use Exception;
     use SlimRestApi\Infra\Db;
     use SlimRestApi\Infra\Ini;
@@ -19,7 +17,6 @@ namespace Zaplog {
     use Zaplog\Exception\UserException;
     use Zaplog\Plugins\MetadataParser;
     use Zaplog\Plugins\ParsedownFilter;
-    use Zaplog\Library\TwoFactorAction;
 
     class Methods
     {
@@ -52,6 +49,18 @@ namespace Zaplog {
                 "in_address" => $in_address,
                 "out_shares" => $channels,
             ];
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function getFrontpage(int $count): array
+        {
+            return [
+                "trendingtags" => Db::fetchAll("SELECT * FROM trendingtopics LIMIT :count", [":count" => $count]),
+                "trendingchannels" => Db::fetchAll("SELECT * FROM trendingchannels LIMIT :count", [":count" => $count]),
+                "trendinglinks" => Db::fetchAll("SELECT * FROM frontpage LIMIT :count", [":count" => $count])];
         }
 
         // ----------------------------------------------------------
@@ -166,35 +175,14 @@ namespace Zaplog {
             $args->language = $metadata["language"];
             $args->copyright = "No Rights Apply";
 
-            return self::postLink($args, $metadata["keywords"] ?? []);
-        }
-
-        // ----------------------------------------------------------
-        //
-        // ----------------------------------------------------------
-
-        static public function storeWebArchiveBackground(string $linkid, string $url)
-        {
-            // store url in wayback-machine, use asynchronous self-call
             try {
-                (new TwoFactorAction)
-                    ->createToken()
-                    ->addAction('/Methods.php', ['\Zaplog\Methods', 'storeWebArchive'], [$linkid, $url])
-                    ->handleAsync();
+                ArchiveOrg::archiveAsync($url);
             } catch (Exception $e) {
-                error_log(__METHOD__ . " " . $e->getMessage());
+                error_log("Could not save to archive.org: " . $url);
+                error_log($e->getMessage());
             }
-        }
 
-        // ----------------------------------------------------------
-        // This method is called asynchronously
-        // ----------------------------------------------------------
-
-        static public function storeWebArchive(string $linkid, string $url)
-        {
-            $archived_url = ArchiveOrg::archive($url);
-            assert(filter_var($archived_url, FILTER_VALIDATE_URL) !== false);
-            Db::execute("UPDATE links SET waybackurl=:url WHERE id=:id", [":id" => $linkid, ":url" => $archived_url]);
+            return self::postLink($args, $metadata["keywords"] ?? []);
         }
 
         // ----------------------------------------------------------
@@ -313,48 +301,24 @@ namespace Zaplog {
             ];
         }
 
-        static public function refreshSingleFeed(string $channelid, string $feedurl)
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function getTopChannelsForTag(string $tag, int $count): array
         {
-            $content = (new XmlFeed)($feedurl);
-            $link = null;
-            foreach ($content["item"] as $item) {
-
-                try {
-                    $link = (string)(new Url($item["link"]))->normalized();
-
-                    // check if unique for channel before we crawl the url
-                    if (DB::execute("SELECT id FROM links WHERE urlhash=MD5(:url) AND channelid=:channelid LIMIT 1",
-                            [
-                                ":url" => $link,
-                                ":channelid" => $channelid,
-                            ])->rowCount() === 0) {
-
-                        // --------------------------------------------------------------------------
-                        // we do not use the content of the feeds because many feeds have no images
-                        // instead we harvest the metadata from the articles themselves. Also
-                        // bypasses Feedburner links (we need the original links)
-                        // --------------------------------------------------------------------------
-
-                        Methods::postLinkFromUrl($channelid, $link);
-                    }
-                } catch (Exception $e) {
-                    error_log($e->getMessage() . " @ " . __METHOD__ . "(" . __LINE__ . ") " . $link);
-                }
-            }
-            Db::execute("UPDATE channels SET refeeddatetime=NOW() WHERE id=:id", [":id" => $channelid]);
+            return Db::fetchAll("SELECT channels.* FROM channels_public_view AS channels
+                        JOIN tags ON tags.channelid=channels.id
+                        JOIN links ON tags.linkid=links.id
+                        WHERE tag=:tag
+                        GROUP BY channels.id
+                        ORDER BY SUM(links.score)/COUNT(links.id) DESC LIMIT :count",
+                [":tag" => $tag, ":count" => $count], 60 * 60 * 12);
         }
 
-        static public function refreshAllFeeds()
-        {
-            foreach (Db::execute("SELECT id, feedurl FROM channels WHERE NOT feedurl IS NULL ORDER BY RAND()")->fetchAll() as $channel) {
-                try {
-                    self::refreshSingleFeed((string)$channel->id, $channel->feedurl);
-                } catch (Exception $e) {
-                    error_log($e->getMessage() . " @ " . __METHOD__ . "(" . __LINE__ . ") " . $channel->feedurl);
-                }
-            }
-            Db::execute("CALL calculate_frontpage()");
-        }
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
 
         static public function getRelatedTags(string $tag, int $count): array
         {
@@ -367,6 +331,10 @@ namespace Zaplog {
                 GROUP BY tag ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT :count",
                 [":tag1" => $tag, ":tag2" => $tag, ":count" => $count], 60 * 60);
         }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
 
         static public function getDiscussion(?string $channelid, int $offset, int $count): array
         {
@@ -384,14 +352,19 @@ namespace Zaplog {
                     links.createdatetime AS linkdatetime
                 FROM (
                      SELECT id, channelid, linkid, x.threadid, x.rownum FROM (
-                        SELECT r.threadid, r.id, r.channelid, r.linkid, (@num:=if(@threadid = r.threadid, @num +1, if(@threadid := r.threadid, 1, 1))) AS rownum
+                        SELECT 
+                            r.threadid, r.id, 
+                            r.channelid, 
+                            r.linkid,
+                            (@num:=if(@threadid = r.threadid, @num +1, if(@threadid := r.threadid, 1, 1))) AS rownum
                         FROM reactions AS r
-                        ORDER BY r.threadid DESC, r.id DESC 
+                        ORDER BY r.threadid DESC, r.id DESC
                      ) AS x
                      JOIN (
-                        SELECT DISTINCT threadid FROM reactions
+                        SELECT threadid FROM reactions
                         JOIN links ON links.id=reactions.channelid
                         WHERE :channelid1 IS NULL OR :channelid2=links.channelid
+                        GROUP BY threadid
                         ORDER BY threadid DESC LIMIT :offset, :count) AS t ON x.threadid=t.threadid
                      WHERE x.rownum <= 3
                 ) AS r
@@ -399,8 +372,32 @@ namespace Zaplog {
                 JOIN channels ON channels.id=r.channelid
                 LEFT JOIN links ON links.id=r.linkid
                 ORDER by r.threadid DESC, r.id DESC",
-                [":offset" => $offset, ":count" => $count, ":channelid1"=>$channelid, ":channelid2"=>$channelid]);
+                [":offset" => $offset, ":count" => $count, ":channelid1" => $channelid, ":channelid2" => $channelid]);
         }
 
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function getReactionsForLink(int $linkid): array
+        {
+            return Db::fetchAll("SELECT reactions.*, channels.name, channels.avatar FROM reactions 
+                JOIN channels ON channels.id=reactions.channelid
+                WHERE linkid=:id AND reactions.published=TRUE 
+                ORDER BY reactions.id DESC", [":id" => $linkid]);
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function getTopTags(int $count): array
+        {
+            return [
+                "top" => Db::fetchAll("SELECT * FROM toptopics LIMIT :count", [":count" => $count]),
+                "new" => Db::fetchAll("SELECT * FROM newtopics LIMIT :count", [":count" => $count]),
+                "trending" => Db::fetchAll("SELECT * FROM trendingtopics LIMIT :count", [":count" => $count]),
+            ];
+        }
     }
 }

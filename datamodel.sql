@@ -13,7 +13,6 @@
 
 -- we need the event scheduler!!!
 SET GLOBAL event_scheduler = ON;
-SET GLOBAL TRANSACTION ISOLATION LEVEL READ UNCOMMITTED ;
 
 DROP SCHEMA IF EXISTS zaplog;
 CREATE SCHEMA zaplog
