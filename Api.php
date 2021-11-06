@@ -214,8 +214,7 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                return self::response($request, $response, $args, Db::fetchAll("CALL select_discussion(NULL,:offset,:count)",
-                    [":offset" => $args->offset, ":count" => $args->count]));
+                return self::response($request, $response, $args, Methods::getDiscussion(null, $args->offset, $args->count));
             })
                 ->add(new QueryParameters([
                     '{offset:\int},0',
@@ -226,8 +225,7 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                return self::response($request, $response, $args, Db::fetchAll("CALL select_discussion(:channel,:offset,:count)",
-                    [":channel" => $args->id, ":offset" => $args->offset, ":count" => $args->count]));
+                return self::response($request, $response, $args, Methods::getDiscussion($args->id, $args->offset, $args->count));
             })
                 ->add(new QueryParameters([
                     '{offset:\int},0',
@@ -558,7 +556,7 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $xtext = (string)(new Text($args->markdown))->parseDownLine(new ParsedownFilter);
-                    (new UserException("Comment invalid or empty"))(strlen($xtext)>0);
+                    (new UserException("Comment invalid or empty"))(strlen($xtext) > 0);
                     Db::execute("CALL insert_reaction(:channelid,:linkid,:markdown,:xtext,:description)", [
                         ":linkid" => $args->id,
                         ":channelid" => Authentication::getSession()->id,

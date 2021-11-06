@@ -368,5 +368,39 @@ namespace Zaplog {
                 [":tag1" => $tag, ":tag2" => $tag, ":count" => $count], 60 * 60);
         }
 
+        static public function getDiscussion(?string $channelid, int $offset, int $count): array
+        {
+            return Db::fetchAll("SELECT
+                    r.threadid,
+                    r.rownum,
+                    reactions.id,
+                    reactions.createdatetime,
+                    reactions.description,
+                    reactions.channelid,
+                    reactions.linkid,
+                    channels.name,
+                    channels.avatar,
+                    links.title,
+                    links.createdatetime AS linkdatetime
+                FROM (
+                     SELECT id, channelid, linkid, x.threadid, x.rownum FROM (
+                        SELECT r.threadid, r.id, r.channelid, r.linkid, (@num:=if(@threadid = r.threadid, @num +1, if(@threadid := r.threadid, 1, 1))) AS rownum
+                        FROM reactions AS r
+                        ORDER BY r.threadid DESC, r.id DESC 
+                     ) AS x
+                     JOIN (
+                        SELECT DISTINCT threadid FROM reactions
+                        JOIN links ON links.id=reactions.channelid
+                        WHERE :channelid1 IS NULL OR :channelid2=links.channelid
+                        ORDER BY threadid DESC LIMIT :offset, :count) AS t ON x.threadid=t.threadid
+                     WHERE x.rownum <= 3
+                ) AS r
+                JOIN reactions ON reactions.id=r.id
+                JOIN channels ON channels.id=r.channelid
+                LEFT JOIN links ON links.id=r.linkid
+                ORDER by r.threadid DESC, r.id DESC",
+                [":offset" => $offset, ":count" => $count, ":channelid1"=>$channelid, ":channelid2"=>$channelid]);
+        }
+
     }
 }

@@ -574,45 +574,6 @@ BEGIN
 END //
 DELIMITER ;
 
--- ---------------------------------------------------------------------------------
--- Returns forum style reactions, order by most recent thread, 3 comments per thread
--- ---------------------------------------------------------------------------------
-
-DELIMITER //
-CREATE PROCEDURE select_discussion(IN arg_channelid INT, IN arg_offset INT, IN arg_count INT)
-BEGIN
-    SELECT
-        r.threadid,
-        r.rownum,
-        reactions.id,
-        reactions.createdatetime,
-        reactions.description,
-        reactions.channelid,
-        reactions.linkid,
-        channels.avatar,
-        channels.name,
-        links.title,
-        links.createdatetime AS linkdatetime
-    FROM (
-         SELECT id, channelid, linkid, x.threadid, x.rownum FROM (
-            SELECT r.threadid, r.id, r.channelid, r.linkid, (@num:=if(@threadid = r.threadid, @num +1, if(@threadid := r.threadid, 1, 1))) AS rownum
-            FROM reactions AS r
-            ORDER BY r.threadid DESC, r.id DESC
-         ) AS x
-         JOIN (
-            SELECT threadid FROM reactions
-            WHERE (arg_channelid IS NULL OR channelid=arg_channelid)
-            GROUP BY threadid
-            ORDER BY threadid DESC LIMIT arg_offset, arg_count) AS t ON x.threadid=t.threadid
-         WHERE x.rownum <= 3
-    ) AS r
-    JOIN reactions ON reactions.id=r.id
-    JOIN channels ON channels.id=r.channelid
-    LEFT JOIN links ON links.id=r.linkid
-    ORDER by r.threadid DESC, r.id ASC;
-END //
-DELIMITER ;
-
 DELIMITER //
 CREATE PROCEDURE insert_reaction(IN arg_channelid INT, IN arg_linkid INT, IN arg_markdown TEXT, IN arg_xtext TEXT, IN arg_description VARCHAR(256))
 BEGIN
@@ -621,7 +582,6 @@ BEGIN
     UPDATE reactions SET threadid=LAST_INSERT_ID() WHERE linkid=arg_linkid;
 END //
 DELIMITER ;
-
 
 -- --------------------------------------------------
 --
