@@ -27,7 +27,7 @@ namespace Zaplog\Plugins {
             foreach (glob("Plugins/ParsedownFilters/*.php") as $file) {
                 //instantiate the plugin
                 preg_match("/.*\/(\w+)\.php/", $file, $match);
-                require $file;
+                require_once $file;
                 $classname = "Zaplog\\Plugins\\ParsedownFilters\\" . $match[1];
                 $plugin = new $classname;
                 assert($plugin instanceof AbstractParsedownFilter);
