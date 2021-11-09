@@ -7,8 +7,16 @@ admins[]=
 email_admin=${email_admin}
 frontpage_language=nl
 
+
+; editor    = shows articles voted on by channel 1 (admin)
+; popular   = most popular across all channels chosen by system algorithm
+; all       = all article across all channels
+; mixed     = editor AND popular
+; censored  = popular EXCEPT articles voted on by channel 1 (admin)
+
 [content]
-default_post_image=https://cdn.pixabay.com/photo/2018/06/24/08/01/dark-background-3494082_1280.jpg
+default_post_image=https://api.zaplog.pro/content/dark-background-3494082_1280.jpg
+frontpage_mode=${frontpage_mode}
 broken_link_redirector=${ZAPLOG_GOTO_URL}
 
 [memcache]
