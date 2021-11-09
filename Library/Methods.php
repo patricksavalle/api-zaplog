@@ -424,7 +424,7 @@ namespace Zaplog\Library {
                 ) AS r
                 JOIN reactions ON reactions.id=r.id
                 JOIN channels ON channels.id=r.channelid
-                LEFT JOIN links ON links.id=r.linkid
+                LEFT JOIN links ON links.id=r.linkid AND rownum=1
                 ORDER by r.threadid DESC, r.id DESC",
                 [":offset" => $offset, ":count" => $count, ":channelid1" => $channelid, ":channelid2" => $channelid]);
         }
