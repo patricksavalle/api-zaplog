@@ -63,8 +63,8 @@ namespace Zaplog\Library {
                 case "popular":
                     return "SELECT * FROM frontpage LIMIT :count";
                 case "editor":
-                    return "SELECT * FROM links JOIN votes ON links.id=votes.linkid 
-                        WHERE votes.channelid=1 AND links.published=TRUE ORDER BY id DESC LIMIT :count";
+                    return "SELECT links.* FROM links JOIN votes ON links.id=votes.linkid 
+                        WHERE votes.channelid=1 AND links.published=TRUE ORDER BY links.id DESC LIMIT :count";
                 case "mixed":
                     return "SELECT * FROM (
                             SELECT links.* FROM frontpage JOIN links ON frontpage.id=links.id 

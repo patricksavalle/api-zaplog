@@ -9,10 +9,11 @@ namespace Zaplog\Plugins\ResponseFilters {
 
     class get_links_id__PdfEmbedder extends AbstractResponseFilter
     {
-        public function __invoke(string $uri, stdClass $args, &$data)
+        /** @noinspection PhpParameterByRefIsNotUsedAsReferenceInspection */
+        public function __invoke(string $requestUri, stdClass $requestArgs, &$responseData)
         {
-            if (strcasecmp($data["link"]->mimetype ?? "", "application/pdf")===0) {
-                $data["link"]->xtext .= "<iframe width='100%'  class='pdf' src='" . $data["link"]->url . "'></iframe>";
+            if (strcasecmp($responseData["link"]->mimetype ?? "", "application/pdf")===0) {
+                $responseData["link"]->xtext .= "<iframe width='100%'  class='pdf' src='" . $responseData["link"]->url . "'></iframe>";
             }
         }
     }

@@ -16,13 +16,14 @@ namespace Zaplog\Plugins\ResponseFilters {
 
     class get_links_id__VideoEmbedder extends AbstractResponseFilter
     {
-        public function __invoke(string $uri, stdClass $args, &$data)
+        /** @noinspection PhpParameterByRefIsNotUsedAsReferenceInspection */
+        public function __invoke(string $requestUri, stdClass $requestArgs, &$responseData)
         {
-            $normalized_url = $data["link"]->url ?? null;
+            $normalized_url = $responseData["link"]->url ?? null;
             if ($normalized_url !== null) {
-                foreach (["Youtube", "Bitchute", "Odysee", "Vimeo", "Rumble"] as $service) {
+                foreach (["Youtube", "Bitchute", "Odysee", "Vimeo", "FreeWorldNews", "Banned"] as $service) {
                     if (($embed = $this->{$service}($normalized_url)) !== null) {
-                        $data["link"]->xtext .= $embed;
+                        $responseData["link"]->xtext .= $embed;
                         return;
                     }
                 }
@@ -56,9 +57,22 @@ namespace Zaplog\Plugins\ResponseFilters {
             return "<iframe width='100%'  class='video vimeo' src='https://player.vimeo.com/video/$matches[1]/'></iframe>";
         }
 
-        protected function Rumble(string $normalized_url): ?string
+        protected function FreeWorldNews(string $normalized_url): ?string
         {
-            return null;
+            https://freeworldnews.tv/watch?id=61897f79b2140737c32728d6
+            if (preg_match("/.*freeworldnews\.tv\/watch\?id=\/([a-zA-Z0-9]+)/", $normalized_url, $matches) === 0) {
+                return null;
+            }
+            return "<div class='ifw-player' data-video-id='$matches[1]'></div><script src='https://infowarsmedia.com/js/player.js' async></script>";
+        }
+
+        protected function Banned(string $normalized_url): ?string
+        {
+            // https://banned.video/watch?id=6189aaf3b2140737c32d0273
+            if (preg_match("/.*banned\.video\/watch\?id=\/([a-zA-Z0-9]+)/", $normalized_url, $matches) === 0) {
+                return null;
+            }
+            return "<div class='ifw-player' data-video-id='$matches[1]'></div><script src='https://infowarsmedia.com/js/player.js' async></script>";
         }
 
         protected function YouTube(string $normalized_url): ?string
