@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpParameterByRefIsNotUsedAsReferenceInspection */
 
 declare(strict_types=1);
 
@@ -13,17 +13,17 @@ namespace Zaplog\Plugins\ResponseFilters {
     // The API has already normalized the url, no need to check all possible patterns
     // ------------------------------------------------------------------------------
 
-    class get_links_id__VideoEmbedder extends AbstractVideoEmbedder
+    class get_reactions_link__ContentEmbedderAbstract extends AbstractVideoEmbedder
     {
-        /** @noinspection PhpParameterByRefIsNotUsedAsReferenceInspection */
         public function __invoke(string $requestUri, stdClass $requestArgs, &$responseData)
         {
-            // if the link is embeddable, emmbed it
-            $normalized_url = $responseData["link"]->url ?? null;
-            if ($normalized_url !== null) {
-                $embed = $this->getEmbedCode($normalized_url);
-                if (!empty($embed)) {
-                    $responseData["link"]->xtext .= $embed;
+            foreach ($responseData as $reaction) {
+                // if the reaction is an url
+                if (($url = filter_var(trim(strip_tags($reaction->xtext)) ?? null, FILTER_VALIDATE_URL)) !== false) {
+                    $embed = $this->getEmbedCode($url);
+                    if (!empty($embed)) {
+                        $reaction->xtext = $embed;
+                    }
                 }
             }
         }
