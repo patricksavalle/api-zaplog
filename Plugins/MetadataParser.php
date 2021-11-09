@@ -17,6 +17,7 @@ namespace Zaplog\Plugins {
     // -----------------------------------------------------------------
 
     use Exception;
+    use Zaplog\Exception\UserException;
 
     class MetadataParser
     {
@@ -33,7 +34,7 @@ namespace Zaplog\Plugins {
                     throw new Exception(curl_strerror($errno), 400);
                 }
                 $contenttype = curl_getinfo($curl, CURLINFO_CONTENT_TYPE);
-                if ($contenttype===false) {
+                if ($contenttype === false) {
                     throw new Exception("CURLINFO_CONTENT_TYPE error");
                 }
                 preg_match("/([^;]+)/", $contenttype, $matches);
@@ -45,31 +46,37 @@ namespace Zaplog\Plugins {
 
         static public function getMetadata(string $url): array
         {
-            $mimetype = static::getMimetype($url);
+            try {
+                $mimetype = static::getMimetype($url);
 
-            // prepare file + class name
-            $name = strtolower(preg_replace("/[^\w]/", "_", $mimetype));
+                // prepare file + class name
+                $name = strtolower(preg_replace("/[^\w]/", "_", $mimetype));
 
-            // load matching parser (if any)
-            $path = "Plugins/MetadataParsers/$name.php";
-            if (!file_exists($path) or !is_readable($path)) {
-                throw new Exception("Unsupported file type: " . $mimetype);
+                // load matching parser (if any)
+                $path = "Plugins/MetadataParsers/$name.php";
+                if (!file_exists($path) or !is_readable($path)) {
+                    throw new Exception("Unsupported file type: " . $mimetype);
+                }
+                require $path;
+
+                // instantiate and execute parser
+                $class = "Zaplog\\Plugins\\MetadataParsers\\$name";
+                $parser = (new $class);
+                assert($parser instanceof AbstractMetadataParser);
+                $metadata = $parser($url);
+
+                // sanity checks
+                assert(isset($metadata["url"]));
+                assert(isset($metadata["title"]));
+
+                // add the mimetype
+                $metadata['mimetype'] = $mimetype;
+                return $metadata;
+
+            } catch (Exception $e) {
+                error_log($e->getMessage() . " @ " . $url);
+                throw new UserException("Invalid link or document format");
             }
-            require $path;
-
-            // instantiate and execute parser
-            $class = "Zaplog\\Plugins\\MetadataParsers\\$name";
-            $parser = (new $class);
-            assert($parser instanceof AbstractMetadataParser);
-            $metadata = $parser($url);
-
-            // sanity checks
-            assert(isset($metadata["url"]));
-            assert(isset($metadata["title"]));
-
-            // add the mimetype
-            $metadata['mimetype'] = $mimetype;
-            return $metadata;
         }
     }
 }
