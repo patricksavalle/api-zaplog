@@ -55,12 +55,65 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
+        static public function frontpageQuery(): string
+        {
+            switch (Ini::get("frontpage_mode")) {
+                case "all":
+                    return "SELECT * FROM links ORDER BY id DESC LIMIT :count";
+                case "popular":
+                    return "SELECT * FROM frontpage LIMIT :count";
+                case "editor":
+                    return "SELECT * FROM links JOIN votes ON links.id=votes.linkid 
+                        WHERE votes.channelid=1 AND links.published=TRUE ORDER BY id DESC LIMIT :count";
+                case "mixed":
+                    return "SELECT * FROM (
+                            SELECT links.* FROM frontpage JOIN links ON frontpage.id=links.id 
+                            UNION DISTINCT 
+                            SELECT links.* FROM links JOIN votes ON links.id=votes.linkid 
+                            WHERE links.published=TRUE AND votes.channelid=1 
+                        ) AS x ORDER BY id DESC LIMIT :count";
+                default:
+                    throw new ServerException("invalid ini-value, 'frontpage_mode' must be in (all,popular,editor,mixed)");
+            }
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function trendingtopicsQuery(): string
+        {
+            $frontpage = self::frontpageQuery();
+            return "SELECT tag FROM tags
+                JOIN links ON tags.linkid=links.id
+                JOIN ($frontpage) AS x ON x.id=tags.linkid
+                GROUP BY tags.tag
+                ORDER BY SUM(links.score) DESC LIMIT 20";
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function trendingchannelsQuery(): string
+        {
+            $frontpage = self::frontpageQuery();
+            return "SELECT channels.* FROM channels_public_view AS channels
+                JOIN ($frontpage) AS x ON x.channelid=channels.id
+                GROUP BY channels.id
+                ORDER BY SUM(channels.score) DESC LIMIT 20";
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
         static public function getFrontpage(int $count): array
         {
             return [
-                "trendingtags" => Db::fetchAll("SELECT * FROM trendingtopics LIMIT :count", [":count" => $count]),
-                "trendingchannels" => Db::fetchAll("SELECT * FROM trendingchannels LIMIT :count", [":count" => $count]),
-                "trendinglinks" => Db::fetchAll("SELECT * FROM frontpage LIMIT :count", [":count" => $count])];
+                "trendingtags" => Db::fetchAll(self::trendingtopicsQuery(), [":count" => $count]),
+                "trendingchannels" => Db::fetchAll(self::trendingchannelsQuery(), [":count" => $count]),
+                "trendinglinks" => Db::fetchAll(self::frontpageQuery(), [":count" => $count])];
         }
 
         // ----------------------------------------------------------
@@ -402,7 +455,7 @@ namespace Zaplog\Library {
             return [
                 "top" => Db::fetchAll("SELECT * FROM toptopics LIMIT :count", [":count" => $count]),
                 "new" => Db::fetchAll("SELECT * FROM newtopics LIMIT :count", [":count" => $count]),
-                "trending" => Db::fetchAll("SELECT * FROM trendingtopics LIMIT :count", [":count" => $count]),
+                "trending" => Db::fetchAll(self::trendingtopicsQuery(), [":count" => $count]),
             ];
         }
     }

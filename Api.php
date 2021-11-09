@@ -200,7 +200,7 @@ namespace Zaplog {
                 stdClass $args): Response {
                 return self::response($request, $response, $args, Methods::getFrontpage($args->count));
             })
-                ->add(new QueryParameters(['{count:\int},25', '{datetime:\date},null',]))
+                ->add(new QueryParameters(['{count:\int},18', '{datetime:\date},null',]))
                 ->add(new Memcaching(60 * 60/*sec*/));
 
             // ----------------------------------------------------------------
