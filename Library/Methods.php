@@ -402,6 +402,7 @@ namespace Zaplog\Library {
                     channels.name,
                     channels.avatar,
                     links.title,
+                    links.image,
                     links.createdatetime AS linkdatetime
                 FROM (
                      SELECT id, channelid, linkid, x.threadid, x.rownum FROM (
