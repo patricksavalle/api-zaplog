@@ -513,15 +513,6 @@ SELECT (SELECT COUNT(*) FROM reactions)            AS numreactions,
 -- --------------------------------------------------------
 
 -- should be cached higher up in the stack
--- (optimized)
-CREATE VIEW trendingtopics AS
-    SELECT tag FROM tags
-    JOIN links ON tags.linkid=links.id
-    WHERE tags.linkid in (SELECT id FROM frontpage) AND links.published=TRUE
-    GROUP BY tag
-    ORDER BY SUM(score) DESC LIMIT 50;
-
--- should be cached higher up in the stack
 -- (optimized/profiled)
 CREATE VIEW toptopics AS
     SELECT DISTINCT tag FROM tags
@@ -537,14 +528,6 @@ CREATE VIEW newtopics AS
 -- --------------------------------------------------------
 -- Most popular channels, this query should be cached by server
 -- --------------------------------------------------------
-
--- should be cached higher up in the stack
--- (optimized)
-CREATE VIEW trendingchannels AS
-    SELECT channels.* FROM channels_public_view AS channels
-    JOIN (SELECT * FROM frontpage) AS links ON channels.id = links.channelid
-    GROUP BY channels.id
-    ORDER BY SUM(score) DESC LIMIT 50;
 
 -- optimal/profiled
 CREATE VIEW topchannels AS
