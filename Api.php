@@ -15,7 +15,6 @@ namespace Zaplog {
     require_once BASE_PATH . '/vendor/autoload.php';
 
     use ContentSyndication\Text;
-    use SlimRestApi\Infra\Ini;
     use SlimRestApi\Infra\MemcachedFunction;
     use stdClass;
     use SlimRestApi\Middleware\CliRequest;
@@ -424,7 +423,7 @@ namespace Zaplog {
                         '{language:[a-z]{2}}',
                         '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))}, null',
                         '{image:\url},null',
-                        '{tags:[\w-]{3,55}}',]))
+                        '{tags:[\w-]{3,55}},null',]))
                     ->add(new Authentication);
 
                 // ----------------------------------------------------------------

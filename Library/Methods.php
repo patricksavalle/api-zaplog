@@ -269,7 +269,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function postLink(stdClass $link, $keywords = []): string
+        static public function postLink(stdClass $link, ?array $keywords): string
         {
             // sanity checks
             (new UserException("Title contains HTML"))(strcmp(strip_tags($link->title), $link->title) === 0);
@@ -308,7 +308,9 @@ namespace Zaplog\Library {
 
             $linkid = Db::lastInsertId();
 
-            self::postTags($link->channelid, $linkid, $keywords);
+            if (!empty($keyword)) {
+                self::postTags($link->channelid, $linkid, $keywords);
+            }
 
             try {
                 ArchiveOrg::archiveAsync($link->url);
