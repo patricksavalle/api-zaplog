@@ -278,7 +278,7 @@ DELIMITER //
 CREATE EVENT calculate_channel_reputations ON SCHEDULE EVERY 24 HOUR DO
 BEGIN
     INSERT INTO interactions(type) VALUES('on_reputation_calculated');
-    UPDATE channels SET reputation = IF(reputation * 0.9981 + score - prevscore < 1, 1, reputation * 0.9981 + score - prevscore), prevscore = score;
+    UPDATE channels SET reputation = GREATEST(1, reputation * 0.9981 + score - prevscore), prevscore = score;
 END //
 DELIMITER ;
 
