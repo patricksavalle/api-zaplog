@@ -273,9 +273,7 @@ namespace Zaplog\Library {
         {
             // sanity checks
             (new UserException("Title contains HTML"))(strcmp(strip_tags($link->title), $link->title) === 0);
-            (new UserException("Title contains entities"))(strcmp(html_entity_decode($link->title), $link->title) === 0);
             (new UserException("Markdown contains HTML"))(strcmp(strip_tags($link->markdown), $link->markdown) === 0);
-            (new UserException("Markdown contains entities"))(strcmp(html_entity_decode($link->markdown), $link->markdown) === 0);
             (new UserException("Url and mimetype must be both set or empty"))(!(empty($link->url) xor empty($link->mimetype)));
 
             // check image
