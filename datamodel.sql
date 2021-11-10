@@ -128,13 +128,13 @@ CREATE TABLE links
     tagscount      INT                    DEFAULT 0,
     -- the scoring algorithm
     score          INT GENERATED ALWAYS AS (
-
+        ROUND (
             -- no votes no score
             votescount *
             -- no tags, no score
-            IF(tagscount = 0 , 0, 1) *
-            -- little content, no score
-            IF(markdown IS NULL OR LENGTH(markdown) < 100, 0, 1) *
+            IF(tagscount = 0, 0, 1) *
+            -- longer articles are better
+            IF(markdown IS NULL OR LENGTH(markdown) < 100, 0, LOG(10, LENGTH(markdown)) - LOG(10, 10)) *
             -- double score for real articles
             (
                 CASE copyright
@@ -143,24 +143,20 @@ CREATE TABLE links
                     WHEN 'No Rights Reserved (CC0 1.0)' THEN 2
                     WHEN 'Some Rights Reserved (CC BY-SA 4.0)' THEN 2
                     ELSE 1 END
-            ) *
+                ) *
             -- weigh the passive factors, decreasing returns
             (
-                ROUND(
-                    -- more different interactors is better
-                    LOG(10, 1 + uniquereactors * 10) +
-                    -- longer articles are better
-                    LOG(10, 1 + IF(markdown IS NULL, 0, LENGTH(markdown))) +
-                    -- more external reach is better
-                    LOG(10, 1 + uniquereferrers) +
-                    -- more reactions is better
-                    LOG(10, 1 + reactionscount) / 5 +
-                    -- more views always better
-                    LOG(10, 1 + viewscount / 10)
-                )
+                -- more different interactors is better
+                LOG(10, 1 + uniquereactors * 10) +
+                -- more external reach is better
+                LOG(10, 1 + uniquereferrers) +
+                -- more reactions is better
+                LOG(10, 1 + reactionscount) / 5 +
+                -- more views always better
+                LOG(10, 1 + viewscount / 10)
             )
-
-        ),
+        )
+    ),
     PRIMARY KEY (id),
     INDEX (channelid),
     INDEX (published),
@@ -279,14 +275,12 @@ DELIMITER ;
 -- -------------------------------------------------------------------------
 
 DELIMITER //
-CREATE PROCEDURE calculate_channel_reputations()
+CREATE EVENT calculate_channel_reputations ON SCHEDULE EVERY 24 HOUR DO
 BEGIN
     INSERT INTO interactions(type) VALUES('on_reputation_calculated');
-    UPDATE channels SET reputation = reputation * 0.9981 + score - prevscore, prevscore = score;
+    UPDATE channels SET reputation = IF(reputation * 0.9981 + score - prevscore < 1, 1, reputation * 0.9981 + score - prevscore), prevscore = score;
 END //
 DELIMITER ;
-
-CREATE EVENT calculate_channel_reputations ON SCHEDULE EVERY 24 HOUR DO CALL calculate_channel_reputations();
 
 -- ------------------------------------------------
 --

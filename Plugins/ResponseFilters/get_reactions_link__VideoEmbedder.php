@@ -13,7 +13,7 @@ namespace Zaplog\Plugins\ResponseFilters {
     // The API has already normalized the url, no need to check all possible patterns
     // ------------------------------------------------------------------------------
 
-    class get_reactions_link__ContentEmbedderAbstract extends AbstractVideoEmbedder
+    class get_reactions_link__VideoEmbedder extends AbstractVideoEmbedder
     {
         public function __invoke(string $requestUri, stdClass $requestArgs, &$responseData)
         {

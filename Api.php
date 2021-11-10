@@ -421,7 +421,7 @@ namespace Zaplog {
                         '{title:.{3,55}}',
                         '{markdown:\raw}',
                         '{language:[a-z]{2}}',
-                        '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))}, null',
+                        '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))},No Rights Reserved (CC0 1.0)',
                         '{image:\url},null',
                         '{tags:[\w-]{3,55}},null',]))
                     ->add(new Authentication);

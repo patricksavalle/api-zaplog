@@ -184,8 +184,6 @@ namespace Zaplog {
 
             Db::execute("DELETE FROM links WHERE (tagscount=0 OR votescount=0) AND reactionscount=0");
 
-            Db::execute("CALL calculate_channel_reputations()");
-
             Db::execute("OPTIMIZE TABLE channels");
             Db::execute("OPTIMIZE TABLE links");
             Db::execute("OPTIMIZE TABLE tags");
