@@ -255,7 +255,7 @@ CREATE VIEW frontpage AS
     SELECT a.* FROM frontpage_current AS a JOIN links AS b ON a.id=b.id WHERE b.published=TRUE;
 
 DELIMITER //
-CREATE EVENT select_frontpage ON SCHEDULE EVERY 60 MINUTE DO
+CREATE EVENT select_frontpage ON SCHEDULE EVERY 90 MINUTE DO
     BEGIN
         CREATE TABLE frontpage_new
         SELECT DISTINCT links.* FROM links
@@ -266,6 +266,7 @@ CREATE EVENT select_frontpage ON SCHEDULE EVERY 60 MINUTE DO
         -- atomic swap
         RENAME TABLE frontpage_current TO frontpage_old, frontpage_new TO frontpage_current;
         DROP TABLE frontpage_old;
+        INSERT INTO interactions(type) VALUES('on_frontpage_calculated');
     END //
 DELIMITER ;
 
