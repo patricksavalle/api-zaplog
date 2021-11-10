@@ -63,14 +63,6 @@ namespace Zaplog {
 
             $this->get("/", function ($rq, $rp, $args): Response {
 
-                //(new ZaplogImport)();
-
-                // Initialization
-                Authentication::createSession("dummy@dummy.dummy");
-                Db::execute("UPDATE channels SET userid=IF(LENGTH(userid)=0,MD5(:email),userid) WHERE id=1", [":email" => Ini::get("email_admin")]);
-                Db::execute("SET GLOBAL event_scheduler = ON");
-                Db::execute("SET GLOBAL TRANSACTION ISOLATION LEVEL READ UNCOMMITTED");
-
                 echo "<p>Repositories: https://gitlab.com/zaplog/api-zaplog</p>";
                 echo "<h1>" . __CLASS__ . " version " . VERSION . "</h1>";
                 echo "<table>";
@@ -422,16 +414,17 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $args->channelid = Authentication::getSession()->id;
-                    return self::response($request, $response, $args, Methods::postLink($args));
+                    return self::response($request, $response, $args, Methods::postLink($args, $args->tags));
                 })
                     ->add(new BodyParameters([
-                        '{link:\url},null',
-                        '{mimetype:[-\w.]+/[-\w.]+},null',
-                        '{title:[\w-]{3,55}}',
+                        '{url:\url},null',
+                        '{mimetype:[-\w.]+\/[-\w.]+},null',
+                        '{title:.{3,55}}',
                         '{markdown:\raw}',
-                        '{language:[a-z]{2}}, null',
-                        '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved (CC0 1.0)|Some Rights Reserved (CC BY-SA 4.0)}, null',
-                        '{image:\url},null']))
+                        '{language:[a-z]{2}}',
+                        '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))}, null',
+                        '{image:\url},null',
+                        '{tags:[\w-]{3,55}}',]))
                     ->add(new Authentication);
 
                 // ----------------------------------------------------------------
