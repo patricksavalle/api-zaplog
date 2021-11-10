@@ -46,5 +46,5 @@ ALTER TABLE links CHANGE COLUMN score score INT GENERATED ALWAYS AS (
 UPDATE channels JOIN links ON channels.id=links.channelid
 SET channels.score=channels.score + links.score;
 
-UPDATE channels SET reputation = 1;
+UPDATE channels SET reputation = 1, prevscore=score;
 
