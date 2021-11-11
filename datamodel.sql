@@ -209,8 +209,9 @@ CREATE TABLE interactions
         'on_delete_vote',
         'on_insert_tag',
         'on_receive_cash',
+        'on_frontpage_calculated',
         'on_reputation_calculated'
-        )                      NOT NULL,
+    )                      NOT NULL,
     PRIMARY KEY (id),
     INDEX (datetime DESC),
     INDEX (linkid),
@@ -257,15 +258,34 @@ CREATE VIEW frontpage AS
 DELIMITER //
 CREATE EVENT select_frontpage ON SCHEDULE EVERY 90 MINUTE DO
     BEGIN
+        -- select new frontpage
         CREATE TABLE frontpage_new
-        SELECT DISTINCT links.* FROM links
-        WHERE published=TRUE
-          AND language=IFNULL((SELECT language FROM channels WHERE id=1),language)
-          AND createdatetime<SUBDATE(CURRENT_TIMESTAMP, INTERVAL 3 HOUR)
-        ORDER BY (score / GREATEST(9, POW(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, createdatetime),2))) DESC LIMIT 18;
+            SELECT DISTINCT links.* FROM links
+            WHERE published=TRUE
+              AND language=IFNULL((SELECT language FROM channels WHERE id=1),language)
+              AND createdatetime<SUBDATE(CURRENT_TIMESTAMP, INTERVAL 3 HOUR)
+            ORDER BY (score / GREATEST(9, POW(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, createdatetime),2))) DESC LIMIT 18;
+
         -- atomic swap
         RENAME TABLE frontpage_current TO frontpage_old, frontpage_new TO frontpage_current;
         DROP TABLE frontpage_old;
+
+        -- notify frontpage selection in reactions, use temp table because of triggers
+        CREATE TABLE reactions_temp
+            SELECT
+               id AS linkid,
+               1 AS channelid,
+               "<em>-- selected for frontpage by system --</em>" AS xtext,
+               "-- selected for frontpage by system --" AS description
+            FROM frontpage;
+        INSERT INTO reactions(linkid,channelid,xtext,description)
+            SELECT linkid,channelid,xtext,description FROM reactions_temp;
+        UPDATE reactions AS r
+            JOIN reactions_temp AS t ON r.linkid=t.linkid
+            SET threadid=(SELECT MAX(id) FROM reactions WHERE linkid=r.linkid);
+        DROP TABLE reactions_temp;
+
+        -- notification
         INSERT INTO interactions(type) VALUES('on_frontpage_calculated');
     END //
 DELIMITER ;
@@ -389,6 +409,15 @@ CREATE TRIGGER on_delete_reaction AFTER DELETE ON reactions FOR EACH ROW
         reactionscount = reactionscount - 1,
         uniquereactors = (SELECT COUNT(DISTINCT channelid) FROM reactions WHERE linkid = OLD.linkid)
         WHERE id = OLD.linkid;
+
+DELIMITER //
+CREATE PROCEDURE insert_reaction(IN arg_channelid INT, IN arg_linkid INT, IN arg_markdown TEXT, IN arg_xtext TEXT, IN arg_description VARCHAR(256))
+BEGIN
+    INSERT INTO reactions (channelid,linkid,markdown,xtext,description)
+        VALUES(arg_channelid,arg_linkid,arg_markdown,arg_xtext,arg_description);
+    UPDATE reactions SET threadid=LAST_INSERT_ID() WHERE linkid=arg_linkid;
+END //
+DELIMITER ;
 
 -- --------------------------------------------------
 -- Link tags
@@ -546,15 +575,6 @@ BEGIN
     FROM tags JOIN links ON tags.linkid=links.id
     WHERE links.channelid=arg_channelid AND links.published-TRUE
     GROUP BY tag ORDER BY SUM(score) DESC LIMIT 20;
-END //
-DELIMITER ;
-
-DELIMITER //
-CREATE PROCEDURE insert_reaction(IN arg_channelid INT, IN arg_linkid INT, IN arg_markdown TEXT, IN arg_xtext TEXT, IN arg_description VARCHAR(256))
-BEGIN
-    INSERT INTO reactions (channelid,linkid,markdown,xtext,description)
-        VALUES(arg_channelid,arg_linkid,arg_markdown,arg_xtext,arg_description);
-    UPDATE reactions SET threadid=LAST_INSERT_ID() WHERE linkid=arg_linkid;
 END //
 DELIMITER ;
 
