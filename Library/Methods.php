@@ -300,12 +300,13 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function validateLink(stdClass $link)
+        /** @noinspection PhpParameterByRefIsNotUsedAsReferenceInspection */
+        static public function checkLink(stdClass &$link)
         {
             // sanity checks
-            (new UserException("Title contains HTML"))(strcmp(strip_tags($link->title), $link->title) === 0);
-            (new UserException("Markdown contains HTML"))(strcmp(strip_tags($link->markdown), $link->markdown) === 0);
-            (new UserException("Url and mimetype must be both set or empty"))(!(empty($link->url) xor empty($link->mimetype)));
+            (new UserException("Url and mimetype must be both set or both empty"))(!(empty($link->url) xor empty($link->mimetype)));
+            $link->title = strip_tags($link->title);
+            $link->markdown = strip_tags($link->markdown);
         }
 
         // ----------------------------------------------------------
@@ -314,8 +315,8 @@ namespace Zaplog\Library {
 
         static public function previewLink(stdClass $link, ?array $keywords): array
         {
-            // sanity check
-            self::validateLink($link);
+            // sanitize
+            self::checkLink($link);
 
             // check image on mimetype
             self::checkImage($link);
@@ -337,7 +338,7 @@ namespace Zaplog\Library {
         static public function postLink(stdClass $link, ?array $keywords): string
         {
             // sanity check
-            self::validateLink($link);
+            self::checkLink($link);
 
             // check image
             self::checkImage($link);
@@ -381,7 +382,7 @@ namespace Zaplog\Library {
         static public function patchLink(stdClass $link): bool
         {
             // sanity check
-            self::validateLink($link);
+            self::checkLink($link);
 
             // check image
             self::checkImage($link);
@@ -415,6 +416,35 @@ namespace Zaplog\Library {
                 error_log("Could not save to archive.org: " . $link->url);
                 error_log($e->getMessage());
             }
+            return true;
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function previewReaction(stdClass $reaction): stdClass
+        {
+            $reaction->xtext = (string)(new Text($reaction->markdown))->stripTags()->parseDown();
+            $reaction->description = (string)(new Text($reaction->xtext))->blurbify();
+            return $reaction;
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function postReaction(stdClass $reaction): bool
+        {
+            $xtext = (string)(new Text($reaction->markdown))->stripTags()->parseDown();
+            $description = (string)(new Text($xtext))->blurbify();
+            (new UserException("Comment invalid or empty"))(strlen($xtext) > 0);
+            Db::execute("CALL insert_reaction(:channelid,:linkid,:markdown,:xtext,:description)", [
+                ":linkid" => $reaction->id,
+                ":channelid" => $reaction->channelid,
+                ":markdown" => $reaction->markdown,
+                ":xtext" => $xtext,
+                ":description" => $description]);
             return true;
         }
 

@@ -418,9 +418,7 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $args->channelid = Authentication::getSession()->id;
-                    return ($args->preview)
-                        ? self::response($request, $response, $args, Methods::previewLink($args, $args->tags))
-                        : self::response($request, $response, $args, Methods::postLink($args, $args->tags));
+                    return self::response($request, $response, $args, $args->preview ? Methods::previewLink($args, $args->tags) : Methods::postLink($args, $args->tags));
                 })
                     ->add(new QueryParameters(['{preview:\boolean},0']))
                     ->add(new BodyParameters([
@@ -543,16 +541,10 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    $xtext = (string)(new Text($args->markdown))->stripTags()->parseDown();
-                    (new UserException("Comment invalid or empty"))(strlen($xtext) > 0);
-                    Db::execute("CALL insert_reaction(:channelid,:linkid,:markdown,:xtext,:description)", [
-                        ":linkid" => $args->id,
-                        ":channelid" => Authentication::getSession()->id,
-                        ":markdown" => $args->markdown,
-                        ":xtext" => $xtext,
-                        ":description" => (new Text($xtext))->blurbify()]);
-                    return self::response($request, $response, $args, true);
+                    $args->channelid = Authentication::getSession()->id;
+                    return self::response($request, $response, $args, $args->preview ? Methods::previewReaction($args) : Methods::postReaction($args));
                 })
+                    ->add(new QueryParameters(['{preview:\boolean},0']))
                     ->add(new BodyParameters(['{markdown:\raw}']))
                     ->add(new Authentication);
 
