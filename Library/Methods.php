@@ -300,12 +300,22 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function previewLink(stdClass $link, ?array $keywords): array
+        static public function validateLink(stdClass $link)
         {
             // sanity checks
             (new UserException("Title contains HTML"))(strcmp(strip_tags($link->title), $link->title) === 0);
             (new UserException("Markdown contains HTML"))(strcmp(strip_tags($link->markdown), $link->markdown) === 0);
             (new UserException("Url and mimetype must be both set or empty"))(!(empty($link->url) xor empty($link->mimetype)));
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function previewLink(stdClass $link, ?array $keywords): array
+        {
+            // sanity check
+            self::validateLink($link);
 
             // check image on mimetype
             self::checkImage($link);
@@ -326,10 +336,8 @@ namespace Zaplog\Library {
 
         static public function postLink(stdClass $link, ?array $keywords): string
         {
-            // sanity checks
-            (new UserException("Title contains HTML"))(strcmp(strip_tags($link->title), $link->title) === 0);
-            (new UserException("Markdown contains HTML"))(strcmp(strip_tags($link->markdown), $link->markdown) === 0);
-            (new UserException("Url and mimetype must be both set or empty"))(!(empty($link->url) xor empty($link->mimetype)));
+            // sanity check
+            self::validateLink($link);
 
             // check image
             self::checkImage($link);
@@ -372,10 +380,8 @@ namespace Zaplog\Library {
 
         static public function patchLink(stdClass $link): bool
         {
-            // sanity checks
-            (new UserException("Title contains HTML"))(strcmp(strip_tags($link->title), $link->title) === 0);
-            (new UserException("Markdown contains HTML"))(strcmp(strip_tags($link->markdown), $link->markdown) === 0);
-            (new UserException("Url and mimetype must be both set or empty"))(!(empty($link->url) xor empty($link->mimetype)));
+            // sanity check
+            self::validateLink($link);
 
             // check image
             self::checkImage($link);
