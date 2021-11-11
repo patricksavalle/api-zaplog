@@ -382,6 +382,10 @@ namespace Zaplog {
                     return self::response($request, $response, $args, [
                         "top10" => Db::fetchAll("SELECT * FROM topchannels LIMIT :count", [":count" => $args->count]),
                         "updated10" => Db::fetchAll("SELECT * FROM updatedchannels LIMIT :count", [":count" => $args->count]),
+                        "discussing" => Db::fetchAll("SELECT channels.* FROM channels_public_view AS channels JOIN (
+                                SELECT DISTINCT channelid FROM reactions ORDER BY id DESC LIMIT :count
+                            ) AS reactions ON channels.id=reactions.channelid
+                            GROUP BY channels.id DESC", [":count" => $args->count]),
                     ]);
                 })
                     ->add(new QueryParameters(['{count:\int},10']))

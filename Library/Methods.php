@@ -277,16 +277,16 @@ namespace Zaplog\Library {
             (new UserException("Url and mimetype must be both set or empty"))(!(empty($link->url) xor empty($link->mimetype)));
 
             // check image
-            $image_mimetype = "";
             if (!empty($link->image)) {
+                $image_mimetype = "";
                 try {
                     $image_mimetype = MetadataParser::getMimetype($link->image);
                 } catch (Exception $e) {
                     // nothing, ignore that field
                 }
-            }
-            if (strpos($image_mimetype, "image/") !== 0) {
-                $link->image = Ini::get("default_post_image");
+                if (strpos($image_mimetype, "image/") !== 0) {
+                    $link->image = Ini::get("default_post_image");
+                }
             }
             // Insert into database
             (new ServerException)(Db::execute(
