@@ -546,7 +546,6 @@ namespace Zaplog\Library {
                             linkid,
                             (@num:=if(@threadid = threadid, @num +1, if(@threadid := threadid, 1, 1))) AS rownum
                         FROM reactions
-                        WHERE published=TRUE AND channelid<>1 
                         ORDER BY threadid DESC, id DESC
                      ) AS x
                      JOIN (
