@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Zaplog {
 
-    define("VERSION", "v0.97");
+    define("VERSION", "v0.98");
 
     define("BASE_PATH", __DIR__);
 
@@ -51,10 +51,6 @@ namespace Zaplog {
         public function __construct()
         {
             parent::__construct();
-
-            $this->add(function (Request $request, Response $response, callable $next): Response {
-                return $next($request, $response)->withHeader("X-Api-Version", VERSION);
-            });
 
             // -----------------------------------------
             // show the API homepage
@@ -418,6 +414,7 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $args->channelid = Authentication::getSession()->id;
+                    (new UserException('parameter tags must be array'))(is_array($args->tags) or $args->tags === null);
                     return self::response($request, $response, $args, $args->preview ? Methods::previewLink($args, $args->tags) : Methods::postLink($args, $args->tags));
                 })
                     ->add(new QueryParameters(['{preview:\boolean},0']))
@@ -453,8 +450,9 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $args->channelid = Authentication::getSession()->id;
-                    return self::response($request, $response, $args, Methods::patchLink($args));
+                    return self::response($request, $response, $args, $args->preview ? Methods::previewLink($args) : Methods::patchLink($args));
                 })
+                    ->add(new QueryParameters(['{preview:\boolean},0']))
                     ->add(new BodyParameters([
                         '{url:\url}',
                         '{mimetype:[-\w.]+\/[-\w.]+}',

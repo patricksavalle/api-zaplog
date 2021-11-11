@@ -313,7 +313,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function previewLink(stdClass $link, ?array $keywords): array
+        static public function previewLink(stdClass $link, ?array $keywords = null): array
         {
             // sanitize
             self::checkLink($link);
@@ -361,7 +361,7 @@ namespace Zaplog\Library {
 
             $linkid = Db::lastInsertId();
 
-            if (!empty($keyword)) {
+            if (!empty($keywords)) {
                 self::postTags($link->channelid, $linkid, $keywords);
             }
 
