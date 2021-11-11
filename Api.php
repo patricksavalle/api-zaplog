@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Zaplog {
 
-    define("VERSION", "v0.96");
+    define("VERSION", "v0.97");
 
     define("BASE_PATH", __DIR__);
 
@@ -290,6 +290,7 @@ namespace Zaplog {
                 Response $response,
                 stdClass $args): Response {
                 $metadata = MetadataParser::getMetadata($args->urlencoded);
+                $metadata['keywords'] = Methods::sanitizeTags($metadata['keywords'] ?? []);
                 $duplicates = Db::fetchAll("SELECT * FROM links WHERE urlhash=MD5(:url)", [":url" => $metadata["url"]]);
                 return self::response($request, $response, $args, ["metadata" => $metadata, "duplicaties" => $duplicates]);
             })
@@ -417,12 +418,15 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $args->channelid = Authentication::getSession()->id;
-                    return self::response($request, $response, $args, Methods::postLink($args, $args->tags));
+                    return ($args->preview)
+                        ? self::response($request, $response, $args, Methods::previewLink($args, $args->tags))
+                        : self::response($request, $response, $args, Methods::postLink($args, $args->tags));
                 })
+                    ->add(new QueryParameters(['{preview:\boolean},0']))
                     ->add(new BodyParameters([
                         '{url:\url},null',
                         '{mimetype:[-\w.]+\/[-\w.]+},null',
-                        '{title:.{3,55}}',
+                        '{title:.{3,256}}',
                         '{markdown:\raw}',
                         '{language:[a-z]{2}}',
                         '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))},No Rights Reserved (CC0 1.0)',
@@ -450,20 +454,17 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, Db::execute("UPDATE links SET 
-                        published=:published, title=:title, description=:description 
-                        WHERE id=:linkid AND channelid=:channelid", [
-                        ":published" => $args->published,
-                        ":title" => $args->title,
-                        ":description" => $args->description,
-                        ":linkid" => $args->id,
-                        ":channelid" => Authentication::getSession()->id,
-                    ])->rowCount());
+                    $args->channelid = Authentication::getSession()->id;
+                    return self::response($request, $response, $args, Methods::patchLink($args));
                 })
                     ->add(new BodyParameters([
-                        '{title:[\w-]{3,55}},null',
-                        '{description:\raw},null',
-                        '{published:\boolean},null']))
+                        '{url:\url}',
+                        '{mimetype:[-\w.]+\/[-\w.]+}',
+                        '{markdown:\raw}',
+                        '{language:[a-z]{2}}',
+                        '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))}',
+                        '{image:\url}',
+                        '{published:\boolean}']))
                     ->add(new Authentication);
 
                 // --------------------------------------------------

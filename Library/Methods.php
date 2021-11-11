@@ -1,4 +1,5 @@
-<?php /** @noinspection PhpUndefinedMethodInspection */
+<?php /** @noinspection DuplicatedCode */
+/** @noinspection PhpUndefinedMethodInspection */
 
 declare(strict_types=1);
 
@@ -231,11 +232,12 @@ namespace Zaplog\Library {
             return self::postLink($args, $metadata["keywords"] ?? []);
         }
 
+
         // ----------------------------------------------------------
         //
         // ----------------------------------------------------------
 
-        static public function postTags(/*int*/ $channelid, /*int*/ $linkid, array $keywords): string
+        static public function sanitizeTags(array $keywords): array
         {
             $tags = [];
             foreach ($keywords as $tag) {
@@ -246,9 +248,17 @@ namespace Zaplog\Library {
                     $tags[] = $tag;
                 }
             }
-
             // remove duplicate keywords after normalisation
-            $tags = array_unique($tags);
+            return array_unique($tags);
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function postTags(/*int*/ $channelid, /*int*/ $linkid, array $tags): string
+        {
+            $tags = self::sanitizeTags($tags);
 
             // insert keywords into database;
             $count = 0;
@@ -269,13 +279,9 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function postLink(stdClass $link, ?array $keywords): string
+        /** @noinspection PhpParameterByRefIsNotUsedAsReferenceInspection */
+        static public function checkImage(stdClass &$link)
         {
-            // sanity checks
-            (new UserException("Title contains HTML"))(strcmp(strip_tags($link->title), $link->title) === 0);
-            (new UserException("Markdown contains HTML"))(strcmp(strip_tags($link->markdown), $link->markdown) === 0);
-            (new UserException("Url and mimetype must be both set or empty"))(!(empty($link->url) xor empty($link->mimetype)));
-
             // check image
             if (!empty($link->image)) {
                 $image_mimetype = "";
@@ -288,6 +294,46 @@ namespace Zaplog\Library {
                     $link->image = Ini::get("default_post_image");
                 }
             }
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function previewLink(stdClass $link, ?array $keywords): array
+        {
+            // sanity checks
+            (new UserException("Title contains HTML"))(strcmp(strip_tags($link->title), $link->title) === 0);
+            (new UserException("Markdown contains HTML"))(strcmp(strip_tags($link->markdown), $link->markdown) === 0);
+            (new UserException("Url and mimetype must be both set or empty"))(!(empty($link->url) xor empty($link->mimetype)));
+
+            // check image on mimetype
+            self::checkImage($link);
+
+            // render article text
+            $link->description = (string)(new Text($link->markdown))->parseDown(new ParsedownFilter)->blurbify();
+            $link->xtext = (string)(new Text($link->markdown))->parseDown(new ParsedownFilter);
+
+            // sanitize tags
+            $keywords = self::sanitizeTags($keywords ?? []);
+
+            return ["link" => $link, "keywords" => $keywords,];
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function postLink(stdClass $link, ?array $keywords): string
+        {
+            // sanity checks
+            (new UserException("Title contains HTML"))(strcmp(strip_tags($link->title), $link->title) === 0);
+            (new UserException("Markdown contains HTML"))(strcmp(strip_tags($link->markdown), $link->markdown) === 0);
+            (new UserException("Url and mimetype must be both set or empty"))(!(empty($link->url) xor empty($link->mimetype)));
+
+            // check image
+            self::checkImage($link);
+
             // Insert into database
             (new ServerException)(Db::execute(
                     "INSERT INTO links(url, channelid, title, markdown, description, image, mimetype, language, copyright)
@@ -311,13 +357,59 @@ namespace Zaplog\Library {
             }
 
             try {
-                ArchiveOrg::archiveAsync($link->url);
+                if (!empty($link->url)) ArchiveOrg::archiveAsync($link->url);
             } catch (Exception $e) {
                 error_log("Could not save to archive.org: " . $link->url);
                 error_log($e->getMessage());
             }
 
             return $linkid;
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function patchLink(stdClass $link): bool
+        {
+            // sanity checks
+            (new UserException("Title contains HTML"))(strcmp(strip_tags($link->title), $link->title) === 0);
+            (new UserException("Markdown contains HTML"))(strcmp(strip_tags($link->markdown), $link->markdown) === 0);
+            (new UserException("Url and mimetype must be both set or empty"))(!(empty($link->url) xor empty($link->mimetype)));
+
+            // check image
+            self::checkImage($link);
+
+            // $old_markdown = Db::fetch("SELECT markdown FROM links WHERE id=:id", [":id" => $link->id])->markdown
+
+            // Insert into database
+            (new ServerException)(Db::execute(
+                    "UPDATE links(url, markdown, description, image, mimetype, language, copyright)
+                    VALUES (:url, :markdown, :description, :image, :mimetype, :language, :copyright)
+                    WHERE id=:id AND channelid=:channelid",
+                    [
+                        ":id" => $link->id,
+                        ":url" => $link->url,
+                        ":channelid" => $link->channelid,
+                        ":markdown" => $link->markdown,
+                        ":description" => empty($link->markdown) ? null : (new Text($link->markdown))->parseDown(new ParsedownFilter)->blurbify(),
+                        ":image" => $link->image,
+                        ":mimetype" => $link->mimetype,
+                        ":language" => $link->language,
+                        ":copyright" => $link->copyright,
+                    ])->rowCount() > 0);
+
+            // create diff
+            // $diff = xdiff_string_diff();
+
+            // Archive the link
+            try {
+                ArchiveOrg::archiveAsync($link->url);
+            } catch (Exception $e) {
+                error_log("Could not save to archive.org: " . $link->url);
+                error_log($e->getMessage());
+            }
+            return true;
         }
 
         // ----------------------------------------------------------
@@ -412,12 +504,14 @@ namespace Zaplog\Library {
                 FROM (
                      SELECT id, channelid, linkid, x.threadid, x.rownum FROM (
                         SELECT 
-                            r.threadid, r.id, 
-                            r.channelid, 
-                            r.linkid,
-                            (@num:=if(@threadid = r.threadid, @num +1, if(@threadid := r.threadid, 1, 1))) AS rownum
-                        FROM reactions AS r
-                        ORDER BY r.threadid DESC, r.id DESC
+                            threadid, 
+                            id, 
+                            channelid, 
+                            linkid,
+                            (@num:=if(@threadid = threadid, @num +1, if(@threadid := threadid, 1, 1))) AS rownum
+                        FROM reactions
+                        WHERE published=TRUE AND channelid<>1 
+                        ORDER BY threadid DESC, id DESC
                      ) AS x
                      JOIN (
                         SELECT threadid FROM reactions
