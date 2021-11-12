@@ -414,7 +414,7 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $args->channelid = Authentication::getSession()->id;
-                    (new UserException('parameter tags must be array'))(is_array($args->tags) or $args->tags === null);
+                    if(!is_array($args->tags)) $args->tags = [$args->tags];
                     return self::response($request, $response, $args, $args->preview ? Methods::previewLink($args, $args->tags) : Methods::postLink($args, $args->tags));
                 })
                     ->add(new QueryParameters(['{preview:\boolean},0']))
@@ -426,7 +426,7 @@ namespace Zaplog {
                         '{language:[a-z]{2}}',
                         '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))},No Rights Reserved (CC0 1.0)',
                         '{image:\url},null',
-                        '{tags:[\w-]{3,55}},null',]))
+                        '{tags:.{1,55}},null',]))
                     ->add(new Authentication);
 
                 // ----------------------------------------------------------------

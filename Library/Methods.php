@@ -211,7 +211,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function postLinkFromUrl(string $channelid, string $url): string
+        static public function postLinkFromUrl(string $channelid, string $url): int
         {
             $metadata = MetadataParser::getMetadata($url);
 
@@ -244,7 +244,7 @@ namespace Zaplog\Library {
                 // sanitize tags
                 $tag = (string)(new Text($tag))->convertToAscii()->hyphenize();
                 // only accept reasonable tags
-                if (preg_match("/^[\w][\w-]{0,48}[\w]$/", $tag) > 0 and substr_count($tag, "-") < 5) {
+                if (strlen($tag)>2 and strlen($tag)<41 and substr_count($tag, "-") < 5) {
                     $tags[] = $tag;
                 }
             }
@@ -256,7 +256,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function postTags(/*int*/ $channelid, /*int*/ $linkid, array $tags): string
+        static public function postTags(int $channelid, int $linkid, array $tags): string
         {
             $tags = self::sanitizeTags($tags);
 
@@ -335,7 +335,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function postLink(stdClass $link, ?array $keywords): string
+        static public function postLink(stdClass $link, ?array $keywords): int
         {
             // sanity check
             self::checkLink($link);
@@ -359,7 +359,7 @@ namespace Zaplog\Library {
                         ":copyright" => $link->copyright,
                     ])->rowCount() > 0);
 
-            $linkid = Db::lastInsertId();
+            $linkid = (int)Db::lastInsertId();
 
             if (!empty($keywords)) {
                 self::postTags($link->channelid, $linkid, $keywords);
