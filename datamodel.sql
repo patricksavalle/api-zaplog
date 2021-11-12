@@ -256,7 +256,7 @@ CREATE VIEW frontpage AS
     SELECT a.* FROM frontpage_current AS a JOIN links AS b ON a.id=b.id WHERE b.published=TRUE;
 
 DELIMITER //
-CREATE EVENT select_frontpage ON SCHEDULE EVERY 90 MINUTE DO
+CREATE EVENT select_frontpage ON SCHEDULE EVERY 180 MINUTE DO
     BEGIN
         -- select new frontpage
         CREATE TABLE frontpage_new
@@ -273,7 +273,7 @@ CREATE EVENT select_frontpage ON SCHEDULE EVERY 90 MINUTE DO
                1 AS channelid,
                "<em>-- selected for frontpage by system --</em>" AS xtext,
                "-- selected for frontpage by system --" AS description
-            FROM frontpage_new;
+            FROM frontpage_new WHERE NOT id IN (SELECT id FROM frontpage);
         INSERT INTO reactions(linkid,channelid,xtext,description)
             SELECT linkid,channelid,xtext,description FROM reactions_temp;
         UPDATE reactions AS r
