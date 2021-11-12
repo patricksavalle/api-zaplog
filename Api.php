@@ -414,7 +414,7 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $args->channelid = Authentication::getSession()->id;
-                    if(!is_array($args->tags)) $args->tags = [$args->tags];
+                    if($args->tags!==null and !is_array($args->tags)) $args->tags = [$args->tags];
                     return self::response($request, $response, $args, $args->preview ? Methods::previewLink($args, $args->tags) : Methods::postLink($args, $args->tags));
                 })
                     ->add(new QueryParameters(['{preview:\boolean},0']))
