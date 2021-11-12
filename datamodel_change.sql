@@ -1,23 +1,2 @@
 USE zaplog;
-DROP EVENT select_frontpage;
-DELIMITER //
-CREATE EVENT select_frontpage ON SCHEDULE EVERY 180 MINUTE DO
-    BEGIN
-        -- select new frontpage
-        CREATE TABLE frontpage_new
-            SELECT DISTINCT links.* FROM links
-            WHERE published=TRUE
-            AND language=IFNULL((SELECT language FROM channels WHERE id=1),language)
-            AND createdatetime<SUBDATE(CURRENT_TIMESTAMP, INTERVAL 3 HOUR)
-            ORDER BY (score / GREATEST(9, POW(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, createdatetime),2))) DESC LIMIT 18;
-
-        -- atomic swap
-        RENAME TABLE frontpage_current TO frontpage_old, frontpage_new TO frontpage_current;
-        DROP TABLE frontpage_old;
-
-        -- notification
-        INSERT INTO interactions(type) VALUES('on_frontpage_calculated');
-    END //
-DELIMITER ;
-SET GLOBAL event_scheduler = ON;
-
+DELETE FROM links WHERE id=29274;
