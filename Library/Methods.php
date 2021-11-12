@@ -326,9 +326,9 @@ namespace Zaplog\Library {
             $link->xtext = (string)(new Text($link->markdown))->parseDown(new ParsedownFilter);
 
             // sanitize tags
-            $keywords = self::sanitizeTags($keywords ?? []);
+            $link->tags = self::sanitizeTags($keywords ?? []);
 
-            return ["link" => $link, "keywords" => $keywords,];
+            return ["link" => $link];
         }
 
         // ----------------------------------------------------------
