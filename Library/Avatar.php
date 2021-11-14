@@ -13,19 +13,18 @@ namespace Zaplog\Library {
 
         public function __construct(string $url = "")
         {
-            (new UserException)(filter_var($url, FILTER_VALIDATE_URL) !== false);
+            (new UserException("Invalid link"))(filter_var($url, FILTER_VALIDATE_URL) !== false);
             $this->url = $url;
         }
 
         public function inlineBase64(): string
         {
             $type = get_headers($this->url, true)["Content-Type"] ?? "";
-            error_log($type);
-            (new UserException)($type !== false and strpos($type, "image/") === 0);
+            (new UserException("Incorrect type"))($type !== false and strpos($type, "image/") === 0);
             $file = file_get_contents($this->url);
-            (new UserException)($file !== false);
+            (new UserException("Cannot read file"))($file !== false);
             $base64 = base64_encode($file);
-            (new UserException("Image file too large"))(strlen($file)<16384);
+            (new UserException("Image file too large (>12KB)"))(strlen($file) < 16384);
             return "data:$type;base64,$base64";
         }
     }
