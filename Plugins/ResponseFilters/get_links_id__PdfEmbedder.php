@@ -13,7 +13,8 @@ namespace Zaplog\Plugins\ResponseFilters {
         public function __invoke(string $requestUri, stdClass $requestArgs, &$responseData)
         {
             if (strcasecmp($responseData["link"]->mimetype ?? "", "application/pdf")===0) {
-                $responseData["link"]->xtext .= "<iframe width='100%'  class='pdf' src='" . $responseData["link"]->url . "'></iframe>";
+                $embed = "<iframe width='100%'  class='pdf' src='" . $responseData["link"]->url . "'></iframe>";
+                $responseData["link"]->xtext .= "<div class='iframe-wrapper'>$embed</div>";
             }
         }
     }

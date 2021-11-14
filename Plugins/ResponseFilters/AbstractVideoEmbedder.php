@@ -12,7 +12,7 @@ namespace Zaplog\Plugins\ResponseFilters {
         {
             foreach (["Youtube", "Bitchute", "Odysee", "Vimeo", "FreeWorldNews", "Banned"] as $service) {
                 if (($embed = $this->{$service}($url)) !== null) {
-                    return $embed;
+                    return "<div class='iframe-wrapper'>$embed</div>";
                 }
             }
             return null;
@@ -24,7 +24,7 @@ namespace Zaplog\Plugins\ResponseFilters {
             if (preg_match("/.*bitchute\.com\/video\/([a-zA-Z0-9_-]+)\//", $normalized_url, $matches) === 0) {
                 return null;
             }
-            return "<iframe width='100%'  class='video bitchute' src='https://www.bitchute.com/embed/$matches[1]/'></iframe>";
+            return "<iframe class='video bitchute' src='https://www.bitchute.com/embed/$matches[1]/'></iframe>";
         }
 
         protected function Odysee(string $normalized_url): ?string
@@ -33,7 +33,7 @@ namespace Zaplog\Plugins\ResponseFilters {
             if (preg_match("/.*odysee.com\/([a-zA-Z0-9_-]+):([a-zA-Z0-9]+)/", $normalized_url, $matches) === 0) {
                 return null;
             }
-            return "<iframe width='100%'  class='video odysee' src='https://odysee.com/$/embed/$matches[1]/$matches[2]'></iframe>";
+            return "<iframe class='video odysee' src='https://odysee.com/$/embed/$matches[1]/$matches[2]'></iframe>";
         }
 
         protected function Vimeo(string $normalized_url): ?string
@@ -42,7 +42,7 @@ namespace Zaplog\Plugins\ResponseFilters {
             if (preg_match("/.*vimeo\.com\/([0-9]+)/", $normalized_url, $matches) === 0) {
                 return null;
             }
-            return "<iframe width='100%'  class='video vimeo' src='https://player.vimeo.com/video/$matches[1]/'></iframe>";
+            return "<iframe class='video vimeo' src='https://player.vimeo.com/video/$matches[1]/'></iframe>";
         }
 
         protected function FreeWorldNews(string $normalized_url): ?string
@@ -51,7 +51,7 @@ namespace Zaplog\Plugins\ResponseFilters {
             if (preg_match("/.*freeworldnews\.tv\/watch\?id=\/([a-zA-Z0-9]+)/", $normalized_url, $matches) === 0) {
                 return null;
             }
-            return "<div class='ifw-player' data-video-id='$matches[1]'></div><script src='https://infowarsmedia.com/js/player.js' async></script>";
+            return "<div class='video ifw-player' data-video-id='$matches[1]'></div><script src='https://infowarsmedia.com/js/player.js' async></script>";
         }
 
         protected function Banned(string $normalized_url): ?string
@@ -60,7 +60,7 @@ namespace Zaplog\Plugins\ResponseFilters {
             if (preg_match("/.*banned\.video\/watch\?id=\/([a-zA-Z0-9]+)/", $normalized_url, $matches) === 0) {
                 return null;
             }
-            return "<div class='ifw-player' data-video-id='$matches[1]'></div><script src='https://infowarsmedia.com/js/player.js' async></script>";
+            return "<div class='video ifw-player' data-video-id='$matches[1]'></div><script src='https://infowarsmedia.com/js/player.js' async></script>";
         }
 
         protected function YouTube(string $normalized_url): ?string
@@ -69,7 +69,7 @@ namespace Zaplog\Plugins\ResponseFilters {
             if (preg_match("/.*youtube\.com\/watch.*v=([a-zA-Z0-9_-]+)/", $normalized_url, $matches) === 0) {
                 return null;
             }
-            return "<iframe width='100%' class='video youtube' src='https://www.youtube.com/embed/$matches[1]'></iframe>";
+            return "<iframe class='video youtube' src='https://www.youtube.com/embed/$matches[1]'></iframe>";
         }
     }
 }

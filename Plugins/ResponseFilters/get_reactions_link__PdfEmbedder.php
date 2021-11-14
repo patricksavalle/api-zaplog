@@ -25,9 +25,9 @@ namespace Zaplog\Plugins\ResponseFilters {
                 // if the reaction is an url that ends with pdf
                 if (($url = filter_var(trim(strip_tags($reaction->xtext)) ?? null, FILTER_VALIDATE_URL)) !== false
                     and $endsWith($url, ".pdf") !== false) {
-                    $embed = "<iframe width='100%' class='pdf' src='" . $url . "'></iframe>";
+                    $embed = "<iframe class='pdf' src='" . $url . "'></iframe>";
                     if (!empty($embed)) {
-                        $reaction->xtext = $embed;
+                        $reaction->xtext = "<div class='iframe-wrapper'>$embed</div>";
                     }
                 }
             }
