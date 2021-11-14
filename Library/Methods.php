@@ -244,12 +244,12 @@ namespace Zaplog\Library {
                 // sanitize tags
                 $tag = (string)(new Text($tag))->convertToAscii()->hyphenize();
                 // only accept reasonable tags
-                if (strlen($tag)>2 and strlen($tag)<41 and substr_count($tag, "-") < 5) {
-                    $tags[] = $tag;
+                if (strlen($tag) > 2 and strlen($tag) < 41 and substr_count($tag, "-") < 5) {
+                    // remove duplicates this way
+                    $tags[$tag] = $tag;
                 }
             }
-            // remove duplicate keywords after normalisation
-            return array_unique($tags);
+            return array_values($tags);
         }
 
         // ----------------------------------------------------------
@@ -324,6 +324,9 @@ namespace Zaplog\Library {
             // render article text
             $link->description = (string)(new Text($link->markdown))->parseDown(new ParsedownFilter)->blurbify();
             $link->xtext = (string)(new Text($link->markdown))->parseDown(new ParsedownFilter);
+
+            assert(mb_check_encoding($link->description, 'UTF-8'));
+            assert(mb_check_encoding($link->xtext, 'UTF-8'));
 
             // sanitize tags
             $link->tags = self::sanitizeTags($keywords ?? []);
