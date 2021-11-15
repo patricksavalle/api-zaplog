@@ -414,7 +414,7 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $args->channelid = Authentication::getSession()->id;
-                    if($args->tags!==null and !is_array($args->tags)) $args->tags = [$args->tags];
+                    if ($args->tags !== null and !is_array($args->tags)) $args->tags = [$args->tags];
                     return self::response($request, $response, $args, $args->preview ? Methods::previewLink($args, $args->tags) : Methods::postLink($args, $args->tags));
                 })
                     ->add(new QueryParameters(['{preview:\boolean},0']))
@@ -611,11 +611,11 @@ namespace Zaplog {
                 // post a single tag POST /tags/{id}/{tag}
                 // ------------------------------------------------
 
-                $this->post("/link/{id:\d{1,10}}/tag/{tag:[\w-]{3,50}}", function (
+                $this->post("/link/{id:\d{1,10}}/tag/{tag:[\S]{3,50}}", function (
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, Methods::postTags(Authentication::getSession()->id, (int)$args->id, [$args->tag]));
+                    return self::response($request, $response, $args, Methods::postTags(Authentication::getSession()->id, (int)$args->id, explode(" ", urldecode($args->tag))));
                 })
                     ->add(new Authentication);
 
