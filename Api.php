@@ -270,8 +270,8 @@ namespace Zaplog {
                 return self::response($request, $response, $args, [
                     "links.description" => (string)(new Text($args->markdown))->parseDown(new ParsedownFilter)->blurbify(),
                     "links.xtext" => (string)(new Text($args->markdown))->parseDown(new ParsedownFilter),
-                    "reactions.description" => (string)(new Text($args->markdown))->parseDown()->blurbify(),
-                    "reactions.xtext" => (string)(new Text($args->markdown))->parseDown(),
+                    "reactions.description" => (string)(new Text($args->markdown))->parseDown(new ParsedownFilter)->blurbify(),
+                    "reactions.xtext" => (string)(new Text($args->markdown))->parseDown(new ParsedownFilter),
                 ]);
             })
                 ->add(new BodyParameters(['{markdown:\raw}']))

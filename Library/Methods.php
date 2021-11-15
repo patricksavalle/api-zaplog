@@ -427,7 +427,7 @@ namespace Zaplog\Library {
 
         static public function previewReaction(stdClass $reaction): stdClass
         {
-            $reaction->xtext = (string)(new Text($reaction->markdown))->stripTags()->parseDown();
+            $reaction->xtext = (string)(new Text($reaction->markdown))->stripTags()->parseDown(new ParsedownFilter);
             $reaction->description = (string)(new Text($reaction->xtext))->blurbify();
             return $reaction;
         }
@@ -438,7 +438,7 @@ namespace Zaplog\Library {
 
         static public function postReaction(stdClass $reaction): bool
         {
-            $xtext = (string)(new Text($reaction->markdown))->stripTags()->parseDown();
+            $xtext = (string)(new Text($reaction->markdown))->stripTags()->parseDown(new ParsedownFilter);
             $description = (string)(new Text($xtext))->blurbify();
             (new UserException("Comment invalid or empty"))(strlen($xtext) > 0);
             Db::execute("CALL insert_reaction(:channelid,:linkid,:markdown,:xtext,:description)", [
