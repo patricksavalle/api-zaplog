@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4d011d6a58b7a3a5118b61253251447f",
+    "content-hash": "546b7cf022cd1f627aa4b688b6160005",
     "packages": [
         {
             "name": "atrox/haikunator",
@@ -513,12 +513,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/patricksavalle/slim-request-params.git",
-                "reference": "4cdd2f457a753ed14482b96b100d9dc00f16fe3d"
+                "reference": "164a961e59440ebf359f996137b0c34453d2a5d2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/patricksavalle/slim-request-params/zipball/4cdd2f457a753ed14482b96b100d9dc00f16fe3d",
-                "reference": "4cdd2f457a753ed14482b96b100d9dc00f16fe3d",
+                "url": "https://api.github.com/repos/patricksavalle/slim-request-params/zipball/164a961e59440ebf359f996137b0c34453d2a5d2",
+                "reference": "164a961e59440ebf359f996137b0c34453d2a5d2",
                 "shasum": ""
             },
             "require": {
@@ -559,7 +559,7 @@
                 "issues": "https://github.com/patricksavalle/slim-request-params/issues",
                 "source": "https://github.com/patricksavalle/slim-request-params/tree/master"
             },
-            "time": "2021-11-03T11:48:36+00:00"
+            "time": "2021-11-15T23:48:19+00:00"
         },
         {
             "name": "patricksavalle/slim-rest-api",

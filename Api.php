@@ -245,7 +245,7 @@ namespace Zaplog {
                 stdClass $args): Response {
                 return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM tagindex"));
             })
-                ->add(new Memcaching(10/*sec*/));
+                ->add(new Memcaching(60*10/*sec*/));
 
             // ------------------------------------------------
             // get some basic statistics
@@ -257,7 +257,7 @@ namespace Zaplog {
                 stdClass $args): Response {
                 return self::response($request, $response, $args, Db::fetch("SELECT * FROM statistics"));
             })
-                ->add(new Memcaching(60/*sec*/));
+                ->add(new Memcaching(60*10/*sec*/));
 
             // --------------------------------------------------------
             // Preview comment or post text after parsing and filtering
@@ -414,7 +414,6 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $args->channelid = Authentication::getSession()->id;
-                    if ($args->tags !== null and !is_array($args->tags)) $args->tags = [$args->tags];
                     return self::response($request, $response, $args, $args->preview ? Methods::previewLink($args, $args->tags) : Methods::postLink($args, $args->tags));
                 })
                     ->add(new QueryParameters(['{preview:\boolean},0']))
@@ -426,7 +425,7 @@ namespace Zaplog {
                         '{language:[a-z]{2}}',
                         '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))},No Rights Reserved (CC0 1.0)',
                         '{image:\url},null',
-                        '{tags:.{0,40}},null',]))
+                        '{tags[]:.{0,40}},null',]))
                     ->add(new Authentication);
 
                 // ----------------------------------------------------------------

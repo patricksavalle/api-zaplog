@@ -375,7 +375,7 @@ CREATE TABLE reactions
     linkid         INT       NOT NULL,
     channelid      INT       NOT NULL,
     published      BOOL      NOT NULL DEFAULT TRUE,
-    -- Original raw markdown input
+    -- Original raw markdown input, currently not used
     markdown       TEXT               DEFAULT NULL,
     -- Clean text blurb, set on insert
     description    VARCHAR(256)       DEFAULT NULL,
@@ -416,6 +416,7 @@ CREATE PROCEDURE insert_reaction(IN arg_channelid INT, IN arg_linkid INT, IN arg
 BEGIN
     INSERT INTO reactions (channelid,linkid,markdown,xtext,description)
         VALUES(arg_channelid,arg_linkid,arg_markdown,arg_xtext,arg_description);
+    -- threadid is a denormalisation / optimisation needed to be able to show forumstyle reactions pages
     UPDATE reactions SET threadid=LAST_INSERT_ID() WHERE linkid=arg_linkid;
 END //
 DELIMITER ;
