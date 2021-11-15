@@ -306,7 +306,6 @@ namespace Zaplog\Library {
             // sanity checks
             (new UserException("Url and mimetype must be both set or both empty"))(!(empty($link->url) xor empty($link->mimetype)));
             $link->title = strip_tags($link->title);
-            $link->markdown = strip_tags($link->markdown);
         }
 
         // ----------------------------------------------------------
