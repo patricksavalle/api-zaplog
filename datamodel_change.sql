@@ -1,3 +1,3 @@
 USE zaplog;
-UPDATE links SET language="nl" WHERE id=29296;
-UPDATE links SET language="nl" WHERE id=29287;
+DELETE FROM links WHERE id=29292;
+DELETE FROM links WHERE id=29291;
