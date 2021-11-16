@@ -312,6 +312,20 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
+        /** @noinspection PhpParameterByRefIsNotUsedAsReferenceInspection */
+        static public function checkCopyright(stdClass &$link)
+        {
+            if (strlen($link->markdown)<288) {
+                $link->copyright = "No Rights Apply";
+            } elseif (strcmp($link->copyright, "No Rights Apply") === 0) {
+                $link->copyright = "Some Rights Reserved (CC BY-SA 4.0)";
+            }
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
         static public function previewLink(stdClass $link, ?array $keywords = null): array
         {
             // sanitize
@@ -319,6 +333,9 @@ namespace Zaplog\Library {
 
             // check image on mimetype
             self::checkImage($link);
+
+            // reasonable copyrights
+            self::checkCopyright($link);
 
             // render article text
             $link->description = (string)(new Text($link->markdown))->parseDown(new ParsedownFilter)->blurbify();
@@ -344,6 +361,9 @@ namespace Zaplog\Library {
 
             // check image
             self::checkImage($link);
+
+            // reasonable copyrights
+            self::checkCopyright($link);
 
             // Insert into database
             (new ServerException)(Db::execute(
