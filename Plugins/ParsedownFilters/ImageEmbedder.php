@@ -21,7 +21,6 @@ namespace Zaplog\Plugins\ParsedownFilters {
                                  "https://imagebam.com",
                                  "https://www.gettyimages.com",
                              ] as $domain) {
-                        error_log($domain);
                         if (stripos($url, $domain) === 0) {
                             return ((new HtmlMetadata)($url))["image"];
                         }
@@ -34,7 +33,7 @@ namespace Zaplog\Plugins\ParsedownFilters {
 
             if (strcmp($element['name'], "a") === 0 and isset($element['attributes']['href'])) {
 
-                if (preg_match("@https:\/\/pbs\.twimg\.com\/media\/[\w-]+\?format=.*@", $element['attributes']['href']) === 1) {
+                if (preg_match("@https:\/\/pbs\.twimg\.com\/media\/.*@", $element['attributes']['href']) === 1) {
                     // https://pbs.twimg.com/media/FEBc-7aUUAAQMxP?format=jpg&name=small
                     try {
                         return [
