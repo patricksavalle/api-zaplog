@@ -34,7 +34,7 @@ namespace Zaplog\Plugins\ParsedownFilters {
 
             if (strcmp($element['name'], "a") === 0 and isset($element['attributes']['href'])) {
 
-                if (preg_match("@(?<base>https:\/\/pbs\.twimg\.com\/media\/[\w-]+).*@", $element['attributes']['href'], $matches) === 1) {
+                if (preg_match("@https:\/\/pbs\.twimg\.com\/media\/[\w-]+\?format=.*@", $element['attributes']['href']) === 1) {
                     // https://pbs.twimg.com/media/FEBc-7aUUAAQMxP?format=jpg&name=small
                     try {
                         return [
@@ -42,7 +42,7 @@ namespace Zaplog\Plugins\ParsedownFilters {
                             "text" => '',
                             "attributes" => [
                                 "width" => "100%",
-                                "src" => $matches['base'] . ".png",
+                                "src" => $element['attributes']['href'],
                             ],
                         ];
                     } catch (Exception $e) {
