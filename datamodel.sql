@@ -177,6 +177,8 @@ CREATE TRIGGER on_before_update_link BEFORE UPDATE ON links FOR EACH ROW
 BEGIN
     IF (NEW.title<>OLD.title
         OR NEW.markdown<>OLD.markdown
+        OR NEW.copyright<>OLD.copyright
+        OR NEW.language<>OLD.language
         OR NEW.url<>OLD.url
         OR NEW.image<>OLD.image
         -- also update on added reactions (used for 'discussion' query)
@@ -343,6 +345,8 @@ CREATE TRIGGER on_update_link AFTER UPDATE ON links FOR EACH ROW
 BEGIN
     IF (NEW.markdown<>OLD.markdown
         OR NEW.image<>OLD.image
+        OR NEW.copyright<>OLD.copyright
+        OR NEW.language<>OLD.language
         OR NEW.title<>OLD.title
         OR NEW.url<>OLD.url) THEN
         INSERT INTO interactions(channelid, linkid, type) VALUES (NEW.channelid, NEW.id, 'on_update_link');

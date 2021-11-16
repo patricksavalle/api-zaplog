@@ -25,7 +25,6 @@ namespace Zaplog\Plugins {
         {
             // scan plugin direcory for plugins
             foreach (glob("Plugins/ParsedownFilters/*.php") as $file) {
-                error_log($file);
                 //instantiate the plugin
                 preg_match("/.*\/(?<classname>\w+)\.php/", $file, $match);
                 require_once $file;
