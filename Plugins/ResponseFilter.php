@@ -46,9 +46,9 @@ namespace Zaplog\Plugins {
             foreach (glob("Plugins/ResponseFilters/{$method}_*.php") as $file) {
 
                 // find plugins that match the request
-                if (preg_match("/.*\/((\w+_)_\w+)\.php/", $file, $match) === 1
-                    and stripos($method . "_" . str_replace("/", "_", $uri) . "_", $match[2]) === 0) {
-                    $this->processors[] = [$match[2], $file, $match[1]];
+                if (preg_match("/.*\/(?<classname>(?<request>\w+_)_\w+)\.php/", $file, $match) === 1
+                    and stripos($method . "_" . str_replace("/", "_", $uri) . "_", $match["request"]) === 0) {
+                    $this->processors[] = [$match["request"], $file, $match["classname"]];
                 }
             }
             // execution order longest match to shortest

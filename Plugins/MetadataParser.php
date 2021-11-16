@@ -37,8 +37,8 @@ namespace Zaplog\Plugins {
                 if ($contenttype === false) {
                     throw new Exception("CURLINFO_CONTENT_TYPE error");
                 }
-                preg_match("/([^;]+)/", $contenttype, $matches);
-                return $matches[1];
+                preg_match("/(?<mimetype>[^;]+)/", $contenttype, $matches);
+                return $matches["mimetype"];
             } finally {
                 curl_close($curl);
             }
