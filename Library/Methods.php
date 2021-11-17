@@ -10,6 +10,7 @@ namespace Zaplog\Library {
     use ContentSyndication\ArchiveOrg;
     use ContentSyndication\Text;
     use Exception;
+    use LanguageDetector\LanguageDetector;
     use SlimRestApi\Infra\Db;
     use SlimRestApi\Infra\Ini;
     use stdClass;
@@ -315,10 +316,24 @@ namespace Zaplog\Library {
         /** @noinspection PhpParameterByRefIsNotUsedAsReferenceInspection */
         static public function checkCopyright(stdClass &$link)
         {
-            if (strlen($link->markdown)<288) {
+            if (strlen($link->markdown) < 288) {
                 $link->copyright = "No Rights Apply";
             } elseif (strcmp($link->copyright, "No Rights Apply") === 0) {
                 $link->copyright = "Some Rights Reserved (CC BY-SA 4.0)";
+            }
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        /** @noinspection PhpParameterByRefIsNotUsedAsReferenceInspection */
+        static public function checkLanguage(stdClass &$link)
+        {
+            $languages = ["ar","cs","da","de","el","en","es","fi","fr","hu","it","nl","no","pl","pt","ro","ru","sk","sv","tr"];
+            $text = (string)(new Text($link->markdown))->parseDown()->stripTags();
+            if (!empty($text)) {
+                $link->language = (string)(new LanguageDetector(null, $languages))->evaluate($text);
             }
         }
 
@@ -336,6 +351,9 @@ namespace Zaplog\Library {
 
             // reasonable copyrights
             self::checkCopyright($link);
+
+            // only in preview
+            self::checkLanguage($link);
 
             // render article text
             $link->description = (string)(new Text($link->markdown))->parseDown(new ParsedownFilter)->blurbify();
@@ -364,6 +382,9 @@ namespace Zaplog\Library {
 
             // reasonable copyrights
             self::checkCopyright($link);
+
+            // trust the science
+            self::checkLanguage($link);
 
             // Insert into database
             (new ServerException)(Db::execute(

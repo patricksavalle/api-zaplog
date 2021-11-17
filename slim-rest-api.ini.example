@@ -17,7 +17,7 @@ frontpage_mode=mixed
 default_post_image=https://api.zaplog.pro/content/dark-background-3494082_1280.jpg
 ;broken_link_redirector="https://url.zaplog.pro?urlencoded="
 broken_link_redirector="http://localhost:8080/Api.php/goto?urlencoded="
-; prefix links with the Zaplog redirector
+content_languages=ar,cs,da,de,el,en,es,fi,fr,hu,it,nl,no,pl,pt,ro,ru,sk,sv,tr
 
 [memcache]
 memcache_host=localhost

@@ -18,6 +18,7 @@ frontpage_language=nl
 default_post_image=https://api.zaplog.pro/content/dark-background-3494082_1280.jpg
 frontpage_mode=${frontpage_mode}
 broken_link_redirector=${ZAPLOG_GOTO_URL}
+content_languages=ar,cs,da,de,el,en,es,fi,fr,hu,it,nl,no,pl,pt,ro,ru,sk,sv,tr
 
 [memcache]
 memcache_host=${MEMCACHED_HOST}

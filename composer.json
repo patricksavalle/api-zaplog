@@ -1,7 +1,7 @@
 {
   "name": "patricksavalle/zaplogv2",
   "description": "Social bookmarking and blogging",
-  "version": "v0.100",
+  "version": "v0.101",
   "type": "library",
   "keywords": [
     "news",
@@ -40,7 +40,8 @@
     "multiavatar/multiavatar-php": "^1.0",
     "ext-fileinfo": "*",
     "ezyang/htmlpurifier": "^4.13",
-    "smalot/pdfparser": "^1.1"
+    "smalot/pdfparser": "^1.1",
+    "landrok/language-detector":  "*"
   },
   "autoload": {
     "psr-4": {
