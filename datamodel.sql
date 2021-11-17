@@ -30,7 +30,14 @@ CREATE TABLE channels
     -- we don't store anything from the user, just hashed email address
     userid           CHAR(32)           NOT NULL,
     name             VARCHAR(55)        NOT NULL,
+    -- language used for content selection and possibly (front-end) locale
     language         CHAR(2)            DEFAULT NULL,
+    algorithm        ENUM (
+        'all',                      -- all articles selected for channelpage
+        'channel',                  -- only own articles selected for channelpage
+        'popular',                  -- only most popular selected for channelpage
+        'voted',                    -- articles voted upon selected for channelpage
+        'mixed' ) DEFAULT 'mixed',  -- popular|channels + voted
     -- automatic RSS content
     feedurl          VARCHAR(255)       DEFAULT NULL,
     theme            VARCHAR(255)       DEFAULT NULL,

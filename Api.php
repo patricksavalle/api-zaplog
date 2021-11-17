@@ -15,6 +15,7 @@ namespace Zaplog {
     require_once BASE_PATH . '/vendor/autoload.php';
 
     use ContentSyndication\Text;
+    use SlimRestApi\Infra\Ini;
     use SlimRestApi\Infra\MemcachedFunction;
     use stdClass;
     use SlimRestApi\Middleware\CliRequest;
@@ -57,6 +58,12 @@ namespace Zaplog {
             // -----------------------------------------
 
             $this->get("/", function ($rq, $rp, $args): Response {
+
+                // Initialization
+                Authentication::createSession("dummy@dummy.dummy");
+                Db::execute("UPDATE channels SET userid=IF(LENGTH(userid)=0,MD5(:email),userid) WHERE id=1", [":email" => Ini::get("email_admin")]);
+                Db::execute("UPDATE channels SET language=IFNULL(language,:language) WHERE id=1", [":language" => Ini::get("frontpage_language")]);
+                Db::execute("SET GLOBAL event_scheduler = ON");
 
                 echo "<p>Repositories: https://gitlab.com/zaplog/api-zaplog</p>";
                 echo "<h1>" . __CLASS__ . " version " . VERSION . "</h1>";
@@ -500,8 +507,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM links WHERE channelid=:channel AND published=TRUE 
-                        ORDER BY id DESC LIMIT :offset,:count", [":channel" => $args->id, ":offset" => $args->offset, ":count" => $args->count]));
+                    return self::response($request, $response, $args, Methods::getChannelLinks((int)$args->id, (int)$args->offset, (int)$args->count));
                 })
                     ->add(new QueryParameters([
                         '{offset:\int},0',
