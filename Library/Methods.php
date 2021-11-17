@@ -57,25 +57,79 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
+        static public function getChannelLinks(int $channelid, int $offset, int $count): array
+        {
+            $algorithm = Db::fetch("SELECT algorithm FROM channels WHERE id=:id", [":id" => $channelid])->algorithm;
+            switch ($algorithm) {
+
+                case "all":
+                    return Db::fetchAll("SELECT * FROM links WHERE published=TRUE ORDER BY id DESC LIMIT :offset, :count",
+                        [":offset" => $offset, ":count" => $count]);
+
+                case "channel":
+                    return Db::fetchAll("SELECT * FROM links WHERE published=TRUE AND channelid=:channelid ORDER BY id DESC LIMIT :offset, :count",
+                        [":channelid" => $channelid, ":offset" => $offset, ":count" => $count]);
+
+                case "popular":
+                    return Db::fetchAll("SELECT * FROM frontpage LIMIT :count", [":count" => $count]);
+
+                case "voted":
+                    return Db::fetchAll("SELECT links.* FROM links JOIN votes ON links.id=votes.linkid 
+                        WHERE votes.channelid=:channelid AND links.published=TRUE ORDER BY links.id DESC LIMIT :offset, :count",
+                        [":channelid" => $channelid, ":offset" => $offset, ":count" => $count]);
+
+                case "mixed":
+                    return Db::fetchAll("SELECT * FROM (
+                                SELECT * FROM links WHERE channelid=:channelid1 AND published=TRUE  
+                                UNION DISTINCT 
+                                SELECT links.* FROM links JOIN votes ON links.id=votes.linkid 
+                                WHERE votes.channelid=:channelid2 AND links.published=TRUE 
+                            ) AS x ORDER BY id DESC LIMIT :offset, :count",
+                        [":channelid1" => $channelid, ":channelid2" => $channelid, ":offset" => $offset, ":count" => $count]);
+
+                default:
+                    throw new Exception("Invalid algorithm: " . $algorithm);
+            }
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
         static public function frontpageQuery(): string
         {
-            switch (Ini::get("frontpage_mode")) {
+            // channel 1 is the master channel, determines site frontpage
+            $algorithm = Db::fetch("SELECT algorithm FROM channels WHERE id=1")->algorithm;
+            switch ($algorithm) {
+
                 case "all":
+                    // show all articles across call channels
                     return "SELECT * FROM links ORDER BY id DESC LIMIT :count";
+
+                case "channel":
+                    // show all articles across call channels
+                    return "SELECT * FROM links WHERE channelid=1 ORDER BY id DESC LIMIT :count";
+
                 case "popular":
+                    // show the most popular articles
                     return "SELECT * FROM frontpage LIMIT :count";
-                case "editor":
+
+                case "voted":
+                    // show only articles voted upon by channel 1
                     return "SELECT links.* FROM links JOIN votes ON links.id=votes.linkid 
                         WHERE votes.channelid=1 AND links.published=TRUE ORDER BY links.id DESC LIMIT :count";
+
                 case "mixed":
+                    // show popular articles AND articles voted upon by channel
                     return "SELECT * FROM (
-                            SELECT links.* FROM frontpage JOIN links ON frontpage.id=links.id 
-                            UNION DISTINCT 
-                            SELECT links.* FROM links JOIN votes ON links.id=votes.linkid 
-                            WHERE links.published=TRUE AND votes.channelid=1 
-                        ) AS x ORDER BY id DESC LIMIT :count";
+                                SELECT links.* FROM frontpage JOIN links ON frontpage.id=links.id 
+                                UNION DISTINCT 
+                                SELECT links.* FROM links JOIN votes ON links.id=votes.linkid 
+                                WHERE links.published=TRUE AND votes.channelid=1 
+                            ) AS x ORDER BY id DESC LIMIT :count";
+
                 default:
-                    throw new ServerException("invalid ini-value, 'frontpage_mode' must be in (all,popular,editor,mixed)");
+                    throw new Exception("Invalid algorithm: " . $algorithm);
             }
         }
 
@@ -330,7 +384,7 @@ namespace Zaplog\Library {
         /** @noinspection PhpParameterByRefIsNotUsedAsReferenceInspection */
         static public function checkLanguage(stdClass &$link)
         {
-            $languages = ["ar","cs","da","de","el","en","es","fi","fr","hu","it","nl","no","pl","pt","ro","ru","sk","sv","tr"];
+            $languages = ["ar", "cs", "da", "de", "el", "en", "es", "fi", "fr", "hu", "it", "nl", "no", "pl", "pt", "ro", "ru", "sk", "sv", "tr"];
             $text = (string)(new Text($link->markdown))->parseDown()->stripTags();
             if (!empty($text)) {
                 $link->language = (string)(new LanguageDetector(null, $languages))->evaluate($text);
