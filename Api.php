@@ -274,6 +274,7 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
+                // todo deprecate (front end)
                 return self::response($request, $response, $args, [
                     "links.description" => (string)(new Text($args->markdown))->parseDown(new ParsedownFilter)->blurbify(),
                     "links.xtext" => (string)(new Text($args->markdown))->parseDown(new ParsedownFilter),
@@ -531,7 +532,7 @@ namespace Zaplog {
                 // Add a reaction, reactions can not be updated only deleted
                 // ----------------------------------------------------------------
 
-                $this->post("/link/{id:\d{1,10}}", function (
+                $this->post("/link/{linkid:\d{1,10}}", function (
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {

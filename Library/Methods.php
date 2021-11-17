@@ -483,18 +483,22 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function postReaction(stdClass $reaction): bool
+        static public function postReaction(stdClass $reaction): stdClass
         {
-            $xtext = (string)(new Text($reaction->markdown))->stripTags()->parseDown(new ParsedownFilter);
-            $description = (string)(new Text($xtext))->blurbify();
-            (new UserException("Comment invalid or empty"))(strlen($xtext) > 0);
+            // post exact same content as previewed
+            self::previewReaction($reaction);
+
+            (new UserException("Comment invalid or empty"))(strlen($reaction->xtext) > 0);
             Db::execute("CALL insert_reaction(:channelid,:linkid,:markdown,:xtext,:description)", [
-                ":linkid" => $reaction->id,
+                ":linkid" => $reaction->linkid,
                 ":channelid" => $reaction->channelid,
                 ":markdown" => $reaction->markdown,
-                ":xtext" => $xtext,
-                ":description" => $description]);
-            return true;
+                ":xtext" => $reaction->xtext,
+                ":description" => $reaction->description]);
+
+            $reaction->id = (int)Db::lastInsertId();
+
+            return $reaction;
         }
 
         // ----------------------------------------------------------
