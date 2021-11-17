@@ -252,7 +252,7 @@ namespace Zaplog {
                 stdClass $args): Response {
                 return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM tagindex"));
             })
-                ->add(new Memcaching(60*10/*sec*/));
+                ->add(new Memcaching(60 * 10/*sec*/));
 
             // ------------------------------------------------
             // get some basic statistics
@@ -264,7 +264,7 @@ namespace Zaplog {
                 stdClass $args): Response {
                 return self::response($request, $response, $args, Db::fetch("SELECT * FROM statistics"));
             })
-                ->add(new Memcaching(60*10/*sec*/));
+                ->add(new Memcaching(60 * 10/*sec*/));
 
             // --------------------------------------------------------
             // Preview comment or post text after parsing and filtering
@@ -400,19 +400,6 @@ namespace Zaplog {
             $this->group('/links', function () {
 
                 // ------------------------------------------------------
-                // post from link, retrieve its metadata, add to user channel
-                // ------------------------------------------------------
-
-                $this->post("/link", function (
-                    Request  $request,
-                    Response $response,
-                    stdClass $args): Response {
-                    return self::response($request, $response, $args, Methods::postLinkFromUrl((string)Authentication::getSession()->id, $args->link));
-                })
-                    ->add(new BodyParameters(['{link:\url}']))
-                    ->add(new Authentication);
-
-                // ------------------------------------------------------
                 // post a blog
                 // ------------------------------------------------------
 
@@ -421,7 +408,11 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $args->channelid = Authentication::getSession()->id;
-                    return self::response($request, $response, $args, $args->preview ? Methods::previewLink($args, $args->tags) : Methods::postLink($args, $args->tags));
+                    return self::response($request, $response, $args, $args->preview
+                        // todo remove "link", return just link
+                        ? ["link" => Methods::previewLink($args, $args->tags)]
+                        // todo remove ->id, return full link
+                        : Methods::postLink($args, $args->tags)->id);
                 })
                     ->add(new QueryParameters(['{preview:\boolean},0']))
                     ->add(new BodyParameters([
@@ -613,14 +604,15 @@ namespace Zaplog {
             $this->group('/tags', function () {
 
                 // ------------------------------------------------
-                // post a single tag POST /tags/{id}/{tag}
+                // post space separated tags POST /tags/{id}/{tag}
                 // ------------------------------------------------
 
                 $this->post("/link/{id:\d{1,10}}/tag/{tag:[\S]{3,50}}", function (
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, Methods::postTags(Authentication::getSession()->id, (int)$args->id, explode(" ", urldecode($args->tag))));
+                    // todo put into bodyparamaters
+                    return self::response($request, $response, $args, Methods::postTags((int)$args->id, Authentication::getSession()->id, explode(" ", urldecode($args->tag))));
                 })
                     ->add(new Authentication);
 

@@ -62,23 +62,19 @@ namespace Zaplog\Library {
             $algorithm = Db::fetch("SELECT algorithm FROM channels WHERE id=:id", [":id" => $channelid])->algorithm;
             switch ($algorithm) {
 
-                case "all":
-                    return Db::fetchAll("SELECT * FROM links WHERE published=TRUE ORDER BY id DESC LIMIT :offset, :count",
-                        [":offset" => $offset, ":count" => $count]);
-
                 case "channel":
+                    // channel displays all posts made by this channel
                     return Db::fetchAll("SELECT * FROM links WHERE published=TRUE AND channelid=:channelid ORDER BY id DESC LIMIT :offset, :count",
                         [":channelid" => $channelid, ":offset" => $offset, ":count" => $count]);
 
-                case "popular":
-                    return Db::fetchAll("SELECT * FROM frontpage LIMIT :count", [":count" => $count]);
-
                 case "voted":
+                    // channel displays posts voted upon by this channel
                     return Db::fetchAll("SELECT links.* FROM links JOIN votes ON links.id=votes.linkid 
                         WHERE votes.channelid=:channelid AND links.published=TRUE ORDER BY links.id DESC LIMIT :offset, :count",
                         [":channelid" => $channelid, ":offset" => $offset, ":count" => $count]);
 
                 case "mixed":
+                    // channel displays voted AND channel
                     return Db::fetchAll("SELECT * FROM (
                                 SELECT * FROM links WHERE channelid=:channelid1 AND published=TRUE  
                                 UNION DISTINCT 
@@ -103,15 +99,15 @@ namespace Zaplog\Library {
             switch ($algorithm) {
 
                 case "all":
-                    // show all articles across call channels
+                    // show all articles across all channels
                     return "SELECT * FROM links ORDER BY id DESC LIMIT :count";
 
                 case "channel":
-                    // show all articles across call channels
+                    // show all articles posted by channel 1
                     return "SELECT * FROM links WHERE channelid=1 ORDER BY id DESC LIMIT :count";
 
                 case "popular":
-                    // show the most popular articles
+                    // show the most popular articles in the system
                     return "SELECT * FROM frontpage LIMIT :count";
 
                 case "voted":
@@ -120,7 +116,7 @@ namespace Zaplog\Library {
                         WHERE votes.channelid=1 AND links.published=TRUE ORDER BY links.id DESC LIMIT :count";
 
                 case "mixed":
-                    // show popular articles AND articles voted upon by channel
+                    // show popular articles in the system AND articles voted upon by channel 1
                     return "SELECT * FROM (
                                 SELECT links.* FROM frontpage JOIN links ON frontpage.id=links.id 
                                 UNION DISTINCT 
@@ -266,32 +262,6 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function postLinkFromUrl(string $channelid, string $url): int
-        {
-            $metadata = MetadataParser::getMetadata($url);
-
-            // external input must be validated
-            (new UserException("Invalid link"))(filter_var($metadata["url"] ?? "", FILTER_VALIDATE_URL) !== false);
-            (new UserException("Invalid title"))(!empty($metadata["title"]));
-
-            $args = new stdClass;
-            $args->channelid = $channelid;
-            $args->url = $metadata["url"];
-            $args->title = $metadata["title"];
-            $args->markdown = $metadata["description"];
-            $args->image = $metadata["image"];
-            $args->mimetype = $metadata["mimetype"];
-            $args->language = $metadata["language"];
-            $args->copyright = "No Rights Apply";
-
-            return self::postLink($args, $metadata["keywords"] ?? []);
-        }
-
-
-        // ----------------------------------------------------------
-        //
-        // ----------------------------------------------------------
-
         static public function sanitizeTags(array $keywords): array
         {
             $tags = [];
@@ -311,10 +281,8 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function postTags(int $channelid, int $linkid, array $tags): string
+        static public function postTags(int $linkid, int $channelid, array $tags): string
         {
-            $tags = self::sanitizeTags($tags);
-
             // insert keywords into database;
             $count = 0;
             foreach ($tags as $tag) {
@@ -334,8 +302,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        /** @noinspection PhpParameterByRefIsNotUsedAsReferenceInspection */
-        static public function checkImage(stdClass &$link)
+        static public function checkImage(stdClass $link)
         {
             // check image
             if (!empty($link->image)) {
@@ -355,8 +322,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        /** @noinspection PhpParameterByRefIsNotUsedAsReferenceInspection */
-        static public function checkLink(stdClass &$link)
+        static public function checkLink(stdClass $link)
         {
             // sanity checks
             (new UserException("Url and mimetype must be both set or both empty"))(!(empty($link->url) xor empty($link->mimetype)));
@@ -367,10 +333,9 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        /** @noinspection PhpParameterByRefIsNotUsedAsReferenceInspection */
-        static public function checkCopyright(stdClass &$link)
+        static public function checkCopyright(stdClass $link)
         {
-            if (strlen($link->markdown) < 288) {
+            if (strlen($link->markdown) < 500) {
                 $link->copyright = "No Rights Apply";
             } elseif (strcmp($link->copyright, "No Rights Apply") === 0) {
                 $link->copyright = "Some Rights Reserved (CC BY-SA 4.0)";
@@ -381,8 +346,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        /** @noinspection PhpParameterByRefIsNotUsedAsReferenceInspection */
-        static public function checkLanguage(stdClass &$link)
+        static public function checkLanguage(stdClass $link)
         {
             $languages = ["ar", "cs", "da", "de", "el", "en", "es", "fi", "fr", "hu", "it", "nl", "no", "pl", "pt", "ro", "ru", "sk", "sv", "tr"];
             $text = (string)(new Text($link->markdown))->parseDown()->stripTags();
@@ -395,7 +359,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function previewLink(stdClass $link, ?array $keywords = null): array
+        static public function previewLink(stdClass $link, ?array $tags = null): stdClass
         {
             // sanitize
             self::checkLink($link);
@@ -410,35 +374,26 @@ namespace Zaplog\Library {
             self::checkLanguage($link);
 
             // render article text
-            $link->description = (string)(new Text($link->markdown))->parseDown(new ParsedownFilter)->blurbify();
+            $link->description = empty($link->markdown) ? null : (string)(new Text($link->markdown))->parseDown(new ParsedownFilter)->blurbify();
             $link->xtext = (string)(new Text($link->markdown))->parseDown(new ParsedownFilter);
 
             assert(mb_check_encoding($link->description, 'UTF-8'));
             assert(mb_check_encoding($link->xtext, 'UTF-8'));
 
             // sanitize tags
-            $link->tags = self::sanitizeTags($keywords ?? []);
+            $link->tags = self::sanitizeTags($tags ?? []);
 
-            return ["link" => $link];
+            return $link;
         }
 
         // ----------------------------------------------------------
         //
         // ----------------------------------------------------------
 
-        static public function postLink(stdClass $link, ?array $keywords): int
+        static public function postLink(stdClass $link, ?array $tags): stdClass
         {
-            // sanity check
-            self::checkLink($link);
-
-            // check image
-            self::checkImage($link);
-
-            // reasonable copyrights
-            self::checkCopyright($link);
-
-            // trust the science
-            self::checkLanguage($link);
+            // use exact same content as preview would show
+            self::previewLink($link, $tags);
 
             // Insert into database
             (new ServerException)(Db::execute(
@@ -449,40 +404,38 @@ namespace Zaplog\Library {
                         ":channelid" => $link->channelid,
                         ":title" => $link->title,
                         ":markdown" => $link->markdown,
-                        ":description" => empty($link->markdown) ? null : (new Text($link->markdown))->parseDown(new ParsedownFilter)->blurbify(),
+                        ":description" => $link->description,
                         ":image" => $link->image,
                         ":mimetype" => $link->mimetype,
                         ":language" => $link->language,
                         ":copyright" => $link->copyright,
                     ])->rowCount() > 0);
 
-            $linkid = (int)Db::lastInsertId();
+            $link->id = (int)Db::lastInsertId();
 
-            if (!empty($keywords)) {
-                self::postTags($link->channelid, $linkid, $keywords);
+            // insert tags
+            if (!empty($link->tags)) {
+                self::postTags($link->id, $link->channelid, $link->tags);
             }
 
+            // archive the link
             try {
                 if (!empty($link->url)) ArchiveOrg::archiveAsync($link->url);
             } catch (Exception $e) {
-                error_log("Could not save to archive.org: " . $link->url);
-                error_log($e->getMessage());
+                error_log($e->getMessage() . $link->url);
             }
 
-            return $linkid;
+            return $link;
         }
 
         // ----------------------------------------------------------
         //
         // ----------------------------------------------------------
 
-        static public function patchLink(stdClass $link): bool
+        static public function patchLink(stdClass $link): stdClass
         {
-            // sanity check
-            self::checkLink($link);
-
-            // check image
-            self::checkImage($link);
+            // use exact same content as preview would show
+            static::previewLink($link);
 
             // $old_markdown = Db::fetch("SELECT markdown FROM links WHERE id=:id", [":id" => $link->id])->markdown
 
@@ -496,7 +449,7 @@ namespace Zaplog\Library {
                         ":url" => $link->url,
                         ":channelid" => $link->channelid,
                         ":markdown" => $link->markdown,
-                        ":description" => empty($link->markdown) ? null : (new Text($link->markdown))->parseDown(new ParsedownFilter)->blurbify(),
+                        ":description" => $link->description,
                         ":image" => $link->image,
                         ":mimetype" => $link->mimetype,
                         ":language" => $link->language,
@@ -510,10 +463,9 @@ namespace Zaplog\Library {
             try {
                 ArchiveOrg::archiveAsync($link->url);
             } catch (Exception $e) {
-                error_log("Could not save to archive.org: " . $link->url);
-                error_log($e->getMessage());
+                error_log($e->getMessage() . $link->url);
             }
-            return true;
+            return $link;
         }
 
         // ----------------------------------------------------------
