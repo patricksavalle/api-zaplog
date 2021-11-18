@@ -598,7 +598,8 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     // todo put into bodyparamaters
-                    return self::response($request, $response, $args, Methods::postTags((int)$args->id, Authentication::getSession()->id, explode(" ", urldecode($args->tag))));
+                    $tags = Methods::sanitizeTags(explode(" ", urldecode($args->tag)));
+                    return self::response($request, $response, $args, Methods::postTags((int)$args->id, Authentication::getSession()->id, $tags));
                 })
                     ->add(new Authentication);
 
