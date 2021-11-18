@@ -21,7 +21,7 @@ namespace Zaplog\Plugins\ParsedownFilters {
                 if (isset($element['attributes']['href'])
                     and isset($element['text'])
                     and strcmp($element['attributes']['href'], $element['text']) === 0) {
-                    $element['text'] = (new Url($element['attributes']['href']))->getDomain();
+                    $element['text'] = (new Url($element['attributes']['href']))->getHost();
                 }
 
                 // add the redirector service to href's
