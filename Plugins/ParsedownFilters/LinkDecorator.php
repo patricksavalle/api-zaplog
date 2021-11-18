@@ -14,16 +14,6 @@ namespace Zaplog\Plugins\ParsedownFilters {
         {
             if (strcasecmp($element['name'], 'a') === 0) {
 
-                // add hover with original url
-                $element['attributes']['title'] = $element['attributes']['href'] ?? "";
-
-                // shorten text of url to domain
-                if (isset($element['attributes']['href'])
-                    and isset($element['text'])
-                    and strcmp($element['attributes']['href'], $element['text']) === 0) {
-                    $element['text'] = (new Url($element['attributes']['href']))->getHost();
-                }
-
                 // add the redirector service to href's
                 static $redirector = null;
                 if ($redirector === null) $redirector = Ini::get("broken_link_redirector");
