@@ -293,10 +293,8 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                $metadata = MetadataParser::getMetadata($args->urlencoded);
-                $metadata['keywords'] = Methods::sanitizeTags($metadata['keywords'] ?? []);
-                $duplicates = Db::fetchAll("SELECT * FROM links WHERE urlhash=MD5(:url)", [":url" => $metadata["url"]]);
-                return self::response($request, $response, $args, ["metadata" => $metadata, "duplicaties" => $duplicates]);
+                // todo remove "metadata" level
+                return self::response($request, $response, $args, ["metadata" => MetadataParser::getMetadata($args->urlencoded)]);
             })
                 ->add(new QueryParameters(['{urlencoded:\urlencoded}']))
                 ->add(new Authentication);
@@ -372,7 +370,9 @@ namespace Zaplog {
                     ->add(new BodyParameters([
                         '{name:[.\w-]{3,55}}',
                         '{avatar:\url},null',
+                        '{header:\url},null',
                         '{bio:\xtext},""',
+                        '{algorithm:(channel|voted|mixed|popular|all))},"mixed"',
                         '{bitcoinaddress:\bitcoinaddress},null']))
                     ->add(new Authentication);
 
@@ -412,7 +412,6 @@ namespace Zaplog {
                     return self::response($request, $response, $args, $args->preview
                         // todo remove "link", return just link
                         ? ["link" => Methods::previewLink($args, $args->tags)]
-                        // todo remove ->id, return full link
                         : Methods::postLink($args, $args->tags)->id);
                 })
                     ->add(new QueryParameters(['{preview:\boolean},0']))
@@ -537,7 +536,7 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $args->channelid = Authentication::getSession()->id;
-                    return self::response($request, $response, $args, $args->preview ? Methods::previewReaction($args) : Methods::postReaction($args));
+                    return self::response($request, $response, $args, $args->preview ? Methods::previewReaction($args) : Methods::postReaction($args)->id);
                 })
                     ->add(new QueryParameters(['{preview:\boolean},0']))
                     ->add(new BodyParameters(['{markdown:\raw}']))
@@ -547,11 +546,11 @@ namespace Zaplog {
                 // get reactions
                 // ------------------------------------------------
 
-                $this->get("/link/{id:\d{1,10}}", function (
+                $this->get("/link/{linkid:\d{1,10}}", function (
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, Methods::getReactionsForLink((int)$args->id));
+                    return self::response($request, $response, $args, Methods::getReactionsForLink((int)$args->linkid));
                 });
 
                 // ----------------------------------------------------------------
@@ -563,8 +562,8 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
-                    return self::response($request, $response, $args, Db::execute("DELETE FROM reactions WHERE id=:id AND channelid=:channelid",
-                        [":id" => $args->id, ":channelid" => $channelid]));
+                    return self::response($request, $response, $args, (new UserException)(Db::execute("DELETE FROM reactions WHERE id=:id AND channelid=:channelid",
+                            [":id" => $args->id, ":channelid" => $channelid]))->rowCount() > 0);
                 })
                     ->add(new Authentication);
 
@@ -583,20 +582,6 @@ namespace Zaplog {
                     $channelid = Authentication::getSession()->id;
                     Db::execute("CALL toggle_vote(:channelid,:linkid)", [":linkid" => $args->id, ":channelid" => $channelid]);
                     return self::response($request, $response, $args, Db::lastInsertId());
-                })
-                    ->add(new Authentication);
-
-                // ------------------------------------------------
-                // delete a vote
-                // ------------------------------------------------
-
-                $this->delete("/link/{id:\d{1,10}}", function (
-                    Request  $request,
-                    Response $response,
-                    stdClass $args): Response {
-                    $channelid = Authentication::getSession()->id;
-                    return self::response($request, $response, $args, (new UserException)(Db::execute("DELETE FROM votes WHERE linkid=:linkid AND channelid=:channelid",
-                            [":linkid" => $args->id, ":channelid" => $channelid])->rowCount() > 0));
                 })
                     ->add(new Authentication);
 
