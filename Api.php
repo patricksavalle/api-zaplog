@@ -32,7 +32,6 @@ namespace Zaplog {
     use Zaplog\Library\Avatar;
     use Zaplog\Middleware\Authentication;
     use Zaplog\Plugins\MetadataParser;
-    use Zaplog\Plugins\ParsedownFilter;
     use Zaplog\Plugins\ResponseFilter;
 
     class Api extends SlimRestApi
@@ -266,25 +265,6 @@ namespace Zaplog {
             })
                 ->add(new Memcaching(60 * 10/*sec*/));
 
-            // --------------------------------------------------------
-            // Preview comment or post text after parsing and filtering
-            // --------------------------------------------------------
-
-            $this->post("/postpreview", function (
-                Request  $request,
-                Response $response,
-                stdClass $args): Response {
-                // todo deprecate (front end)
-                return self::response($request, $response, $args, [
-                    "links.description" => (string)(new Text($args->markdown))->parseDown(new ParsedownFilter)->blurbify(),
-                    "links.xtext" => (string)(new Text($args->markdown))->parseDown(new ParsedownFilter),
-                    "reactions.description" => (string)(new Text($args->markdown))->parseDown(new ParsedownFilter)->blurbify(),
-                    "reactions.xtext" => (string)(new Text($args->markdown))->parseDown(new ParsedownFilter),
-                ]);
-            })
-                ->add(new BodyParameters(['{markdown:\raw}']))
-                ->add(new Authentication);
-
             // ----------------------------------------------------------------
             // Return an URL's metadata and the duplicate URL's in de database
             // ----------------------------------------------------------------
@@ -293,8 +273,7 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                // todo remove "metadata" level
-                return self::response($request, $response, $args, ["metadata" => MetadataParser::getMetadata($args->urlencoded)]);
+                return self::response($request, $response, $args, MetadataParser::getMetadata($args->urlencoded));
             })
                 ->add(new QueryParameters(['{urlencoded:\urlencoded}']))
                 ->add(new Authentication);
@@ -358,14 +337,14 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, Db::execute("UPDATE channels SET 
+                    return self::response($request, $response, $args, (new UserException)(Db::execute("UPDATE channels SET 
                         name=:name, avatar=IFNULL(:avatar,avatar), bio=:bio, bitcoinaddress=:bitcoinaddress WHERE id=:channelid", [
-                        ":name" => (new Text($args->name))->convertToAscii()->hyphenize(),
-                        ":avatar" => empty($args->avatar) ? null : (new Avatar($args->avatar))->inlineBase64(),
-                        ":bio" => $args->bio,
-                        ":bitcoinaddress" => $args->bitcoinaddress,
-                        ":channelid" => Authentication::getSession()->id,
-                    ])->rowCount());
+                            ":name" => (new Text($args->name))->convertToAscii()->hyphenize(),
+                            ":avatar" => empty($args->avatar) ? null : (new Avatar($args->avatar))->inlineBase64(),
+                            ":bio" => $args->bio,
+                            ":bitcoinaddress" => $args->bitcoinaddress,
+                            ":channelid" => Authentication::getSession()->id,
+                        ])->rowCount() > 0));
                 })
                     ->add(new BodyParameters([
                         '{name:[.\w-]{3,55}}',
@@ -410,8 +389,7 @@ namespace Zaplog {
                     stdClass $args): Response {
                     $args->channelid = Authentication::getSession()->id;
                     return self::response($request, $response, $args, $args->preview
-                        // todo remove "link", return just link
-                        ? ["link" => Methods::previewLink($args, $args->tags)]
+                        ? Methods::previewLink($args, $args->tags)
                         : Methods::postLink($args, $args->tags)->id);
                 })
                     ->add(new QueryParameters(['{preview:\boolean},0']))
@@ -420,7 +398,7 @@ namespace Zaplog {
                         '{mimetype:[-\w.]+\/[-\w.]+},null',
                         '{title:.{3,256}}',
                         '{markdown:\raw}',
-                        '{language:[a-z]{2}}',
+                        '{language:[a-z]{2}},null',
                         '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))},No Rights Reserved (CC0 1.0)',
                         '{image:\url},null',
                         '{tags[]:.{0,40}},null',]))
@@ -593,14 +571,15 @@ namespace Zaplog {
                 // post space separated tags POST /tags/{id}/{tag}
                 // ------------------------------------------------
 
-                $this->post("/link/{id:\d{1,10}}/tag/{tag:[\S]{3,50}}", function (
+                $this->post("/link/{linkid:\d{1,10}}", function (
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    // todo put into bodyparamaters
-                    $tags = Methods::sanitizeTags(explode(" ", urldecode($args->tag)));
-                    return self::response($request, $response, $args, Methods::postTags((int)$args->id, Authentication::getSession()->id, $tags));
+                    $tags = Methods::sanitizeTags($args->tags);
+                    $channelid = Authentication::getSession()->id;
+                    return self::response($request, $response, $args, Methods::postTags((int)$args->linkid, $channelid, $tags));
                 })
+                    ->add(new BodyParameters(['{tags[]:.{0,40}},null',]))
                     ->add(new Authentication);
 
                 // ------------------------------------------------
