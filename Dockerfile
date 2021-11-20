@@ -2,7 +2,7 @@ FROM php:apache
 
 RUN apt-get update
 RUN apt-get install -y libz-dev libmemcached-dev apt-utils git unzip libzip-dev && \
-    docker-php-ext-install zip pdo pdo_mysql gd && \
+    docker-php-ext-install zip pdo pdo_mysql && \
     pecl install memcached  &&\
     docker-php-ext-enable memcached
 
