@@ -9,7 +9,7 @@ RUN apt-get install -y libz-dev libmemcached-dev apt-utils git unzip libzip-dev 
 ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
 
 RUN chmod +x /usr/local/bin/install-php-extensions && \
-    install-php-extensions tidy && \
+    install-php-extensions tidy gd && \
     php --ini
 
 WORKDIR /var/www/html/
