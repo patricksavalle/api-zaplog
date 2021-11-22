@@ -18,6 +18,7 @@ namespace Zaplog\Plugins\ParsedownFilters {
                     foreach ([
                                  "https://www.flickr.com",
                                  "https://ibb.co",
+                                 "https://postimg.cc",
                                  "https://imagebam.com",
                                  "https://www.gettyimages.com",
                              ] as $domain) {
