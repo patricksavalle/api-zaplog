@@ -12,17 +12,18 @@ namespace Zaplog\Plugins\ParsedownFilters {
     {
         function __invoke(array $element): array
         {
-            $getImage = function (string $url): ?string {
+            $getImage = function (string $url): ?array {
                 try {
                     // image-specific domains, read image from the metadata
                     foreach ([
                                  "https://www.flickr.com",
                                  "https://ibb.co",
+                                 "https://postimg.cc",
                                  "https://imagebam.com",
                                  "https://www.gettyimages.com",
                              ] as $domain) {
                         if (stripos($url, $domain) === 0) {
-                            return ((new HtmlMetadata)($url))["image"];
+                            return ((new HtmlMetadata)($url));
                         }
                     }
                 } catch (Exception $e) {
@@ -38,7 +39,6 @@ namespace Zaplog\Plugins\ParsedownFilters {
                     try {
                         return [
                             "name" => "img",
-                            "text" => '',
                             "attributes" => [
                                 "width" => "100%",
                                 "src" => $element['attributes']['href'],
@@ -50,10 +50,10 @@ namespace Zaplog\Plugins\ParsedownFilters {
                 } elseif (($image = $getImage($element['attributes']['href'])) !== null) {
                     return [
                         "name" => "img",
-                        "text" => '',
                         "attributes" => [
+                            "title" => html_entity_decode($image['title'] ?? ""),
                             "width" => "100%",
-                            "src" => $image,
+                            "src" => $image['image'] ?? "",
                         ],
                     ];
                 }

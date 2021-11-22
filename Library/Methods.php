@@ -10,6 +10,7 @@ namespace Zaplog\Library {
     use ContentSyndication\ArchiveOrg;
     use ContentSyndication\Text;
     use Exception;
+    use Gumlet\ImageResize;
     use LanguageDetector\LanguageDetector;
     use SlimRestApi\Infra\Db;
     use SlimRestApi\Infra\Ini;
@@ -466,6 +467,42 @@ namespace Zaplog\Library {
                 error_log($e->getMessage() . $link->url);
             }
             return $link;
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function patchChannel(stdClass $channel): stdClass
+        {
+            $channel->name = (string)(new Text($channel->name))->convertToAscii()->hyphenize();
+            try {
+                if (!is_null($channel->avatar)) {
+                    $resized_avatar = (string)(ImageResize::createFromString(file_get_contents($channel->avatar)))->crop(64, 64);
+                    $channel->avatar =  'data://application/octet-stream;base64,' . base64_encode($resized_avatar);
+                }
+            } catch (Exception $e) {
+                throw new UserException("Invalid file or filetype for avatar (use PNG, GIF, JPG)");
+            }
+            (new UserException("Unchanged"))(Db::execute("UPDATE channels SET 
+                    name=:name, 
+                    avatar=IFNULL(:avatar,avatar), 
+                    header=IFNULL(:header,header), 
+                    algorithm=IFNULL(:algorithm,algorithm),                
+                    language=IFNULL(:language,language),                
+                    bio=:bio,
+                    bitcoinaddress=:bitcoinaddress 
+                WHERE id=:channelid", [
+                    ":name" => $channel->name,
+                    ":avatar" => $channel->avatar,
+                    ":header" => $channel->header,
+                    ":algorithm" => $channel->algorithm,
+                    ":language" => $channel->language,
+                    ":bio" => $channel->bio,
+                    ":bitcoinaddress" => $channel->bitcoinaddress,
+                    ":channelid" => $channel->channelid,
+                ])->rowCount() > 0);
+            return $channel;
         }
 
         // ----------------------------------------------------------
