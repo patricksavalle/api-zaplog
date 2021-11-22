@@ -14,7 +14,6 @@ namespace Zaplog {
 
     require_once BASE_PATH . '/vendor/autoload.php';
 
-    use ContentSyndication\Text;
     use SlimRestApi\Infra\Ini;
     use SlimRestApi\Infra\MemcachedFunction;
     use stdClass;
@@ -29,7 +28,6 @@ namespace Zaplog {
     use Zaplog\Exception\UserException;
     use Zaplog\Library\Methods;
     use Zaplog\Library\TwoFactorAction;
-    use Zaplog\Library\Avatar;
     use Zaplog\Middleware\Authentication;
     use Zaplog\Plugins\MetadataParser;
     use Zaplog\Plugins\ResponseFilter;
@@ -336,22 +334,17 @@ namespace Zaplog {
                 $this->patch("", function (
                     Request  $request,
                     Response $response,
-                    stdClass $args): Response {
-                    return self::response($request, $response, $args, (new UserException)(Db::execute("UPDATE channels SET 
-                        name=:name, avatar=IFNULL(:avatar,avatar), bio=:bio, bitcoinaddress=:bitcoinaddress WHERE id=:channelid", [
-                            ":name" => (new Text($args->name))->convertToAscii()->hyphenize(),
-                            ":avatar" => empty($args->avatar) ? null : (new Avatar($args->avatar))->inlineBase64(),
-                            ":bio" => $args->bio,
-                            ":bitcoinaddress" => $args->bitcoinaddress,
-                            ":channelid" => Authentication::getSession()->id,
-                        ])->rowCount() > 0));
+                    stdClass $channel): Response {
+                    $channel->channelid = Authentication::getSession()->id;
+                    return self::response($request, $response, $channel, Methods::patchChannel($channel));
                 })
                     ->add(new BodyParameters([
                         '{name:[.\w-]{3,55}}',
                         '{avatar:\url},null',
                         '{header:\url},null',
-                        '{bio:\xtext},""',
-                        '{algorithm:(channel|voted|mixed|popular|all))},"mixed"',
+                        '{bio:\xtext},null',
+                        '{language:[a-z]{2}},nl',
+                        '{algorithm:(channel|voted|mixed|popular|all))},mixed',
                         '{bitcoinaddress:\bitcoinaddress},null']))
                     ->add(new Authentication);
 
