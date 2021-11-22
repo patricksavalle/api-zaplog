@@ -28,6 +28,7 @@
     "ext-simplexml": "*",
     "ext-pdo": "*",
     "ext-curl": "*",
+    "ext-gd": "*",
     "slim/slim": "^3.0",
     "patricksavalle/slim-rest-api": "dev-master",
     "patricksavalle/slim-request-params": "dev-master",
@@ -39,9 +40,9 @@
     "erusev/parsedown": "^1.7",
     "multiavatar/multiavatar-php": "^1.0",
     "ext-fileinfo": "*",
-    "ezyang/htmlpurifier": "^4.13",
     "smalot/pdfparser": "^1.1",
-    "landrok/language-detector":  "*"
+    "landrok/language-detector":  "*",
+    "gumlet/php-image-resize": "1.9.*"
   },
   "autoload": {
     "psr-4": {
