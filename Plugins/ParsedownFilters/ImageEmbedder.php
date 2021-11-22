@@ -39,7 +39,6 @@ namespace Zaplog\Plugins\ParsedownFilters {
                     try {
                         return [
                             "name" => "img",
-                            "text" => '',
                             "attributes" => [
                                 "width" => "100%",
                                 "src" => $element['attributes']['href'],
@@ -51,9 +50,8 @@ namespace Zaplog\Plugins\ParsedownFilters {
                 } elseif (($image = $getImage($element['attributes']['href'])) !== null) {
                     return [
                         "name" => "img",
-                        "text" => '',
                         "attributes" => [
-                            "title" => $image['title'] ?? "",
+                            "title" => html_entity_decode($image['title'] ?? ""),
                             "width" => "100%",
                             "src" => $image['image'] ?? "",
                         ],
