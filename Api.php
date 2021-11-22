@@ -131,7 +131,7 @@ namespace Zaplog {
                     ->add(new BodyParameters([
                         '{email:\email}',
                         '{subject:.{10,100}},Hier is jouw Zaplog login!',
-                        '{template:\url},null',
+                        '{template:\url},Content/nl.login.html',
                         '{*}' /* all {{variables}} used in template */,
                     ]));
 
