@@ -122,6 +122,8 @@ CREATE TABLE links
         'Some Rights Reserved (CC BY-SA 4.0)' ) DEFAULT NULL,
     -- Original raw markdown input
     markdown       TEXT                   DEFAULT NULL,
+    -- Parsed and filtered XHTML output
+    xtext          TEXT                   DEFAULT NULL,
     -- Clean text blurb, set on insert
     description    VARCHAR(256)           DEFAULT NULL,
     image          VARCHAR(256)           DEFAULT NULL,
