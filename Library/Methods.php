@@ -398,13 +398,14 @@ namespace Zaplog\Library {
 
             // Insert into database
             (new ServerException)(Db::execute(
-                    "INSERT INTO links(url, channelid, title, markdown, description, image, mimetype, language, copyright)
-                    VALUES (:url, :channelid, :title, :markdown, :description, :image, :mimetype, :language, :copyright)",
+                    "INSERT INTO links(url, channelid, title, markdown, xtext, description, image, mimetype, language, copyright)
+                    VALUES (:url, :channelid, :title, :markdown, :xtext, :description, :image, :mimetype, :language, :copyright)",
                     [
                         ":url" => $link->url,
                         ":channelid" => $link->channelid,
                         ":title" => $link->title,
                         ":markdown" => $link->markdown,
+                        ":xtext" => $link->xtext,
                         ":description" => $link->description,
                         ":image" => $link->image,
                         ":mimetype" => $link->mimetype,
@@ -441,15 +442,16 @@ namespace Zaplog\Library {
             // $old_markdown = Db::fetch("SELECT markdown FROM links WHERE id=:id", [":id" => $link->id])->markdown
 
             // Insert into database
-            (new ServerException)(Db::execute(
-                    "UPDATE links(url, markdown, description, image, mimetype, language, copyright)
-                    VALUES (:url, :markdown, :description, :image, :mimetype, :language, :copyright)
+            (new UserException("Unchanged"))(Db::execute(
+                    "UPDATE links(url, markdown, xtext, description, image, mimetype, language, copyright)
+                    VALUES (:url, :markdown, :xtext, :description, :image, :mimetype, :language, :copyright)
                     WHERE id=:id AND channelid=:channelid",
                     [
                         ":id" => $link->id,
                         ":url" => $link->url,
                         ":channelid" => $link->channelid,
                         ":markdown" => $link->markdown,
+                        ":xtext" => $link->markdown,
                         ":description" => $link->description,
                         ":image" => $link->image,
                         ":mimetype" => $link->mimetype,
@@ -479,7 +481,7 @@ namespace Zaplog\Library {
             try {
                 if (!is_null($channel->avatar)) {
                     $resized_avatar = (string)(ImageResize::createFromString(file_get_contents($channel->avatar)))->crop(64, 64);
-                    $channel->avatar =  'data://application/octet-stream;base64,' . base64_encode($resized_avatar);
+                    $channel->avatar = 'data://application/octet-stream;base64,' . base64_encode($resized_avatar);
                 }
             } catch (Exception $e) {
                 throw new UserException("Invalid file or filetype for avatar (use PNG, GIF, JPG)");
@@ -545,14 +547,18 @@ namespace Zaplog\Library {
         static public function getSingleLink(string $id): array
         {
             // update view counter
-            Db::execute("UPDATE links SET viewscount = viewscount + 1 WHERE id=:id", [":id" => $id]);
+            Db::execute("UPDATE links SET viewscount=viewscount+1 WHERE id=:id", [":id" => $id]);
 
             // get post
             $link = (new ResourceNotFoundException)(Db::fetch("SELECT * FROM links 
                 WHERE id=:id AND published=TRUE", [":id" => $id]));
 
-            // parse and filter the original markdown into safe xhtml
-            $link->xtext = (string)(new Text($link->markdown ?? ""))->parseDown(new ParsedownFilter);
+            // some updates in the plugin system clear the xtext -> parse and store again
+            if (empty($link->xtext)) {
+                // parse and filter the original markdown into safe xhtml, if not done on INSERT
+                $link->xtext = (string)(new Text($link->markdown ?? ""))->parseDown(new ParsedownFilter);
+                Db::execute("UPDATE links SET xtext=:xtext WHERE id=:id", [":id" => $id, ":xtext" => $link->xtext]);
+            }
 
             return [
                 "link" => $link,
