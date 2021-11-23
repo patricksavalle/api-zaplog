@@ -122,7 +122,7 @@ CREATE TABLE links
         'Some Rights Reserved (CC BY-SA 4.0)' ) DEFAULT NULL,
     -- Original raw markdown input
     markdown       TEXT                   DEFAULT NULL,
-    -- Parsed and filtered XHTML output
+    -- Parsed and filtered XHTML output, xtext can safely be cleared the API will render when null
     xtext          TEXT                   DEFAULT NULL,
     -- Clean text blurb, set on insert
     description    VARCHAR(256)           DEFAULT NULL,

@@ -14,7 +14,7 @@ namespace Zaplog\Plugins\ParsedownFilters {
         {
             $getImage = function (string $url): ?array {
                 try {
-                    // image-specific domains, read image from the metadata
+                    // image-specific domains, read image from the public URL HTML-metadata
                     foreach ([
                                  "https://www.flickr.com",
                                  "https://ibb.co",
@@ -32,11 +32,21 @@ namespace Zaplog\Plugins\ParsedownFilters {
                 return null;
             };
 
-            if (strcmp($element['name'], "a") === 0 and isset($element['attributes']['href'])) {
+            try {
 
-                if (preg_match("@https:\/\/pbs\.twimg\.com\/media\/.*@", $element['attributes']['href']) === 1) {
-                    // https://pbs.twimg.com/media/FEBc-7aUUAAQMxP?format=jpg&name=small
-                    try {
+                // Translate <a> elements that are images into <img>
+                //
+                // To avoid copyright claims we must:
+                // - not publish from non-public URL's
+                // - only deep link
+                //
+                // We satisfy these conditions if we only use images from public URL's that
+                // are offered to us by HTML og/twitter metadata.
+
+                if (strcmp($element['name'], "a") === 0 and isset($element['attributes']['href'])) {
+
+                    if (preg_match("@https:\/\/pbs\.twimg\.com\/media\/.*@", $element['attributes']['href']) === 1) {
+                        // https://pbs.twimg.com/media/FEBc-7aUUAAQMxP?format=jpg&name=small
                         return [
                             "name" => "img",
                             "attributes" => [
@@ -44,19 +54,25 @@ namespace Zaplog\Plugins\ParsedownFilters {
                                 "src" => $element['attributes']['href'],
                             ],
                         ];
-                    } catch (Exception $e) {
-                        // ignore
+
+                    } else {
+
+                        $image = $getImage($element['attributes']['href']);
+                        if (!empty($image['image'])) {
+
+                            return [
+                                "name" => "img",
+                                "attributes" => [
+                                    "title" => html_entity_decode($image['title'] ?? ""),
+                                    "width" => "100%",
+                                    "src" => $image['image'],
+                                ],
+                            ];
+                        }
                     }
-                } elseif (($image = $getImage($element['attributes']['href'])) !== null) {
-                    return [
-                        "name" => "img",
-                        "attributes" => [
-                            "title" => html_entity_decode($image['title'] ?? ""),
-                            "width" => "100%",
-                            "src" => $image['image'] ?? "",
-                        ],
-                    ];
                 }
+            } catch (Exception $e) {
+                // ignore
             }
             return $element;
         }
