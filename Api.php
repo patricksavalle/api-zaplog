@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Zaplog {
 
-    define("VERSION", "v0.101");
+    define("VERSION", "v1.0b");
 
     define("BASE_PATH", __DIR__);
 
@@ -382,18 +382,21 @@ namespace Zaplog {
                     stdClass $args): Response {
                     $args->channelid = Authentication::getSession()->id;
                     return self::response($request, $response, $args, $args->preview
-                        ? Methods::previewLink($args, $args->tags)
-                        : Methods::postLink($args, $args->tags)->id);
+                        ? Methods::previewLink($args)
+                        // TODO front end must use link instead of link->id
+                        : Methods::postLink($args)->id);
                 })
                     ->add(new QueryParameters(['{preview:\boolean},0']))
                     ->add(new BodyParameters([
+                        '{id:\d+},null',    // only set when update is required
                         '{url:\url},null',
-                        '{mimetype:[-\w.]+\/[-\w.]+},null',
+                        '{mimetype:[-\w.]+\/[-\w.]+},null', // TODO this is ignored, front can drop the parameter
                         '{title:.{3,256}}',
                         '{markdown:\raw}',
-                        '{language:[a-z]{2}},null',
+                        '{language:[a-z]{0,2}},null', // TODO this is ignored, front can drop the parameter
                         '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))},No Rights Reserved (CC0 1.0)',
-                        '{image:\url},null',
+                        '{image:\url},null',        // TODO this is ignored, front can drop the parameter
+                        '{published:\boolean},true',
                         '{tags[]:.{0,40}},null',]))
                     ->add(new Authentication);
 
@@ -408,28 +411,6 @@ namespace Zaplog {
                     return self::response($request, $response, $args, Methods::getSingleLink($args->id));
                 })
                     ->add(new QueryParameters(['{http_referer:\url},null']));
-
-                // ----------------------------------------------------------------
-                // Change post
-                // ----------------------------------------------------------------
-
-                $this->patch("/id/{id:\d{1,10}}", function (
-                    Request  $request,
-                    Response $response,
-                    stdClass $args): Response {
-                    $args->channelid = Authentication::getSession()->id;
-                    return self::response($request, $response, $args, $args->preview ? Methods::previewLink($args) : Methods::patchLink($args));
-                })
-                    ->add(new QueryParameters(['{preview:\boolean},0']))
-                    ->add(new BodyParameters([
-                        '{url:\url}',
-                        '{mimetype:[-\w.]+\/[-\w.]+}',
-                        '{markdown:\raw}',
-                        '{language:[a-z]{2}}',
-                        '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))}',
-                        '{image:\url}',
-                        '{published:\boolean}']))
-                    ->add(new Authentication);
 
                 // --------------------------------------------------
                 // delete a link by it's id
@@ -475,6 +456,20 @@ namespace Zaplog {
                         '{offset:\int},0',
                         '{count:\int},20']))
                     ->add(new Memcaching(60/*sec*/));
+
+                // ----------------------------------------------------------------
+                // Return unpublished links for authenticated channel / user
+                // ----------------------------------------------------------------
+
+                $this->get("/unpublished", function (
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
+                    $channelid = Authentication::getSession()->id;
+                    return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM links
+                        WHERE unpublished=TRUE AND channelid=:channelid", [":channelid" => $channelid]));
+                })
+                    ->add(new Authentication);
 
                 // -----------------------------------------------------
                 // Returns the top scoring links for a given tag

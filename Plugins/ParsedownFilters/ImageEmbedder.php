@@ -23,6 +23,7 @@ namespace Zaplog\Plugins\ParsedownFilters {
             $isAllowableDeeplink = function (string $url): bool {
                 foreach ([
                              "https://pbs.twimg.com/media",
+                             "https://i.ytimg.com",
                          ] as $domain)
                     if (stripos($url, $domain) === 0) return true;
                 return false;
