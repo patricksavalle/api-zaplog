@@ -41,7 +41,7 @@ deploy-to-prod-api:
     - chmod 700 ~/.ssh
   script:
     - ssh -o StrictHostKeyChecking=no $SSH_USER@$PROD_SERVER_IP "cd $DOCKER_PATH && docker-compose pull && docker-compose down && docker-compose up -d"
-      - echo All DONE
+    - echo All DONE
   only:
     - master
 
