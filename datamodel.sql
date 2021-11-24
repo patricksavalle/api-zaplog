@@ -190,9 +190,14 @@ BEGIN
         OR NEW.language<>OLD.language
         OR NEW.url<>OLD.url
         OR NEW.image<>OLD.image
-        -- also update on added reactions (used for 'discussion' query)
-        OR NEW.reactionscount>OLD.reactionscount) THEN
+        OR NEW.published<>OLD.published) THEN
         SET NEW.updatedatetime = CURRENT_TIMESTAMP;
+    END IF;
+    IF (NEW.published=FALSE AND OLD.published=TRUE) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Cannot unpublish only delete';
+    END IF;
+    IF (NEW.published=TRUE AND OLD.published=FALSE) THEN
+        SET NEW.createdatetime = CURRENT_TIMESTAMP;
     END IF;
 END//
 DELIMITER ;

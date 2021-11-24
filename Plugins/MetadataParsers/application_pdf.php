@@ -13,15 +13,14 @@ namespace Zaplog\Plugins\MetadataParsers {
         public function __invoke(string $url): array
         {
             try {
-                $parser = new Parser();
-                $pdf = $parser->parseFile($url);
-                $details = $pdf->getDetails();
+                $details = (new Parser)->parseFile($url)->getDetails();
+                $metadata['url'] = $url;
+                $metadata['title'] = $details['Title'] ?? null;
+                $metadata['author'] = $details['Author'] ?? null;
+                return $metadata;
             } catch (Exception $e) {
                 throw new Exception($e->getMessage(), 400);
             }
-            $metadata['url'] = $url;
-            $metadata['title'] = $details['Title'] ?? null;
-            return $metadata;
         }
     }
 }

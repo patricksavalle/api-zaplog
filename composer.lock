@@ -505,12 +505,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/patricksavalle/php-content-syndication.git",
-                "reference": "802b90306d5b74bcb85c4151b739e3a6efa34e3a"
+                "reference": "0cffd704bcc96805395c6e05e804d8987abcfaa9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/patricksavalle/php-content-syndication/zipball/802b90306d5b74bcb85c4151b739e3a6efa34e3a",
-                "reference": "802b90306d5b74bcb85c4151b739e3a6efa34e3a",
+                "url": "https://api.github.com/repos/patricksavalle/php-content-syndication/zipball/0cffd704bcc96805395c6e05e804d8987abcfaa9",
+                "reference": "0cffd704bcc96805395c6e05e804d8987abcfaa9",
                 "shasum": ""
             },
             "require": {
@@ -555,7 +555,7 @@
                 "issues": "https://github.com/patricksavalle/php-content-syndication/issues",
                 "source": "https://github.com/patricksavalle/php-content-syndication/tree/master"
             },
-            "time": "2021-11-20T16:26:36+00:00"
+            "time": "2021-11-24T15:59:29+00:00"
         },
         {
             "name": "patricksavalle/slim-request-params",

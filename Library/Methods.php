@@ -1,4 +1,5 @@
-<?php /** @noinspection DuplicatedCode */
+<?php
+/** @noinspection DuplicatedCode */
 /** @noinspection PhpUndefinedMethodInspection */
 
 declare(strict_types=1);
@@ -282,20 +283,12 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function postTags(int $linkid, int $channelid, array $tags): string
+        static public function postTags(int $linkid, int $channelid, array $tags)
         {
             // insert keywords into database;
-            $count = 0;
-            foreach ($tags as $tag) {
-                try {
-                    Db::execute("INSERT IGNORE INTO tags(linkid, channelid, tag) VALUES (:linkid, :channelid, :tag)",
-                        [":linkid" => $linkid, ":channelid" => $channelid, ":tag" => $tag]);
-                    $count++;
-                } catch (Exception $e) {
-                    // ignore on error
-                    error_log($e->getMessage() . " @ " . __METHOD__ . "(" . __LINE__ . ") " . $tag);
-                }
-            }
+            foreach ($tags as $tag)
+                Db::execute("INSERT IGNORE INTO tags(linkid, channelid, tag) VALUES (:linkid, :channelid, :tag)",
+                    [":linkid" => $linkid, ":channelid" => $channelid, ":tag" => $tag]);
             return Db::lastInsertid();
         }
 
@@ -305,13 +298,12 @@ namespace Zaplog\Library {
 
         static public function checkImage(stdClass $link)
         {
-            // check image
             if (!empty($link->image)) {
                 $image_mimetype = "";
                 try {
                     $image_mimetype = MetadataParser::getMimetype($link->image);
                 } catch (Exception $e) {
-                    // nothing, ignore that field
+                    // nothing
                 }
                 if (strpos($image_mimetype, "image/") !== 0) {
                     $link->image = Ini::get("default_post_image");
@@ -323,11 +315,27 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function checkLink(stdClass $link)
+        static public function checkTitle(stdClass $link)
         {
-            // sanity checks
-            (new UserException("Url and mimetype must be both set or both empty"))(!(empty($link->url) xor empty($link->mimetype)));
-            $link->title = strip_tags($link->title);
+            $link->title = substr(strip_tags($link->title), 0, 257);
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function checkUrl(stdClass $link)
+        {
+            if (empty($link->url)) {
+                $link->url = null;
+                $link->mimetype = null;
+                $link->image = null;
+            } else {
+                $metadata = MetadataParser::getMetadata($link->url);
+                $link->url = $metadata['url'];
+                $link->mimetype = $metadata['mimetype'];
+                $link->image = $metadata['image'];
+            }
         }
 
         // ----------------------------------------------------------
@@ -349,10 +357,9 @@ namespace Zaplog\Library {
 
         static public function checkLanguage(stdClass $link)
         {
-            $languages = ["ar", "cs", "da", "de", "el", "en", "es", "fi", "fr", "hu", "it", "nl", "no", "pl", "pt", "ro", "ru", "sk", "sv", "tr"];
-            $text = (string)(new Text($link->markdown))->parseDown()->stripTags();
-            if (!empty($text)) {
-                $link->language = (string)(new LanguageDetector(null, $languages))->evaluate($text);
+            $link->language = (string)(new LanguageDetector)->evaluate(strip_tags($link->xtext ?? ""));
+            if (empty($link->language) or strlen($link->language) !== 2) {
+                $link->language = null;
             }
         }
 
@@ -360,29 +367,20 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function previewLink(stdClass $link, ?array $tags = null): stdClass
+        static public function previewLink(stdClass $link): stdClass
         {
-            // sanitize
-            self::checkLink($link);
+            // render article text
+            $link->xtext = empty($link->markdown) ? null : (string)(new Text($link->markdown))->parseDown(new ParsedownFilter);
+            assert(mb_check_encoding($link->xtext, 'UTF-8'));
+            $link->description = empty($link->xtext) ? null : (string)(new Text($link->xtext))->blurbify();
 
-            // check image on mimetype
+            self::checkLanguage($link);
+            self::checkTitle($link);
+            self::checkUrl($link);
             self::checkImage($link);
-
-            // reasonable copyrights
             self::checkCopyright($link);
 
-            // only in preview
-            self::checkLanguage($link);
-
-            // render article text
-            $link->description = empty($link->markdown) ? null : (string)(new Text($link->markdown))->parseDown(new ParsedownFilter)->blurbify();
-            $link->xtext = (string)(new Text($link->markdown))->parseDown(new ParsedownFilter);
-
-            assert(mb_check_encoding($link->description, 'UTF-8'));
-            assert(mb_check_encoding($link->xtext, 'UTF-8'));
-
-            // sanitize tags
-            $link->tags = self::sanitizeTags($tags ?? []);
+            $link->tags = self::sanitizeTags($link->tags ?? []);
 
             return $link;
         }
@@ -391,29 +389,99 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function postLink(stdClass $link, ?array $tags): stdClass
+        static public function generateDiff(stdClass $old, stdClass $new)
+        {
+            $xtext = "";
+            if (strcmp($old->language, $new->language) !== 0) {
+                $xtext .= "<p><em>language changed: </em><del>$old->language</del><ins>$new->language</ins></p>";
+            }
+            if (strcmp($old->copyright, $new->copyright) !== 0) {
+                $xtext .= "<p><em>copyright changed: </em><del>$old->copyright</del><ins>$new->copyright</ins></p>";
+            }
+            if (($changes = (new Diff)($old->title, $new->title)) !== "") {
+                $xtext .= "<p><em>title changed: </em>" . $changes . "</p>";
+            }
+            if (($changes = (new Diff)($old->xtext, $new->xtext)) !== "") {
+                $xtext .= "<p><em>text changed: </em>" . $changes . "</p>";
+            }
+            if (strcmp($old->url ?? "", $new->url ?? "") !== 0) {
+                $xtext .= "<p><em>link changed: </em><del>$old->url</del><ins>$new->url</ins></p>";
+            }
+            if (!empty($xtext)) {
+
+                $xtext = "<p><em>-- article was edited by user, this diff generated by system --</em></p>" . $xtext;
+                $description = (string)(new Text($xtext))->blurbify();
+
+                // insert diff as comment
+                Db::execute("INSERT INTO reactions(linkid, channelid, xtext, description) VALUES(:linkid, 1, :xtext, :description)",
+                    [":linkid" => $new->id, ":xtext" => $xtext, ":description" => $description]);
+            }
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function postLink(stdClass $link): stdClass
         {
             // use exact same content as preview would show
-            self::previewLink($link, $tags);
+            self::previewLink($link);
 
-            // Insert into database
-            (new ServerException)(Db::execute(
-                    "INSERT INTO links(url, channelid, title, markdown, xtext, description, image, mimetype, language, copyright)
-                    VALUES (:url, :channelid, :title, :markdown, :xtext, :description, :image, :mimetype, :language, :copyright)",
-                    [
-                        ":url" => $link->url,
-                        ":channelid" => $link->channelid,
-                        ":title" => $link->title,
-                        ":markdown" => $link->markdown,
-                        ":xtext" => $link->xtext,
-                        ":description" => $link->description,
-                        ":image" => $link->image,
-                        ":mimetype" => $link->mimetype,
-                        ":language" => $link->language,
-                        ":copyright" => $link->copyright,
-                    ])->rowCount() > 0);
+            $sqlparams = [
+                ":channelid" => $link->channelid,
+                ":url" => $link->url,
+                ":title" => $link->title,
+                ":markdown" => $link->markdown,
+                ":xtext" => $link->xtext,
+                ":description" => $link->description,
+                ":image" => $link->image,
+                ":mimetype" => $link->mimetype,
+                ":language" => $link->language,
+                ":copyright" => $link->copyright,
+                ":published" => $link->published,
+            ];
 
-            $link->id = (int)Db::lastInsertId();
+            if (empty($link->id)) {
+
+                (new ServerException)(Db::execute(
+                        "INSERT INTO links(url, channelid, title, markdown, xtext, description, image, mimetype, language, copyright, published)
+                        VALUES (:url, :channelid, :title, :markdown, :xtext, :description, :image, :mimetype, :language, :copyright, :published)",
+                        $sqlparams)->rowCount() > 0);
+                $link->id = (int)Db::lastInsertId();
+
+            } else {
+
+                $sqlparams[":id"] = $link->id;
+
+                // get old version for diff
+                $old_link = Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $link->id]);
+
+                if ($old_link->published and !$link->published) {
+                    throw new UserException("Cannot unpublish only delete");
+                }
+
+                (new UserException("Unchanged"))(Db::execute(
+                        "UPDATE links SET
+                            url=:url, 
+                            title=:title,
+                            markdown=:markdown, 
+                            xtext=:xtext,
+                            description=:description,
+                            image=:image, 
+                            mimetype=:mimetype, 
+                            language=:language, 
+                            copyright=:copyright,
+                            published=:published
+                        WHERE id=:id AND channelid=:channelid", $sqlparams)->rowCount() >= 0);
+
+                // remove the tags that this user / channel added
+                Db::execute("DELETE FROM tags WHERE linkid=:id AND channelid=:channelid", [":id" => $link->id, ":channelid" => $link->channelid]);
+
+                // create diff as reaction
+                if ($link->published === true) {
+                    self::generateDiff($old_link, $link);
+                }
+            }
 
             // insert tags
             if (!empty($link->tags)) {
@@ -427,47 +495,6 @@ namespace Zaplog\Library {
                 error_log($e->getMessage() . $link->url);
             }
 
-            return $link;
-        }
-
-        // ----------------------------------------------------------
-        //
-        // ----------------------------------------------------------
-
-        static public function patchLink(stdClass $link): stdClass
-        {
-            // use exact same content as preview would show
-            static::previewLink($link);
-
-            // $old_markdown = Db::fetch("SELECT markdown FROM links WHERE id=:id", [":id" => $link->id])->markdown
-
-            // Insert into database
-            (new UserException("Unchanged"))(Db::execute(
-                    "UPDATE links(url, markdown, xtext, description, image, mimetype, language, copyright)
-                    VALUES (:url, :markdown, :xtext, :description, :image, :mimetype, :language, :copyright)
-                    WHERE id=:id AND channelid=:channelid",
-                    [
-                        ":id" => $link->id,
-                        ":url" => $link->url,
-                        ":channelid" => $link->channelid,
-                        ":markdown" => $link->markdown,
-                        ":xtext" => $link->markdown,
-                        ":description" => $link->description,
-                        ":image" => $link->image,
-                        ":mimetype" => $link->mimetype,
-                        ":language" => $link->language,
-                        ":copyright" => $link->copyright,
-                    ])->rowCount() > 0);
-
-            // create diff
-            // $diff = xdiff_string_diff();
-
-            // Archive the link
-            try {
-                ArchiveOrg::archiveAsync($link->url);
-            } catch (Exception $e) {
-                error_log($e->getMessage() . $link->url);
-            }
             return $link;
         }
 
