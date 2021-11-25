@@ -1,6 +1,6 @@
 # ZAPLOG REST-API
 
-See: https://github.com/zaplogv2/doc.zaplog for explanation of the functionality.
+See: https://zaplog.pro for a working version of this website.
 
 Zaplog is a next-generation social-news platform. It includes:
 
