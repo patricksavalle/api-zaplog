@@ -56,10 +56,11 @@ namespace Zaplog {
 
             $this->get("/", function ($rq, $rp, $args): Response {
 
-                // Initialization
+                // Initialization of session table
                 Authentication::createSession("dummy@dummy.dummy");
+                // Reset admin email from ini
                 Db::execute("UPDATE channels SET userid=IF(LENGTH(userid)=0,MD5(:email),userid) WHERE id=1", [":email" => Ini::get("email_admin")]);
-                Db::execute("UPDATE channels SET language=IFNULL(language,:language) WHERE id=1", [":language" => Ini::get("frontpage_language")]);
+                // Make sure scheduler is running
                 Db::execute("SET GLOBAL event_scheduler = ON");
 
                 echo "<p>Repositories: https://gitlab.com/zaplog/api-zaplog</p>";
