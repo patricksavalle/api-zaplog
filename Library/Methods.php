@@ -21,6 +21,7 @@ namespace Zaplog\Library {
     use Zaplog\Exception\UserException;
     use Zaplog\Plugins\MetadataParser;
     use Zaplog\Plugins\ParsedownFilter;
+    use Zaplog\Plugins\ParsedownFilters\TagHarvester;
 
     class Methods
     {
@@ -367,6 +368,22 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
+        static public function suggestTags(stdClass $link)
+        {
+            // one of the parseDonw-plugins collected tag candidates based on typograhpy
+            if (empty($link->tags) or sizeof($link->tags) < 2) {
+                $tags = TagHarvester::getTags();
+                $tags = array_merge($tags, explode(" ", $link->title));
+                $tags = "('" . implode("','", $tags) . "')";
+                $tags = Db::fetch("SELECT GROUP_CONCAT(DISTINCT tag) AS tags FROM tags WHERE tag IN $tags AND LENGTH(tag)>4")->tags;
+                $link->tags = array_merge($link->tags, explode(",", $tags));
+            }
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
         static public function previewLink(stdClass $link): stdClass
         {
             // render article text
@@ -374,13 +391,14 @@ namespace Zaplog\Library {
             assert(mb_check_encoding($link->xtext, 'UTF-8'));
             $link->description = empty($link->xtext) ? null : (string)(new Text($link->xtext))->blurbify();
 
+            self::suggestTags($link);
             self::checkLanguage($link);
             self::checkTitle($link);
             self::checkUrl($link);
             self::checkImage($link);
             self::checkCopyright($link);
 
-            $link->tags = self::sanitizeTags($link->tags ?? []);
+            $link->tags = self::sanitizeTags($link->tags);
 
             return $link;
         }
