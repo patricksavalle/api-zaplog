@@ -373,9 +373,9 @@ namespace Zaplog\Library {
             // one of the parseDonw-plugins collected tag candidates based on typograhpy
             if (empty($link->tags) or sizeof($link->tags) < 2) {
                 $tags = TagHarvester::getTags();
-                $tags = array_merge($tags, explode(" ", $link->title));
-                $tags = "('" . implode("','", $tags) . "')";
-                $tags = Db::fetch("SELECT GROUP_CONCAT(DISTINCT tag) AS tags FROM tags WHERE tag IN $tags AND LENGTH(tag)>4")->tags;
+                $tags = self::sanitizeTags(array_merge($tags, explode(" ", $link->title)));
+                $tags = "'" . implode("','", $tags) . "'";
+                $tags = Db::fetch("SELECT GROUP_CONCAT(DISTINCT tag) AS tags FROM tags WHERE tag IN ($tags) AND LENGTH(tag)>4")->tags;
                 $link->tags = array_merge($link->tags, explode(",", $tags));
             }
         }
