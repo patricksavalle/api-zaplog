@@ -272,7 +272,7 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                return self::response($request, $response, $args, MetadataParser::getMetadata($args->urlencoded));
+                return self::response($request, $response, $args, Methods::getMetadata($args->urlencoded));
             })
                 ->add(new QueryParameters(['{urlencoded:\urlencoded}']))
                 ->add(new Authentication);

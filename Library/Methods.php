@@ -368,16 +368,35 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function suggestTags(stdClass $link)
+        static public function suggestTags(?string $title, ?string $description): array
         {
-            // one of the parseDonw-plugins collected tag candidates based on typograhpy
-            if (empty($link->tags) or sizeof($link->tags) < 2) {
-                $tags = TagHarvester::getTags();
-                $tags = self::sanitizeTags(array_merge($tags, explode(" ", $link->title)));
-                $tags = "'" . implode("','", $tags) . "'";
-                $tags = Db::fetch("SELECT GROUP_CONCAT(DISTINCT tag) AS tags FROM tags WHERE tag IN ($tags) AND LENGTH(tag)>4")->tags;
-                $link->tags = array_merge($link->tags, explode(",", $tags));
+            $filterTags = function (?string $string): array {
+                $selected = [];
+                foreach (explode(" ", preg_replace("[\.\,\"\']", " ", $string ?? "")) as $tag) if (strlen($tag) > 7) $selected[] = $tag;
+                return $selected;
+            };
+            // use larger words from title
+            $title_tags = $filterTags($title);
+            // use larger words from description
+            $description_tags = $filterTags($description);
+            // limit to words already in tgs database
+            $tags = self::sanitizeTags(array_merge($title_tags, $description_tags));
+            $tags = "'" . implode("','", $tags) . "'";
+            $tags = Db::fetch("SELECT GROUP_CONCAT(DISTINCT tag) AS tags FROM tags WHERE tag IN ($tags) ORDER BY COUNT(linkid) DESC LIMIT 8")->tags;
+            return empty($tags) ? [] : explode(",", $tags);
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function getMetadata(string $url): array
+        {
+            $metadata = MetadataParser::getMetadata($url);
+            if (sizeof($metadata["keywords"] ?? []) === 0) {
+                $metadata['keywords'] = array_merge($metadata["keywords"], self::suggestTags($metadata["title"], $metadata["description"]));
             }
+            return $metadata;
         }
 
         // ----------------------------------------------------------
@@ -388,16 +407,19 @@ namespace Zaplog\Library {
         {
             // render article text
             $link->xtext = empty($link->markdown) ? null : (string)(new Text($link->markdown))->parseDown(new ParsedownFilter);
+            // one of the ParseDonw-filters collected tag candidates based on typograhpy
+            $harvested_tags = TagHarvester::getTags();
             assert(mb_check_encoding($link->xtext, 'UTF-8'));
             $link->description = empty($link->xtext) ? null : (string)(new Text($link->xtext))->blurbify();
 
-            self::suggestTags($link);
             self::checkLanguage($link);
             self::checkTitle($link);
             self::checkUrl($link);
             self::checkImage($link);
             self::checkCopyright($link);
-
+            if (sizeof($link->tags ?? []) === 0) {
+                $link->tags = array_merge($link->tags, $harvested_tags, self::suggestTags($link->title, $link->description));
+            }
             $link->tags = self::sanitizeTags($link->tags);
 
             return $link;
