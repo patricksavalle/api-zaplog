@@ -7,6 +7,11 @@ email_admin=
 default_post_image=https://api.zaplog.pro/content/dark-background-3494082_1280.jpg
 broken_link_redirector="http://localhost:8080/Api.php/goto?urlencoded="
 
+[translation]
+auto_translate=1
+deepl_auth_key=
+deepl_api_url=https://api-free.deepl.com/v2/translate
+
 [memcache]
 memcache_host=localhost
 memcache_port=11211

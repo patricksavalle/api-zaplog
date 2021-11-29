@@ -15,6 +15,7 @@ namespace Zaplog\Library {
     use LanguageDetector\LanguageDetector;
     use SlimRestApi\Infra\Db;
     use SlimRestApi\Infra\Ini;
+    use SlimRestApi\Infra\Memcache;
     use stdClass;
     use Zaplog\Exception\ResourceNotFoundException;
     use Zaplog\Exception\ServerException;
@@ -356,12 +357,31 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function checkLanguage(stdClass $link)
+        static public function checkTranslation(stdClass $link)
         {
-            $link->language = (string)(new LanguageDetector)->evaluate(strip_tags($link->xtext ?? ""));
+            $link->language = (string)(new LanguageDetector)->evaluate($link->markdown ?? "");
             if (empty($link->language) or strlen($link->language) !== 2) {
                 $link->language = null;
+            } else {
+                $system_language = Db::fetch("SELECT language FROM channels WHERE id=1")->language;
+                if (strcasecmp($link->language, $system_language) !== 0 and Ini::get("auto_translate")) {
+                    self::getTranslation($link, $system_language);
+                    $link->language = $system_language;
+                }
             }
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function checkMarkdown(stdClass $link)
+        {
+            (new UserException("Empty markdown"))(!empty($link));
+            // render article text
+            $link->xtext = empty($link->markdown) ? null : (string)(new Text($link->markdown))->parseDown(new ParsedownFilter);
+            assert(mb_check_encoding($link->xtext, 'UTF-8'));
+            $link->description = empty($link->xtext) ? null : (string)(new Text($link->xtext))->blurbify();
         }
 
         // ----------------------------------------------------------
@@ -403,26 +423,26 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function previewLink(stdClass $link): stdClass
+        static public function getTranslationPrim(string $text, string $target_lang = "nl"): string
         {
-            // render article text
-            $link->xtext = empty($link->markdown) ? null : (string)(new Text($link->markdown))->parseDown(new ParsedownFilter);
-            // one of the ParseDonw-filters collected tag candidates based on typograhpy
-            $harvested_tags = TagHarvester::getTags();
-            assert(mb_check_encoding($link->xtext, 'UTF-8'));
-            $link->description = empty($link->xtext) ? null : (string)(new Text($link->xtext))->blurbify();
+            $postdata = http_build_query(
+                ['auth_key' => Ini::get("deepl_auth_key"),
+                    'target_lang' => $target_lang,
+                    'text' => $text,]
+            );
+            $opts = ['http' =>
+                ['method' => 'POST',
+                    'header' => 'Content-Type: application/x-www-form-urlencoded',
+                    'content' => $postdata,],
+            ];
+            $translation = file_get_contents(Ini::get("deepl_api_url"), false, stream_context_create($opts));
+            error_log($translation);
+            return json_decode($translation, true)["translations"][0]["text"] ?? $text;
+        }
 
-            self::checkLanguage($link);
-            self::checkTitle($link);
-            self::checkUrl($link);
-            self::checkImage($link);
-            self::checkCopyright($link);
-            if (sizeof($link->tags ?? []) === 0) {
-                $link->tags = array_merge($link->tags, $harvested_tags, self::suggestTags($link->title, $link->description));
-            }
-            $link->tags = self::sanitizeTags($link->tags);
-
-            return $link;
+        static public function getTranslation(stdClass $link, $language)
+        {
+            $link->markdown = Memcache::call_user_func_array([__CLASS__, "getTranslationPrim"], [$link->markdown, $language], 1000);
         }
 
         // ----------------------------------------------------------
@@ -432,9 +452,6 @@ namespace Zaplog\Library {
         static public function generateDiff(stdClass $old, stdClass $new)
         {
             $xtext = "";
-            if (strcmp($old->language, $new->language) !== 0) {
-                $xtext .= "<p><em>language changed: </em><del>$old->language</del><ins>$new->language</ins></p>";
-            }
             if (strcmp($old->copyright, $new->copyright) !== 0) {
                 $xtext .= "<p><em>copyright changed: </em><del>$old->copyright</del><ins>$new->copyright</ins></p>";
             }
@@ -464,8 +481,18 @@ namespace Zaplog\Library {
 
         static public function postLink(stdClass $link): stdClass
         {
-            // use exact same content as preview would show
-            self::previewLink($link);
+            self::checkTranslation($link);
+            self::checkMarkdown($link);
+            self::checkTitle($link);
+            self::checkUrl($link);
+            self::checkImage($link);
+            self::checkCopyright($link);
+            if (sizeof($link->tags ?? []) === 0) {
+                // one of the ParseDonw-filters collected tag candidates based on typograhpy
+                $harvested_tags = TagHarvester::getTags();
+                $link->tags = array_merge($link->tags, $harvested_tags, self::suggestTags($link->title, $link->description));
+            }
+            $link->tags = self::sanitizeTags($link->tags);
 
             $sqlparams = [
                 ":channelid" => $link->channelid,
