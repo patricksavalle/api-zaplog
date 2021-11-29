@@ -29,7 +29,6 @@ namespace Zaplog {
     use Zaplog\Library\Methods;
     use Zaplog\Library\TwoFactorAction;
     use Zaplog\Middleware\Authentication;
-    use Zaplog\Plugins\MetadataParser;
     use Zaplog\Plugins\ResponseFilter;
 
     class Api extends SlimRestApi

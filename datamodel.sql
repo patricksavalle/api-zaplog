@@ -196,7 +196,7 @@ BEGIN
     IF (NEW.published=FALSE AND OLD.published=TRUE) THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Cannot unpublish only delete';
     END IF;
-    IF (NEW.published=TRUE AND OLD.published=FALSE) THEN
+    IF (OLD.published=FALSE) THEN
         SET NEW.createdatetime = CURRENT_TIMESTAMP;
     END IF;
 END//
