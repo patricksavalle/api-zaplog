@@ -377,11 +377,11 @@ namespace Zaplog\Library {
 
         static public function checkMarkdown(stdClass $link)
         {
-            (new UserException("Empty markdown"))(!empty($link));
+            (new UserException("Empty markdown"))(!empty($link->markdown));
             // render article text
-            $link->xtext = empty($link->markdown) ? null : (string)(new Text($link->markdown))->parseDown(new ParsedownFilter);
+            $link->xtext = (string)(new Text($link->markdown))->parseDown(new ParsedownFilter);
             assert(mb_check_encoding($link->xtext, 'UTF-8'));
-            $link->description = empty($link->xtext) ? null : (string)(new Text($link->xtext))->blurbify();
+            $link->description = (string)(new Text($link->xtext))->blurbify();
         }
 
         // ----------------------------------------------------------
