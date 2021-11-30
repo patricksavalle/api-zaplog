@@ -15,8 +15,9 @@ namespace Zaplog\Plugins\MetadataParsers {
             try {
                 $details = (new Parser)->parseFile($url)->getDetails();
                 $metadata['url'] = $url;
-                $metadata['title'] = $details['Title'] ?? null;
+                $metadata['title'] = $details['Title'][0] ?? $details['Title'] ?? null;
                 $metadata['author'] = $details['Author'] ?? null;
+                error_log(print_r($metadata,true));
                 return $metadata;
             } catch (Exception $e) {
                 throw new Exception($e->getMessage(), 400);

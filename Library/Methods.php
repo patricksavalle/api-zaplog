@@ -364,7 +364,7 @@ namespace Zaplog\Library {
                 $link->language = null;
             } else {
                 $system_language = Db::fetch("SELECT language FROM channels WHERE id=1")->language;
-                if (strcasecmp($link->language, $system_language) !== 0 and Ini::get("auto_translate")) {
+                if (strcasecmp($link->language, $system_language) !== 0 /*and Ini::get("auto_translate")*/) {
                     $link->tags = [];
                     self::getTranslation($link, $system_language);
                     $link->language = $system_language;
@@ -415,7 +415,9 @@ namespace Zaplog\Library {
         {
             $metadata = MetadataParser::getMetadata($url);
             if (sizeof($metadata["keywords"] ?? []) === 0) {
-                $metadata['keywords'] = array_merge($metadata["keywords"], self::suggestTags($metadata["title"], $metadata["description"]));
+                $metadata['keywords'] = array_merge(
+                    $metadata["keywords"] ?? [],
+                    self::suggestTags($metadata["title"], $metadata["description"] ?? ""));
             }
             return $metadata;
         }
