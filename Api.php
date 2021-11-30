@@ -390,8 +390,7 @@ namespace Zaplog {
                         '{markdown:\raw}',
                         '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))},No Rights Reserved (CC0 1.0)',
                         '{published:\boolean},true',
-                        '{tags[]:.{0,40}},null',
-                        '{*}']))
+                        '{tags[]:.{0,40}},null']))
                     ->add(new Authentication);
 
                 // ----------------------------------------------------------------
