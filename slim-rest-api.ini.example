@@ -8,7 +8,7 @@ default_post_image=https://api.zaplog.pro/content/dark-background-3494082_1280.j
 broken_link_redirector="http://localhost:8080/Api.php/goto?urlencoded="
 
 [translation]
-auto_translate=1
+auto_translate=0
 deepl_auth_key=
 deepl_api_url=https://api-free.deepl.com/v2/translate
 

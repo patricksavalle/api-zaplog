@@ -1,17 +1,16 @@
 ; Example ini, needs to be placed in webroot
 
 [general]
-api_domain=${api_domain}
-webarchive_save_link=https://web.archive.org/save/
-admins[]=
 email_admin=${email_admin}
-frontpage_language=nl
 
 [content]
 default_post_image=https://api.zaplog.pro/content/dark-background-3494082_1280.jpg
-frontpage_mode=${frontpage_mode}
 broken_link_redirector=${ZAPLOG_GOTO_URL}
-content_languages=ar,cs,da,de,el,en,es,fi,fr,hu,it,nl,no,pl,pt,ro,ru,sk,sv,tr
+
+[translation]
+auto_translate=0
+deepl_auth_key=
+deepl_api_url=https://api-free.deepl.com/v2/translate
 
 [memcache]
 memcache_host=${MEMCACHED_HOST}
@@ -33,7 +32,6 @@ database_user=${ZAPLOG_DB_USER}
 database_password=${ZAPLOG_DB_PASSWORD}
 database_charset=utf8
 database_query_logging=${ZAPLOG_DB_QUERY_LOGGING}
-
 
 [smtp]
 smtp_host=${ZAPLOG_MAIL_HOST}
