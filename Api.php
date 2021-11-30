@@ -381,23 +381,17 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     $args->channelid = Authentication::getSession()->id;
-                    return self::response($request, $response, $args, $args->preview
-                        ? Methods::previewLink($args)
-                        // TODO front end must use link instead of link->id
-                        : Methods::postLink($args)->id);
+                    return self::response($request, $response, $args, Methods::postLink($args));
                 })
-                    ->add(new QueryParameters(['{preview:\boolean},0']))
                     ->add(new BodyParameters([
-                        '{id:\d+},null',    // only set when update is required
+                        '{id:\d+},null',    // empty will create new post (id is returned)
                         '{url:\url},null',
-                        '{mimetype:[-\w.]+\/[-\w.]+},null', // TODO this is ignored, front can drop the parameter
                         '{title:.{3,256}}',
                         '{markdown:\raw}',
-                        '{language:[a-z]{0,2}},null', // TODO this is ignored, front can drop the parameter
                         '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))},No Rights Reserved (CC0 1.0)',
-                        '{image:\url},null',        // TODO this is ignored, front can drop the parameter
                         '{published:\boolean},true',
-                        '{tags[]:.{0,40}},null',]))
+                        '{tags[]:.{0,40}},null',
+                        '{*}']))
                     ->add(new Authentication);
 
                 // ----------------------------------------------------------------
