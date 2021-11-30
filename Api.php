@@ -236,7 +236,7 @@ namespace Zaplog {
                     '{channel:\d{1,10}},null',
                     '{offset:\int},0',
                     '{count:\int},250',
-                    '{grouped:\boolean},true',]))
+                    '{grouped:\boolean},1',]))
                 ->add(new Memcaching(60/*sec*/));
 
             // ------------------------------------------------
@@ -389,7 +389,7 @@ namespace Zaplog {
                         '{title:.{3,256}}',
                         '{markdown:\raw}',
                         '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))},No Rights Reserved (CC0 1.0)',
-                        '{published:\boolean},true',
+                        '{published:\boolean},0',
                         '{tags[]:.{0,40}},null']))
                     ->add(new Authentication);
 

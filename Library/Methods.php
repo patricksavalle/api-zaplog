@@ -554,7 +554,8 @@ namespace Zaplog\Library {
 
             // insert tags
             if (!empty($link->tags)) {
-                self::postTags($link->id, $link->channelid, $link->tags);
+                /** @noinspection PhpCastIsUnnecessaryInspection */
+                self::postTags((int)$link->id, (int)$link->channelid, $link->tags);
             }
 
             // archive the link
