@@ -1,4 +1,4 @@
-FROM php:apache
+FROM php:8.0.13-apache
 
 RUN apt-get update
 RUN apt-get install -y libz-dev libmemcached-dev apt-utils git unzip libzip-dev && \
