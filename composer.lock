@@ -505,12 +505,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/patricksavalle/php-content-syndication.git",
-                "reference": "0cffd704bcc96805395c6e05e804d8987abcfaa9"
+                "reference": "bbb266a259ae82f5503e569551df58ffbdbfcc37"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/patricksavalle/php-content-syndication/zipball/0cffd704bcc96805395c6e05e804d8987abcfaa9",
-                "reference": "0cffd704bcc96805395c6e05e804d8987abcfaa9",
+                "url": "https://api.github.com/repos/patricksavalle/php-content-syndication/zipball/bbb266a259ae82f5503e569551df58ffbdbfcc37",
+                "reference": "bbb266a259ae82f5503e569551df58ffbdbfcc37",
                 "shasum": ""
             },
             "require": {
@@ -555,7 +555,7 @@
                 "issues": "https://github.com/patricksavalle/php-content-syndication/issues",
                 "source": "https://github.com/patricksavalle/php-content-syndication/tree/master"
             },
-            "time": "2021-11-24T15:59:29+00:00"
+            "time": "2021-11-27T20:42:24+00:00"
         },
         {
             "name": "patricksavalle/slim-request-params",
@@ -726,16 +726,16 @@
         },
         {
             "name": "phpmailer/phpmailer",
-            "version": "v6.5.1",
+            "version": "v6.5.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/PHPMailer/PHPMailer.git",
-                "reference": "dd803df5ad7492e1b40637f7ebd258fee5ca7355"
+                "reference": "baeb7cde6b60b1286912690ab0693c7789a31e71"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/PHPMailer/PHPMailer/zipball/dd803df5ad7492e1b40637f7ebd258fee5ca7355",
-                "reference": "dd803df5ad7492e1b40637f7ebd258fee5ca7355",
+                "url": "https://api.github.com/repos/PHPMailer/PHPMailer/zipball/baeb7cde6b60b1286912690ab0693c7789a31e71",
+                "reference": "baeb7cde6b60b1286912690ab0693c7789a31e71",
                 "shasum": ""
             },
             "require": {
@@ -792,7 +792,7 @@
             "description": "PHPMailer is a full-featured email creation and transfer class for PHP",
             "support": {
                 "issues": "https://github.com/PHPMailer/PHPMailer/issues",
-                "source": "https://github.com/PHPMailer/PHPMailer/tree/v6.5.1"
+                "source": "https://github.com/PHPMailer/PHPMailer/tree/v6.5.3"
             },
             "funding": [
                 {
@@ -800,7 +800,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2021-08-18T09:14:16+00:00"
+            "time": "2021-11-25T16:34:11+00:00"
         },
         {
             "name": "pimple/pimple",
