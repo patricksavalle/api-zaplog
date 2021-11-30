@@ -365,6 +365,7 @@ namespace Zaplog\Library {
             } else {
                 $system_language = Db::fetch("SELECT language FROM channels WHERE id=1")->language;
                 if (strcasecmp($link->language, $system_language) !== 0 and Ini::get("auto_translate")) {
+                    $link->tags = [];
                     self::getTranslation($link, $system_language);
                     $link->language = $system_language;
                 }
@@ -481,54 +482,56 @@ namespace Zaplog\Library {
 
         static public function postLink(stdClass $link): stdClass
         {
-            self::checkTranslation($link);
-            self::checkMarkdown($link);
-            self::checkTitle($link);
-            self::checkUrl($link);
-            self::checkImage($link);
-            self::checkCopyright($link);
-            if (sizeof($link->tags ?? []) === 0) {
-                // one of the ParseDonw-filters collected tag candidates based on typograhpy
-                $harvested_tags = TagHarvester::getTags();
-                $link->tags = array_merge($link->tags, $harvested_tags, self::suggestTags($link->title, $link->description));
-            }
-            $link->tags = self::sanitizeTags($link->tags);
-
-            $sqlparams = [
-                ":channelid" => $link->channelid,
-                ":url" => $link->url,
-                ":title" => $link->title,
-                ":markdown" => $link->markdown,
-                ":xtext" => $link->xtext,
-                ":description" => $link->description,
-                ":image" => $link->image,
-                ":mimetype" => $link->mimetype,
-                ":language" => $link->language,
-                ":copyright" => $link->copyright,
-                ":published" => $link->published,
-            ];
-
-            if (empty($link->id)) {
-
-                (new ServerException)(Db::execute(
-                        "INSERT INTO links(url, channelid, title, markdown, xtext, description, image, mimetype, language, copyright, published)
-                        VALUES (:url, :channelid, :title, :markdown, :xtext, :description, :image, :mimetype, :language, :copyright, :published)",
-                        $sqlparams)->rowCount() > 0);
-                $link->id = (int)Db::lastInsertId();
-
-            } else {
-
-                $sqlparams[":id"] = $link->id;
-
-                // get old version for diff
-                $old_link = Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $link->id]);
-
-                if ($old_link->published and !$link->published) {
-                    throw new UserException("Cannot unpublish only delete");
+            try {
+                error_log(print_r($link, true));
+                self::checkTranslation($link);
+                self::checkMarkdown($link);
+                self::checkTitle($link);
+                self::checkUrl($link);
+                self::checkImage($link);
+                self::checkCopyright($link);
+                if (sizeof($link->tags ?? []) === 0) {
+                    // one of the ParseDonw-filters collected tag candidates based on typograhpy
+                    $harvested_tags = TagHarvester::getTags();
+                    $link->tags = array_merge($link->tags, $harvested_tags, self::suggestTags($link->title, $link->description));
                 }
+                $link->tags = self::sanitizeTags($link->tags);
 
-                (new UserException("Unchanged"))(Db::execute(
-                        "UPDATE links SET
+                $sqlparams = [
+                    ":channelid" => $link->channelid,
+                    ":url" => $link->url,
+                    ":title" => $link->title,
+                    ":markdown" => $link->markdown,
+                    ":xtext" => $link->xtext,
+                    ":description" => $link->description,
+                    ":image" => $link->image,
+                    ":mimetype" => $link->mimetype,
+                    ":language" => $link->language,
+                    ":copyright" => $link->copyright,
+                    ":published" => $link->published,
+                ];
+
+                if (empty($link->id)) {
+
+                    (new ServerException)(Db::execute(
+                            "INSERT INTO links(url, channelid, title, markdown, xtext, description, image, mimetype, language, copyright, published)
+                        VALUES (:url, :channelid, :title, :markdown, :xtext, :description, :image, :mimetype, :language, :copyright, :published)",
+                            $sqlparams)->rowCount() > 0);
+                    $link->id = (int)Db::lastInsertId();
+
+                } else {
+
+                    $sqlparams[":id"] = $link->id;
+
+                    // get old version for diff
+                    $old_link = Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $link->id]);
+
+                    if ($old_link->published and !$link->published) {
+                        throw new UserException("Cannot unpublish only delete");
+                    }
+
+                    (new UserException("Unchanged"))(Db::execute(
+                            "UPDATE links SET
                             url=:url, 
                             title=:title,
                             markdown=:markdown, 
@@ -541,28 +544,32 @@ namespace Zaplog\Library {
                             published=:published
                         WHERE id=:id AND channelid=:channelid", $sqlparams)->rowCount() >= 0);
 
-                // remove the tags that this user / channel added
-                Db::execute("DELETE FROM tags WHERE linkid=:id AND channelid=:channelid", [":id" => $link->id, ":channelid" => $link->channelid]);
+                    // remove the tags that this user / channel added
+                    Db::execute("DELETE FROM tags WHERE linkid=:id AND channelid=:channelid", [":id" => $link->id, ":channelid" => $link->channelid]);
 
-                // create diff as reaction
-                if ($link->published === true) {
-                    self::generateDiff($old_link, $link);
+                    // create diff as reaction
+                    if ($link->published === true) {
+                        self::generateDiff($old_link, $link);
+                    }
                 }
-            }
 
-            // insert tags
-            if (!empty($link->tags)) {
-                self::postTags($link->id, $link->channelid, $link->tags);
-            }
+                // insert tags
+                if (!empty($link->tags)) {
+                    self::postTags($link->id, $link->channelid, $link->tags);
+                }
 
-            // archive the link
-            try {
-                if (!empty($link->url)) ArchiveOrg::archiveAsync($link->url);
-            } catch (Exception $e) {
-                error_log($e->getMessage() . $link->url);
-            }
+                // archive the link
+                try {
+                    if (!empty($link->url)) ArchiveOrg::archiveAsync($link->url);
+                } catch (Exception $e) {
+                    error_log($e->getMessage() . $link->url);
+                }
 
-            return $link;
+                return $link;
+            } catch( Exception $exception) {
+                error_log($exception->getTraceAsString());
+                throw $exception;
+            }
         }
 
         // ----------------------------------------------------------
