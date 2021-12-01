@@ -510,8 +510,6 @@ namespace Zaplog\Library {
                 ":published" => $link->published ? 1 : 0,
             ];
 
-            error_log((string)(int)$sqlparams[':published']);
-
             if (empty($link->id)) {
 
                 (new ServerException)(Db::execute(
