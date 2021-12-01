@@ -649,8 +649,9 @@ namespace Zaplog\Library {
             Db::execute("UPDATE links SET viewscount=viewscount+1 WHERE id=:id", [":id" => $id]);
 
             // get post
+            // TODO must be authenticated for published=FALSE
             $link = (new ResourceNotFoundException)(Db::fetch("SELECT * FROM links 
-                WHERE id=:id AND published=TRUE", [":id" => $id]));
+                WHERE id=:id", [":id" => $id]));
 
             // some updates in the plugin system clear the xtext -> parse and store again
             if (empty($link->xtext)) {
