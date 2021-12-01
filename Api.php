@@ -458,7 +458,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    $channelid = 2; //Authentication::getSession()->id;
+                    $channelid = Authentication::getSession()->id;
                     return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM links
                         WHERE published=FALSE AND channelid=:channelid ORDER BY id DESC", [":channelid" => $channelid]));
                 })
