@@ -458,11 +458,11 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    $channelid = Authentication::getSession()->id;
+                    $channelid = 2; //Authentication::getSession()->id;
                     return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM links
-                        WHERE unpublished=TRUE AND channelid=:channelid", [":channelid" => $channelid]));
+                        WHERE published=FALSE AND channelid=:channelid ORDER BY id DESC", [":channelid" => $channelid]));
                 })
-                    ->add(new Authentication);
+                   ->add(new Authentication);
 
                 // -----------------------------------------------------
                 // Returns the top scoring links for a given tag
