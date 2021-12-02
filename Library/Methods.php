@@ -548,7 +548,7 @@ namespace Zaplog\Library {
 
                 // create diff as reaction
                 if ($link->published === true) {
-                    self::generateDiff($old_link, $link);
+                    // self::generateDiff($old_link, $link);
                 }
             }
 

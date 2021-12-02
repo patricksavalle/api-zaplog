@@ -79,8 +79,8 @@ namespace Zaplog\Plugins {
                 return $metadata;
 
             } catch (Exception $e) {
-                error_log($e->getFile()."(".$e->getLine() . "): " .$e->getMessage() . " @ " . $url );
-                throw new UserException($e->getMessage());
+                error_log($e->getFile() . $e->getLine() . ": " . $e->getMessage() . " @ " . $url);
+                throw new UserException("Invalid link or document format");
             }
         }
     }
