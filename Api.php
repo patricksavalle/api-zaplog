@@ -344,7 +344,7 @@ namespace Zaplog {
                         '{header:\url},null',
                         '{bio:\xtext},null',
                         '{language:[a-z]{2}},nl',
-                        '{algorithm:(channel|voted|mixed|popular|all))},mixed',
+                        '{algorithm:(channel|voted|mixed|popular|all)},mixed',
                         '{bitcoinaddress:\bitcoinaddress},null']))
                     ->add(new Authentication);
 

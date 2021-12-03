@@ -575,6 +575,11 @@ namespace Zaplog\Library {
         static public function patchChannel(stdClass $channel): stdClass
         {
             $channel->name = (string)(new Text($channel->name))->convertToAscii()->hyphenize();
+            if ($channel->channelid !== 1) {
+                if (!in_array($channel->algorithm, ["channel", "voted", "mixed"])) {
+                    throw new UserException("This channel only supports ('channel', 'voted', 'mixed')");
+                }
+            }
             try {
                 if (!is_null($channel->avatar)) {
                     $resized_avatar = (string)(ImageResize::createFromString(file_get_contents($channel->avatar)))->crop(64, 64);
