@@ -364,7 +364,7 @@ namespace Zaplog\Library {
                 $link->language = null;
             } else {
                 $system_language = Db::fetch("SELECT language FROM channels WHERE id=1")->language;
-                if (strcasecmp($link->language, $system_language) !== 0 and Ini::get("auto_translate")) {
+                if ($link->language !== $system_language and Ini::get("auto_translate")) {
                     $link->tags = [];
                     self::getTranslation($link, $system_language);
                     $link->language = $system_language;
