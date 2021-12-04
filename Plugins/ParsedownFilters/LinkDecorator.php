@@ -18,7 +18,7 @@ namespace Zaplog\Plugins\ParsedownFilters {
                 static $redirector = null;
                 if ($redirector === null) $redirector = Ini::get("broken_link_redirector");
                 if (isset($element['attributes']['href'])) {
-                    $element['attributes']['href'] = $redirector . $element['attributes']['href'];
+                    $element['attributes']['href'] = $redirector . urlencode($element['attributes']['href']);
                 }
 
                 // add target= to links
