@@ -441,6 +441,7 @@ namespace Zaplog\Library {
                     'content' => $postdata,],
             ];
             $translation = file_get_contents(Ini::get("deepl_api_url"), false, stream_context_create($opts));
+            error_log("TRANSLATION: " . print_r($translation, true));
             return json_decode($translation, true)["translations"][0]["text"] ?? $text;
         }
 
