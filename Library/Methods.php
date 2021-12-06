@@ -66,11 +66,13 @@ namespace Zaplog\Library {
             $algorithm = Db::fetch("SELECT algorithm FROM channels WHERE id=:id", [":id" => $channelid])->algorithm;
             switch ($algorithm) {
 
+                case "all":
                 case "channel":
                     // channel displays all posts made by this channel
                     return Db::fetchAll("SELECT * FROM links WHERE published=TRUE AND channelid=:channelid ORDER BY id DESC LIMIT :offset, :count",
                         [":channelid" => $channelid, ":offset" => $offset, ":count" => $count]);
 
+                case "popular":
                 case "voted":
                     // channel displays posts voted upon by this channel
                     return Db::fetchAll("SELECT links.* FROM links JOIN votes ON links.id=votes.linkid 
