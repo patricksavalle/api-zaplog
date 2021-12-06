@@ -15,7 +15,6 @@ namespace Zaplog\Library {
     use LanguageDetector\LanguageDetector;
     use SlimRestApi\Infra\Db;
     use SlimRestApi\Infra\Ini;
-    use SlimRestApi\Infra\Memcache;
     use stdClass;
     use Zaplog\Exception\ResourceNotFoundException;
     use Zaplog\Exception\ServerException;
@@ -441,13 +440,13 @@ namespace Zaplog\Library {
                     'content' => $postdata,],
             ];
             $translation = file_get_contents(Ini::get("deepl_api_url"), false, stream_context_create($opts));
-            error_log("TRANSLATION: " . print_r($translation, true));
             return json_decode($translation, true)["translations"][0]["text"] ?? $text;
         }
 
         static public function getTranslation(stdClass $link, $language)
         {
-            $link->markdown = Memcache::call_user_func_array([__CLASS__, "getTranslationPrim"], [$link->markdown, $language], 1000);
+            $link->markdown = self::getTranslationPrim($link->markdown, $language);
+//            $link->markdown = Memcache::call_user_func_array([__CLASS__, "getTranslationPrim"], [$link->markdown, $language], 1000);
         }
 
         // ----------------------------------------------------------
