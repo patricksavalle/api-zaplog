@@ -284,14 +284,14 @@ namespace Zaplog {
             $this->group('/channels', function () {
 
                 // ----------------------------------------------------------------
-                // Return all channels, only public fields
+                // Return all channels
                 // ----------------------------------------------------------------
 
                 $this->get("", function (
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM channels_public_view
+                    return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM channels
                         ORDER BY name LIMIT :offset,:count", [":offset" => $args->offset, ":count" => $args->count]));
                 })
                     ->add(new QueryParameters([
@@ -359,7 +359,7 @@ namespace Zaplog {
                     return self::response($request, $response, $args, [
                         "top10" => Db::fetchAll("SELECT * FROM topchannels LIMIT :count", [":count" => $args->count]),
                         "updated10" => Db::fetchAll("SELECT * FROM updatedchannels LIMIT :count", [":count" => $args->count]),
-                        "discussing" => Db::fetchAll("SELECT channels.* FROM channels_public_view AS channels JOIN (
+                        "discussing" => Db::fetchAll("SELECT channels.* FROM channels JOIN (
                                 SELECT DISTINCT channelid FROM reactions ORDER BY id DESC LIMIT :count
                             ) AS reactions ON channels.id=reactions.channelid
                             GROUP BY channels.id DESC", [":count" => $args->count]),

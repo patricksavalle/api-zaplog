@@ -156,7 +156,7 @@ namespace Zaplog\Library {
         static public function trendingchannelsQuery(): string
         {
             $frontpage = self::frontpageQuery();
-            return "SELECT channels.* FROM channels_public_view AS channels
+            return "SELECT channels.* FROM channels
                 JOIN ($frontpage) AS x ON x.channelid=channels.id
                 GROUP BY channels.id
                 ORDER BY SUM(channels.score) DESC LIMIT 20";
@@ -190,7 +190,7 @@ namespace Zaplog\Library {
                     FROM (SELECT * FROM interactions WHERE (:channelid1 IS NULL OR interactions.channelid=:channelid2)
                             ORDER BY id DESC
                             LIMIT :offset, :count) AS interactions
-                    JOIN channels_public_view AS channels ON channels.id=interactions.channelid
+                    JOIN channels ON channels.id=interactions.channelid
                     LEFT JOIN links ON links.id=interactions.linkid AND interactions.type = 'on_insert_link' 
                     ORDER BY interactions.id DESC",
                 [
@@ -238,7 +238,7 @@ namespace Zaplog\Library {
         static public function getSingleChannel(string $id): array
         {
             return [
-                "channel" => (new ResourceNotFoundException)(Db::fetch("SELECT * FROM channels_public_view WHERE id=:id", [":id" => $id])),
+                "channel" => (new ResourceNotFoundException)(Db::fetch("SELECT * FROM channels WHERE id=:id", [":id" => $id])),
 
                 "tags" => Db::fetchAll("SELECT tag, COUNT(tag) AS tagscount 
                     FROM tags JOIN links ON tags.linkid=links.id  
@@ -255,7 +255,7 @@ namespace Zaplog\Library {
                         LIMIT 10
                     ) AS ttags
                     JOIN tags ON ttags.tag=tags.tag 
-                    JOIN channels_public_view AS channels ON tags.channelid=channels.id
+                    JOIN channels ON tags.channelid=channels.id
                     AND channels.id<>:channelid2
                     GROUP BY channels.id ORDER BY COUNT(tags.tag) DESC LIMIT 5",
                     ["channelid1" => $id, "channelid2" => $id], 60 * 60),
@@ -577,11 +577,6 @@ namespace Zaplog\Library {
         static public function patchChannel(stdClass $channel): stdClass
         {
             $channel->name = (string)(new Text($channel->name))->convertToAscii()->hyphenize();
-            if ($channel->channelid !== 1) {
-                if (!in_array($channel->algorithm, ["channel", "voted", "mixed"])) {
-                    throw new UserException("This channel only supports ('channel', 'voted', 'mixed')");
-                }
-            }
             try {
                 if (!is_null($channel->avatar)) {
                     $resized_avatar = (string)(ImageResize::createFromString(file_get_contents($channel->avatar)))->crop(64, 64);
@@ -668,7 +663,7 @@ namespace Zaplog\Library {
             return [
                 "link" => $link,
 
-                "channel" => Db::fetch("SELECT * FROM channels_public_view WHERE id=:id", [":id" => $link->channelid]),
+                "channel" => Db::fetch("SELECT * FROM channels WHERE id=:id", [":id" => $link->channelid]),
 
                 "tags" => Db::fetchAll("SELECT * FROM tags WHERE linkid=:id GROUP BY tag", [":id" => $id]),
 
@@ -678,7 +673,7 @@ namespace Zaplog\Library {
                     GROUP BY links.id ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT 5",
                     [":id1" => $id, ":id2" => $id], 60 * 20),
 
-                "interactors" => Db::fetchAll("SELECT c.id, c.name, c.avatar, GROUP_CONCAT(action) AS interactions FROM channels_public_view AS c JOIN
+                "interactors" => Db::fetchAll("SELECT c.id, c.name, c.avatar, GROUP_CONCAT(action) AS interactions FROM channels AS c JOIN
                     (SELECT channelid, 'links' AS action FROM links WHERE id=:id1
                     UNION SELECT channelid, 'reactions' AS action FROM reactions WHERE linkid=:id2
                     UNION SELECT channelid, 'tags' AS action  FROM tags WHERE linkid=:id3
@@ -694,7 +689,7 @@ namespace Zaplog\Library {
 
         static public function getTopChannelsForTag(string $tag, int $count): array
         {
-            return Db::fetchAll("SELECT channels.* FROM channels_public_view AS channels
+            return Db::fetchAll("SELECT channels.* FROM channels
                         JOIN tags ON tags.channelid=channels.id
                         JOIN links ON tags.linkid=links.id
                         WHERE tag=:tag

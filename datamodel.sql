@@ -88,13 +88,6 @@ DELIMITER ;
 INSERT INTO channels(name,userid) VALUES ("admin", "");
 
 -- -----------------------------------------------------
--- For public queries. Hide privacy data.
--- -----------------------------------------------------
-
-CREATE VIEW channels_public_view AS
-    SELECT id,name,createdatetime,updatedatetime,bio,avatar,score,ROUND(reputation) AS reputation FROM channels;
-
--- -----------------------------------------------------
 -- The links that are being shared, rated, etc.
 -- -----------------------------------------------------
 
@@ -538,7 +531,7 @@ DELIMITER ;
 -- optimal/profiled
 CREATE VIEW activeusers AS
     SELECT DISTINCT channels.*
-    FROM channels_public_view AS channels JOIN interactions ON interactions.channelid=channels.id
+    FROM channels JOIN interactions ON interactions.channelid=channels.id
     WHERE interactions.datetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 HOUR);
 
 -- -----------------------------------------------------
@@ -575,11 +568,11 @@ CREATE VIEW newtopics AS
 
 -- optimal/profiled
 CREATE VIEW topchannels AS
-    SELECT channels.* FROM channels_public_view AS channels ORDER BY reputation DESC LIMIT 50;
+    SELECT channels.* FROM channels ORDER BY reputation DESC LIMIT 50;
 
 -- optimal/profiled
 CREATE VIEW updatedchannels AS
-    SELECT DISTINCT channels.* FROM channels_public_view AS channels
+    SELECT DISTINCT channels.* FROM channels
     JOIN links ON links.channelid=channels.id
     GROUP BY channels.id
     ORDER BY MAX(links.id) DESC LIMIT 50;

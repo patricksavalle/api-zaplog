@@ -563,12 +563,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/patricksavalle/slim-request-params.git",
-                "reference": "c41cf33702ec28cf92d8ab81993e64c723422ccf"
+                "reference": "7d0ee7233e8b753d1dbe4f433e9b79786d169cfa"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/patricksavalle/slim-request-params/zipball/c41cf33702ec28cf92d8ab81993e64c723422ccf",
-                "reference": "c41cf33702ec28cf92d8ab81993e64c723422ccf",
+                "url": "https://api.github.com/repos/patricksavalle/slim-request-params/zipball/7d0ee7233e8b753d1dbe4f433e9b79786d169cfa",
+                "reference": "7d0ee7233e8b753d1dbe4f433e9b79786d169cfa",
                 "shasum": ""
             },
             "require": {
@@ -609,7 +609,7 @@
                 "issues": "https://github.com/patricksavalle/slim-request-params/issues",
                 "source": "https://github.com/patricksavalle/slim-request-params/tree/master"
             },
-            "time": "2021-12-04T18:28:37+00:00"
+            "time": "2021-12-06T10:18:56+00:00"
         },
         {
             "name": "patricksavalle/slim-rest-api",
