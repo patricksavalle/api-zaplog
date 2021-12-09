@@ -79,7 +79,7 @@ namespace Zaplog {
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                Methods::checkTranslation($args);
+                Methods::getTranslation($args, "nl");
                 return self::response($request, $response, $args, $args->markdown);
             })
                 ->add(new BodyParameters(['{markdown:\raw}']));
