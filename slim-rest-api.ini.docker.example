@@ -9,7 +9,7 @@ broken_link_redirector=${ZAPLOG_GOTO_URL}
 
 [translation]
 auto_translate=0
-deepl_auth_key=
+deepl_auth_key=${deepl_auth_key}
 deepl_api_url=https://api-free.deepl.com/v2/translate
 
 [memcache]
