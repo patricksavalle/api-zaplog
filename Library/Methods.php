@@ -439,7 +439,6 @@ namespace Zaplog\Library {
                     'header' => 'Content-Type: application/x-www-form-urlencoded',
                     'content' => $postdata,],
             ];
-            error_log(print_r($opts, true));
             $translation = file_get_contents(Ini::get("deepl_api_url"), false, stream_context_create($opts));
             return json_decode($translation, true)["translations"][0]["text"] ?? $text;
         }
