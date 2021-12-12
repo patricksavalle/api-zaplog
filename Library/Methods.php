@@ -365,9 +365,9 @@ namespace Zaplog\Library {
                 $link->language = null;
             } else {
                 $system_language = Db::fetch("SELECT language FROM channels WHERE id=1")->language;
-                if ($link->language !== $system_language and Ini::get("auto_translate")) {
+                if ($link->language !== $system_language /*and Ini::get("auto_translate")*/) {
                     $link->tags = [];
-                    self::getTranslation($link, $system_language);
+                    $link->markdown = self::getTranslation($link->markdown, $system_language);
                     $link->language = $system_language;
                 }
             }
@@ -427,12 +427,12 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function getTranslation(stdClass $link, string $target_lang)
+        static public function getTranslation(string $text, string $target_lang): string
         {
             $postdata = http_build_query(
                 ['auth_key' => Ini::get("deepl_auth_key"),
                     'target_lang' => $target_lang,
-                    'text' => $link->markdown]
+                    'text' => $text]
             );
             $opts = ['http' =>
                 ['method' => 'POST',
@@ -440,7 +440,7 @@ namespace Zaplog\Library {
                     'content' => $postdata],
             ];
             $translation = file_get_contents(Ini::get("deepl_api_url"), false, stream_context_create($opts));
-            $link->markdown = json_decode($translation, true)["translations"][0]["text"] ?? $link->text;
+            return json_decode($translation, true)["translations"][0]["text"] ?? $text;
         }
 
         // ----------------------------------------------------------
