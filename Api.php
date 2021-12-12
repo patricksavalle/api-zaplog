@@ -75,15 +75,6 @@ namespace Zaplog {
                 return $rp;
             });
 
-            $this->post("/translate", function (
-                Request  $request,
-                Response $response,
-                stdClass $args): Response {
-                Methods::getTranslation($args, "nl");
-                return self::response($request, $response, $args, $args->markdown);
-            })
-                ->add(new BodyParameters(['{markdown:\raw}']));
-
             // ------------------------------------------
             // redirect to original or else archived page
             // ------------------------------------------

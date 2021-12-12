@@ -427,26 +427,20 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function getTranslationPrim(string $text, string $target_lang = "nl"): string
+        static public function getTranslation(stdClass $link, string $target_lang)
         {
             $postdata = http_build_query(
                 ['auth_key' => Ini::get("deepl_auth_key"),
                     'target_lang' => $target_lang,
-                    'text' => $text,]
+                    'text' => $link->markdown]
             );
             $opts = ['http' =>
                 ['method' => 'POST',
                     'header' => 'Content-Type: application/x-www-form-urlencoded',
-                    'content' => $postdata,],
+                    'content' => $postdata],
             ];
             $translation = file_get_contents(Ini::get("deepl_api_url"), false, stream_context_create($opts));
-            return json_decode($translation, true)["translations"][0]["text"] ?? $text;
-        }
-
-        static public function getTranslation(stdClass $link, $language)
-        {
-            $link->markdown = self::getTranslationPrim($link->markdown, $language);
-//            $link->markdown = Memcache::call_user_func_array([__CLASS__, "getTranslationPrim"], [$link->markdown, $language], 1000);
+            $link->markdown = json_decode($translation, true)["translations"][0]["text"] ?? $link->text;
         }
 
         // ----------------------------------------------------------
