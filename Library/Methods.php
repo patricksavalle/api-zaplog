@@ -504,14 +504,13 @@ namespace Zaplog\Library {
                 ":mimetype" => $link->mimetype,
                 ":language" => $link->language,
                 ":copyright" => $link->copyright,
-                ":published" => $link->published ? 1 : 0,
             ];
 
             if (empty($link->id)) {
 
                 (new ServerException)(Db::execute(
                         "INSERT INTO links(url, channelid, title, markdown, xtext, description, image, mimetype, language, copyright, published)
-                        VALUES (:url, :channelid, :title, :markdown, :xtext, :description, :image, :mimetype, :language, :copyright, :published)",
+                        VALUES (:url, :channelid, :title, :markdown, :xtext, :description, :image, :mimetype, :language, :copyright, FALSE)",
                         $sqlparams)->rowCount() > 0);
                 $link->id = (int)Db::lastInsertId();
 
@@ -520,11 +519,7 @@ namespace Zaplog\Library {
                 $sqlparams[":id"] = $link->id;
 
                 // get old version for diff
-                $old_link = Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $link->id]);
-
-                if ($old_link->published and !$link->published) {
-                    throw new UserException("Cannot unpublish only delete");
-                }
+                // $old_link = Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $link->id]);
 
                 (new UserException("Unchanged"))(Db::execute(
                         "UPDATE links SET
@@ -536,17 +531,16 @@ namespace Zaplog\Library {
                             image=:image, 
                             mimetype=:mimetype, 
                             language=:language, 
-                            copyright=:copyright,
-                            published=:published
+                            copyright=:copyright
                         WHERE id=:id AND channelid=:channelid", $sqlparams)->rowCount() >= 0);
 
                 // remove the tags that this user / channel added
                 Db::execute("DELETE FROM tags WHERE linkid=:id AND channelid=:channelid", [":id" => $link->id, ":channelid" => $link->channelid]);
 
                 // create diff as reaction
-                if ($link->published === true) {
-                    // self::generateDiff($old_link, $link);
-                }
+                // if ($link->published === true) {
+                //     self::generateDiff($old_link, $link);
+                // }
             }
 
             // insert tags

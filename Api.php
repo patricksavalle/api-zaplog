@@ -372,9 +372,10 @@ namespace Zaplog {
 
             $this->group('/links', function () {
 
-                // ------------------------------------------------------
-                // post a blog
-                // ------------------------------------------------------
+                // ------------------------------------------------------------------------------
+                // Post a blog concept, returns the blog with all automatic adjustments + id.
+                // Subsequent posts with that id are considered updates of the concept
+                // ------------------------------------------------------------------------------
 
                 $this->post("", function (
                     Request  $request,
@@ -389,12 +390,11 @@ namespace Zaplog {
                         '{title:.{3,256}}',
                         '{markdown:\raw}',
                         '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))},No Rights Reserved (CC0 1.0)',
-                        '{published:\boolean},0',
                         '{tags[]:.{0,40}},null']))
                     ->add(new Authentication);
 
                 // --------------------------------------------------
-                // publish a link by it's id
+                // publish a blog by it's id
                 // --------------------------------------------------
 
                 $this->post("/id/{id:\d{1,10}}", function (
