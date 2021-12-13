@@ -393,6 +393,20 @@ namespace Zaplog {
                         '{tags[]:.{0,40}},null']))
                     ->add(new Authentication);
 
+                // --------------------------------------------------
+                // publish a link by it's id
+                // --------------------------------------------------
+
+                $this->post("/id/{id:\d{1,10}}", function (
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
+                    $channelid = Authentication::getSession()->id;
+                    return self::response($request, $response, $args, (new UserException)(Db::execute("UPDATE links SET published=TRUE WHERE id=:id and channelid=:channelid",
+                            [":id" => $args->id, ":channelid" => $channelid])->rowCount() > 0));
+                })
+                    ->add(new Authentication);
+
                 // ----------------------------------------------------------------
                 // Return a link, including tags and related links
                 // ----------------------------------------------------------------
