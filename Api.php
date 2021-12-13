@@ -476,7 +476,7 @@ namespace Zaplog {
                     return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM links
                         WHERE published=FALSE AND channelid=:channelid ORDER BY id DESC", [":channelid" => $channelid]));
                 })
-                   ->add(new Authentication);
+                    ->add(new Authentication);
 
                 // -----------------------------------------------------
                 // Returns the top scoring links for a given tag
@@ -486,7 +486,10 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, Db::fetchAll("SELECT links.* FROM tags JOIN links ON tags.linkid=links.id 
+                    return self::response($request, $response, $args, Db::fetchAll("SELECT 
+                        links.id, links.channelid, links.createdatetime, links.url, links.language,
+                        links.title, links.copyright, links.description, links.image
+                      FROM tags JOIN links ON tags.linkid=links.id 
                         WHERE tags.tag=:tag AND published=TRUE ORDER BY links.id DESC LIMIT :offset,:count",
                         [":tag" => $args->tag, ":offset" => $args->offset, ":count" => $args->count]));
                 })
@@ -495,7 +498,6 @@ namespace Zaplog {
                         '{offset:\int},0',
                         '{count:\int},20',
                     ]));
-
             });
 
             $this->group('/reactions', function () {
