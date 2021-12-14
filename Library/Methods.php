@@ -9,6 +9,8 @@ namespace Zaplog\Library {
     require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
 
     use ContentSyndication\ArchiveOrg;
+    use ContentSyndication\HtmlMetadata;
+    use ContentSyndication\Mimetype;
     use ContentSyndication\Text;
     use Exception;
     use Gumlet\ImageResize;
@@ -19,7 +21,6 @@ namespace Zaplog\Library {
     use Zaplog\Exception\ResourceNotFoundException;
     use Zaplog\Exception\ServerException;
     use Zaplog\Exception\UserException;
-    use Zaplog\Plugins\MetadataParser;
     use Zaplog\Plugins\ParsedownFilter;
     use Zaplog\Plugins\ParsedownFilters\TagHarvester;
 
@@ -304,7 +305,7 @@ namespace Zaplog\Library {
             if (!empty($link->image)) {
                 $image_mimetype = "";
                 try {
-                    $image_mimetype = MetadataParser::getMimetype($link->image);
+                    $image_mimetype = (new Mimetype)($link->image);
                 } catch (Exception $e) {
                     // nothing
                 }
@@ -334,9 +335,9 @@ namespace Zaplog\Library {
                 $link->mimetype = null;
                 $link->image = null;
             } else {
-                $metadata = MetadataParser::getMetadata($link->url);
-                $link->url = $metadata['url'];
-                $link->mimetype = $metadata['mimetype'];
+                $metadata = (new HtmlMetadata)($link->url);
+                $link->mimetype = (new Mimetype)($link->url);
+                $link->url = ArchiveOrg::originalUrl($metadata['url']);
                 $link->image = $metadata['image'];
             }
         }
@@ -415,7 +416,7 @@ namespace Zaplog\Library {
 
         static public function getMetadata(string $url): array
         {
-            $metadata = MetadataParser::getMetadata($url);
+            $metadata = (new HtmlMetadata)($url);
             if (sizeof($metadata["keywords"] ?? []) === 0) {
                 $metadata['keywords'] = array_merge(
                     $metadata["keywords"] ?? [],
