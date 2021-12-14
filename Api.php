@@ -136,7 +136,7 @@ namespace Zaplog {
                 // -----------------------------------------------------
                 // change authenticated email, login again
                 // -----------------------------------------------------
-                http://0sw33.mjt.lu/lnk/AUsAAETQ1LUAAAAAAAAAAAB35zkAAAAAELgAAAAAABn1nwBhsd9WPql5DcVERYiBPfgh0joAKAAZFmc/1/-ndCm-hVfyWQXwvoP7BaZw/aHR0cDovL2xvY2FsaG9zdDo4MDgxLzJmYS9jN2MyMTRhNzhjOWRmNGZkOWU2ZDRiOWZlM2IxY2MwNQ,
+
                 $this->patch("", function (
                     Request  $request,
                     Response $response,
