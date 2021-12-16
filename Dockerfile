@@ -2,14 +2,12 @@ FROM php:8.0.13-apache
 
 RUN apt-get update
 RUN apt-get install -y libz-dev libmemcached-dev apt-utils git unzip libzip-dev && \
-    docker-php-ext-install zip pdo pdo_mysql && \
-    pecl install memcached  &&\
-    docker-php-ext-enable memcached
+    docker-php-ext-install zip pdo pdo_mysql 
 
 ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
 
 RUN chmod +x /usr/local/bin/install-php-extensions && \
-    install-php-extensions tidy gd apcu && \
+    install-php-extensions gd apcu && \
     php --ini
 
 WORKDIR /var/www/html/
