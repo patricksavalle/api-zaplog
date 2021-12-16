@@ -72,6 +72,11 @@ namespace Zaplog {
                     }
                 }
                 echo "</table>";
+
+                echo "<h2>APCu cache status</h2><pre>";
+                print_r(apcu_cache_info(true));
+                echo "</pre>";
+
                 return $rp;
             });
 
@@ -309,6 +314,7 @@ namespace Zaplog {
                     stdClass $args): Response {
                     return self::response($request, $response, $args, Methods::getSingleChannel($args->id));
                 })
+                    // don't cache, PATCH won't work
                     ->add(new QueryParameters([
                         '{offset:\int},0',
                         '{count:\int},20']));

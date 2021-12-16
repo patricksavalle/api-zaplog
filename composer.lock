@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2d39ebf729533426ab03cad98f7af7b9",
+    "content-hash": "1719f255544706fe360d644b2a4f1f09",
     "packages": [
         {
             "name": "atrox/haikunator",
@@ -617,15 +617,16 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/patricksavalle/slim-rest-api.git",
-                "reference": "78ebc68d7e65c66eaf0c84389d9c088b4dff2e3f"
+                "reference": "869dd0fcfde09bc846f6219d42f0053d5faaffd6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/patricksavalle/slim-rest-api/zipball/78ebc68d7e65c66eaf0c84389d9c088b4dff2e3f",
-                "reference": "78ebc68d7e65c66eaf0c84389d9c088b4dff2e3f",
+                "url": "https://api.github.com/repos/patricksavalle/slim-rest-api/zipball/869dd0fcfde09bc846f6219d42f0053d5faaffd6",
+                "reference": "869dd0fcfde09bc846f6219d42f0053d5faaffd6",
                 "shasum": ""
             },
             "require": {
+                "ext-apcu": "*",
                 "ext-json": "*",
                 "ext-openssl": "*",
                 "ext-pdo": "*",
@@ -669,7 +670,7 @@
                 "issues": "https://github.com/patricksavalle/slim-rest-api/issues",
                 "source": "https://github.com/patricksavalle/slim-rest-api/tree/master"
             },
-            "time": "2021-12-16T13:59:59+00:00"
+            "time": "2021-12-16T16:43:15+00:00"
         },
         {
             "name": "pavlakis/slim-cli",
@@ -1321,7 +1322,8 @@
         "ext-pdo": "*",
         "ext-curl": "*",
         "ext-gd": "*",
-        "ext-fileinfo": "*"
+        "ext-fileinfo": "*",
+        "ext-apcu": "*"
     },
     "platform-dev": [],
     "plugin-api-version": "2.1.0"

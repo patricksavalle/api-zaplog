@@ -12,10 +12,6 @@ auto_translate=0
 deepl_auth_key=
 deepl_api_url=https://api-free.deepl.com/v2/translate
 
-[memcache]
-memcache_host=localhost
-memcache_port=11211
-
 [cors]
 cors_origin[]=
 cors_origin[]=

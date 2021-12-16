@@ -42,7 +42,8 @@
     "multiavatar/multiavatar-php": "^1.0",
     "smalot/pdfparser": "^1.1",
     "landrok/language-detector":  "*",
-    "gumlet/php-image-resize": "1.9.*"
+    "gumlet/php-image-resize": "1.9.*",
+    "ext-apcu": "*"
   },
   "autoload": {
     "psr-4": {
