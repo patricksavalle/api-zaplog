@@ -311,8 +311,7 @@ namespace Zaplog {
                 })
                     ->add(new QueryParameters([
                         '{offset:\int},0',
-                        '{count:\int},20']))
-                    ->add(new Memcaching(60/*sec*/));
+                        '{count:\int},20']));
 
                 // ----------------------------------------------------------------
                 // Return top channels for given tag
