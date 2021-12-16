@@ -18,7 +18,7 @@ namespace Zaplog {
     use SlimRestApi\Infra\MemcachedFunction;
     use stdClass;
     use SlimRestApi\Middleware\CliRequest;
-    use SlimRestApi\Middleware\Memcaching;
+    use SlimRestApi\Middleware\Cacheable;
     use SlimRequestParams\BodyParameters;
     use SlimRequestParams\QueryParameters;
     use SlimRestApi\SlimRestApi;
@@ -164,7 +164,7 @@ namespace Zaplog {
                     stdClass $args): Response {
                     return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM activeusers"));
                 })
-                    ->add(new Memcaching(60/*sec*/));
+                    ->add(new Cacheable(60/*sec*/));
 
                 // -----------------------------------------------------
                 // invalidate the session token in the HTTP header
@@ -192,7 +192,7 @@ namespace Zaplog {
                 return self::response($request, $response, $args, Methods::getFrontpage($args->count));
             })
                 ->add(new QueryParameters(['{count:\int},18', '{datetime:\date},null',]))
-                ->add(new Memcaching(60 * 60/*sec*/));
+                ->add(new Cacheable(60 * 60/*sec*/));
 
             // ----------------------------------------------------------------
             // Get reactions, forum style, returns the latest reactions
@@ -237,7 +237,7 @@ namespace Zaplog {
                     '{offset:\int},0',
                     '{count:\int},250',
                     '{grouped:\boolean},1',]))
-                ->add(new Memcaching(60/*sec*/));
+                ->add(new Cacheable(60/*sec*/));
 
             // ------------------------------------------------
             // return all tags unique sorted
@@ -249,7 +249,7 @@ namespace Zaplog {
                 stdClass $args): Response {
                 return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM tagindex"));
             })
-                ->add(new Memcaching(60 * 10/*sec*/));
+                ->add(new Cacheable(60 * 10/*sec*/));
 
             // ------------------------------------------------
             // get some basic statistics
@@ -261,7 +261,7 @@ namespace Zaplog {
                 stdClass $args): Response {
                 return self::response($request, $response, $args, Db::fetch("SELECT * FROM statistics"));
             })
-                ->add(new Memcaching(60 * 10/*sec*/));
+                ->add(new Cacheable(60 * 10/*sec*/));
 
             // ----------------------------------------------------------------
             // Return an URL's metadata and the duplicate URL's in de database
@@ -297,7 +297,7 @@ namespace Zaplog {
                     ->add(new QueryParameters([
                         '{offset:\int},0',
                         '{count:\int},2147483647,',]))
-                    ->add(new Memcaching(60/*sec*/));
+                    ->add(new Cacheable(60/*sec*/));
 
                 // ----------------------------------------------------------------
                 // Return single channel plus its tags and related channels
@@ -324,7 +324,7 @@ namespace Zaplog {
                     return self::response($request, $response, $args, Methods::getTopChannelsForTag($args->tag, $args->count));
                 })
                     ->add(new QueryParameters(['{count:\int},10',]))
-                    ->add(new Memcaching(60/*sec*/));
+                    ->add(new Cacheable(60/*sec*/));
 
                 // ----------------------------------------------------------------
                 // Change channel properties of authenticated user's channel
@@ -365,7 +365,7 @@ namespace Zaplog {
                     ]);
                 })
                     ->add(new QueryParameters(['{count:\int},10']))
-                    ->add(new Memcaching(60/*sec*/));
+                    ->add(new Cacheable(60/*sec*/));
 
             });
 
@@ -461,7 +461,7 @@ namespace Zaplog {
                     ->add(new QueryParameters([
                         '{offset:\int},0',
                         '{count:\int},20']))
-                    ->add(new Memcaching(60/*sec*/));
+                    ->add(new Cacheable(60/*sec*/));
 
                 // ----------------------------------------------------------------
                 // Return unpublished links for authenticated channel / user
@@ -492,7 +492,7 @@ namespace Zaplog {
                         WHERE tags.tag=:tag AND published=TRUE ORDER BY links.id DESC LIMIT :offset,:count",
                         [":tag" => $args->tag, ":offset" => $args->offset, ":count" => $args->count]));
                 })
-                    ->add(new Memcaching(60/*sec*/))
+                    ->add(new Cacheable(60/*sec*/))
                     ->add(new QueryParameters([
                         '{offset:\int},0',
                         '{count:\int},20',
@@ -589,7 +589,7 @@ namespace Zaplog {
                     return self::response($request, $response, $args, Methods::getRelatedTags($args->tag, $args->count));
                 })
                     ->add(new QueryParameters(['{count:\int},20',]))
-                    ->add(new Memcaching(60/*sec*/));
+                    ->add(new Cacheable(60/*sec*/));
 
                 // ------------------------------------------------
                 // get the top trending tags
@@ -602,7 +602,7 @@ namespace Zaplog {
                     return self::response($request, $response, $args, Methods::getTopTags($args->count));
                 })
                     ->add(new QueryParameters(['{count:\int},20',]))
-                    ->add(new Memcaching(60/*sec*/));
+                    ->add(new Cacheable(60/*sec*/));
 
                 // ------------------------------------------------
                 // delete a tag, only delete your own tags
