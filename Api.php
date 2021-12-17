@@ -197,7 +197,7 @@ namespace Zaplog {
                 return self::response($request, $response, $args, Methods::getFrontpage($args->count));
             })
                 ->add(new QueryParameters(['{count:\int},18', '{datetime:\date},null',]))
-                ->add(new Cacheable(60 * 60/*sec*/));
+                ->add(new Cacheable(60 * 10/*sec*/));
 
             // ----------------------------------------------------------------
             // Get reactions, forum style, returns the latest reactions
@@ -302,7 +302,7 @@ namespace Zaplog {
                     ->add(new QueryParameters([
                         '{offset:\int},0',
                         '{count:\int},2147483647,',]))
-                    ->add(new Cacheable(60/*sec*/));
+                    ->add(new Cacheable(60 * 10/*sec*/));
 
                 // ----------------------------------------------------------------
                 // Return single channel plus its tags and related channels
@@ -330,7 +330,7 @@ namespace Zaplog {
                     return self::response($request, $response, $args, Methods::getTopChannelsForTag($args->tag, $args->count));
                 })
                     ->add(new QueryParameters(['{count:\int},10',]))
-                    ->add(new Cacheable(60/*sec*/));
+                    ->add(new Cacheable(60 * 10/*sec*/));
 
                 // ----------------------------------------------------------------
                 // Change channel properties of authenticated user's channel
@@ -498,7 +498,7 @@ namespace Zaplog {
                         WHERE tags.tag=:tag AND published=TRUE ORDER BY links.id DESC LIMIT :offset,:count",
                         [":tag" => $args->tag, ":offset" => $args->offset, ":count" => $args->count]));
                 })
-                    ->add(new Cacheable(60/*sec*/))
+                    ->add(new Cacheable(60 * 10/*sec*/))
                     ->add(new QueryParameters([
                         '{offset:\int},0',
                         '{count:\int},20',
@@ -595,7 +595,7 @@ namespace Zaplog {
                     return self::response($request, $response, $args, Methods::getRelatedTags($args->tag, $args->count));
                 })
                     ->add(new QueryParameters(['{count:\int},20',]))
-                    ->add(new Cacheable(60/*sec*/));
+                    ->add(new Cacheable(60 * 10/*sec*/));
 
                 // ------------------------------------------------
                 // get the top trending tags
@@ -608,7 +608,7 @@ namespace Zaplog {
                     return self::response($request, $response, $args, Methods::getTopTags($args->count));
                 })
                     ->add(new QueryParameters(['{count:\int},20',]))
-                    ->add(new Cacheable(60/*sec*/));
+                    ->add(new Cacheable(60 * 10/*sec*/));
 
                 // ------------------------------------------------
                 // delete a tag, only delete your own tags

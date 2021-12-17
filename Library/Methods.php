@@ -191,8 +191,7 @@ namespace Zaplog\Library {
                             ORDER BY id DESC
                             LIMIT :offset, :count) AS interactions
                     JOIN channels ON channels.id=interactions.channelid
-                    LEFT JOIN links ON links.id=interactions.linkid 
-                    WHERE (links.published IS NULL OR links.published=TRUE) AND interactions.type = 'on_insert_link' 
+                    LEFT JOIN links ON links.id=interactions.linkid AND interactions.type = 'on_insert_link'
                     ORDER BY interactions.id DESC",
                 [
                     ":channelid1" => $channelid,
