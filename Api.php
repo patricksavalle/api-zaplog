@@ -42,7 +42,9 @@ namespace Zaplog {
         {
             $filter = new ResponseFilter($request->getMethod(), $request->getUri()->getPath());
             $filter($request->getUri()->getPath(), $args, $data);
-            return $response->withJson($data);
+            return $response->withJson($data)
+                ->withHeader("X-Content-Type-Options", "nosniff")
+                ->withHeader("X-Frame-Options", "deny");
         }
 
         public function __construct()
