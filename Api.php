@@ -389,6 +389,7 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
+                    set_time_limit(300);
                     $args->channelid = Authentication::getSession()->id;
                     return self::response($request, $response, $args, Methods::postLink($args));
                 })
