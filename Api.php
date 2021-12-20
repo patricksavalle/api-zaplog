@@ -64,7 +64,8 @@ namespace Zaplog {
                 // Make sure scheduler is running
                 Db::execute("SET GLOBAL event_scheduler = ON");
 
-                echo "<p>Repositories: https://gitlab.com/zaplog/api-zaplog</p>";
+                echo "<p>Repository: https://gitlab.com/zaplog/api-zaplog</p>";
+                echo "<p>Manual: https://gitlab.com/zaplog/api-zaplog/-/wikis/Zaplog-manual</p>";
                 echo "<h1>" . __CLASS__ . " version " . VERSION . "</h1>";
                 echo "<table>";
                 /** @noinspection PhpUndefinedFieldInspection */

@@ -7,6 +7,9 @@ Zaplog is a next-generation social-news platform. It includes:
 - collaborative linkdumping, bookmarking, blogging, voting, tagging etc.
 - wisdom-of-the-crowd mechanisms for frontpage generation
 - Monero and Bitcoin crowd payments distributed based on user reputation
+- Content-syndication-and-translation between different Zaplog's
+
+Manual: https://gitlab.com/zaplog/api-zaplog/-/wikis/Zaplog-manual
 
 ## Contributing
 
@@ -31,7 +34,7 @@ contains built-in referential integrity (foreign keys), events and triggers.
 
 Knowledge of the SLIM3 framework is useful but not required. The code speaks for itself.
 
-## Deploying the REST-server (classic)
+## Local deployment of the REST-server
 
 - Install a LAMP or XAMPP stack. Make sure MariaDb (mySQL) is running. I am using XAMP 3.2.4 (PHP 7.3, MariaDb 10.4.6), POSTMAN and MySQL Workbench. PHP needs the following extensions:
 
@@ -45,7 +48,7 @@ Knowledge of the SLIM3 framework is useful but not required. The code speaks for
       ext-fileinfo
       php-mbstring
       ext-gd
-
+      ext-apcu
 
 - Clone the project from this Github to your local computer
 
@@ -59,7 +62,7 @@ Knowledge of the SLIM3 framework is useful but not required. The code speaks for
 
       /slim-rest-api.ini
  
-- Create the database (for instance using MySQL workbench):
+- Create the database by running this script (for instance using MySQL workbench):
 
       /datamodel.sql
 
@@ -71,24 +74,17 @@ Knowledge of the SLIM3 framework is useful but not required. The code speaks for
 
       http://localhost:8080/Api.php
 
-- Install the cronjobs, the command lines (from the root of the server) are:
+- Optionally install the cronjobs (not needed for development), the command lines (from the root of the server) are:
 
       php Api.php /cronjobs/minute GET
       php Api.php /cronjobs/hour GET
       php Api.php /cronjobs/day GET
       php Api.php /cronjobs/month GET
 
-- For extra performance install memcached and edit the INI accordingly, it will be automatically used, see https://www.memcached.org/
-
-
-- For much more performance install a reverse proxy that first checks GET 
-requests by full URL in memcached (e.g. NGINX http://nginx.org/en/docs/http/ngx_http_memcached_module.html)
-
-
-- This server does not do rate-limiting, DDOS-mitigation or anything else that should be done by a reverse proxy
+- This server does not do caching, rate-limiting, DDOS-mitigation or anything else that should be done by a reverse proxy
   (e.g. NGINX https://www.nginx.com/blog/rate-limiting-nginx/ and https://www.nginx.com/blog/mitigating-ddos-attacks-with-nginx-and-nginx-plus/)
 
-## Deploying the REST-server (Docker)
+## Production deploying of the REST-server (Docker)
 
 See: https://gitlab.com/zaplog/api-zaplog/container_registry 
 
