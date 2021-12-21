@@ -381,7 +381,6 @@ namespace Zaplog\Library {
 
         static public function checkMarkdown(stdClass $link)
         {
-            (new UserException("Empty markdown"))(!empty($link->markdown));
             // render article text
             $link->xtext = (string)(new Text($link->markdown))->parseDown(new ParsedownFilter);
             assert(mb_check_encoding($link->xtext, 'UTF-8'));

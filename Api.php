@@ -390,6 +390,8 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     set_time_limit(300);
+                    (new UserException("Empty markdown"))(!empty($args->markdown));
+                    (new UserException("Markdown exceeds 50k chars"))(strlen($args->markdown) < 50000);
                     $args->channelid = Authentication::getSession()->id;
                     return self::response($request, $response, $args, Methods::postLink($args));
                 })
@@ -519,6 +521,8 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
+                    (new UserException("Empty markdown"))(!empty($args->markdown));
+                    (new UserException("Markdown exceeds 50k chars"))(strlen($args->markdown) < 50000);
                     $args->channelid = Authentication::getSession()->id;
                     return self::response($request, $response, $args, $args->preview ? Methods::previewReaction($args) : Methods::postReaction($args)->id);
                 })
