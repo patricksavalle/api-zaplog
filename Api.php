@@ -498,7 +498,7 @@ namespace Zaplog {
                     Response $response,
                     stdClass $args): Response {
                     return self::response($request, $response, $args, Db::fetchAll("SELECT 
-                        links.id, links.channelid, links.createdatetime, links.url, links.language,
+                        links.id, links.channelid, links.createdatetime, links.updatedatetime, links.url, links.language,
                         links.title, links.copyright, links.description, links.image
                       FROM tags JOIN links ON tags.linkid=links.id 
                         WHERE tags.tag=:tag AND published=TRUE ORDER BY links.id DESC LIMIT :offset,:count",

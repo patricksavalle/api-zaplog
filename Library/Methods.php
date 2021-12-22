@@ -335,10 +335,15 @@ namespace Zaplog\Library {
                 $link->mimetype = null;
                 $link->image = null;
             } else {
-                $metadata = (new HtmlMetadata)($link->url);
-                $link->mimetype = (new Mimetype)($link->url);
-                $link->url = ArchiveOrg::originalUrl($metadata['url']);
-                $link->image = $metadata['image'];
+                try {
+                    $metadata = (new HtmlMetadata)($link->url);
+                    $link->mimetype = (new Mimetype)($link->url);
+                    // get original URL if an archive,org URL was submitted (conflicting with our GOTO mechanism)
+                    $link->url = ArchiveOrg::originalUrl($metadata['url']);
+                    $link->image = $metadata['image'];
+                } catch (Exception $e) {
+                    throw new UserException($e->getMessage() . ": " . $link->url );
+                }
             }
         }
 
