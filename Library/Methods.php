@@ -238,7 +238,7 @@ namespace Zaplog\Library {
         static public function getSingleChannel(string $id): array
         {
             return [
-                "channel" => (new ResourceNotFoundException)(Db::fetch("SELECT * FROM channels WHERE id=:id", [":id" => $id])),
+                "channel" => (new ResourceNotFoundException)(Db::fetch("SELECT * FROM channels WHERE id=:id1 OR name=:id2", [":id1" => $id, ":id2" => $id])),
 
                 "tags" => Db::fetchAll("SELECT tag, COUNT(tag) AS tagscount 
                     FROM tags JOIN links ON tags.linkid=links.id  

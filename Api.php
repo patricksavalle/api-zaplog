@@ -311,7 +311,7 @@ namespace Zaplog {
                 // Return single channel plus its tags and related channels
                 // ----------------------------------------------------------------
 
-                $this->get("/id/{id:[\d]{1,10}}", function (
+                $this->get("/id/{id:[\d\w-]{1,55}}", function (
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
