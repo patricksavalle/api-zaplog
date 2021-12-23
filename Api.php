@@ -432,7 +432,6 @@ namespace Zaplog {
                     ->add(new QueryParameters(['{http_referer:\url},null']))
                     ->add(new CacheablePrivate(60/*sec*/));
 
-
                 // --------------------------------------------------
                 // delete a link by it's id
                 // --------------------------------------------------
@@ -490,7 +489,8 @@ namespace Zaplog {
                     return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM links
                         WHERE published=FALSE AND channelid=:channelid ORDER BY id DESC", [":channelid" => $channelid]));
                 })
-                    ->add(new Authentication);
+                    ->add(new Authentication)
+                    ->add(new CacheablePrivate(60/*sec*/));
 
                 // -----------------------------------------------------
                 // Returns the top scoring links for a given tag

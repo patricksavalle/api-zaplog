@@ -617,12 +617,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/patricksavalle/slim-rest-api.git",
-                "reference": "a851d4443262e4cc55ac0d573a55943e3e4c701c"
+                "reference": "5b0fe1429fc733cd71d6838a80e95905e0f6c828"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/patricksavalle/slim-rest-api/zipball/a851d4443262e4cc55ac0d573a55943e3e4c701c",
-                "reference": "a851d4443262e4cc55ac0d573a55943e3e4c701c",
+                "url": "https://api.github.com/repos/patricksavalle/slim-rest-api/zipball/5b0fe1429fc733cd71d6838a80e95905e0f6c828",
+                "reference": "5b0fe1429fc733cd71d6838a80e95905e0f6c828",
                 "shasum": ""
             },
             "require": {
@@ -670,7 +670,7 @@
                 "issues": "https://github.com/patricksavalle/slim-rest-api/issues",
                 "source": "https://github.com/patricksavalle/slim-rest-api/tree/master"
             },
-            "time": "2021-12-23T12:52:53+00:00"
+            "time": "2021-12-23T13:38:30+00:00"
         },
         {
             "name": "pavlakis/slim-cli",
