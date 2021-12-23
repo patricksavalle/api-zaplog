@@ -16,6 +16,7 @@ namespace Zaplog {
 
     use SlimRestApi\Infra\Ini;
     use SlimRestApi\Infra\MemcachedFunction;
+    use SlimRestApi\Middleware\CacheablePrivate;
     use stdClass;
     use SlimRestApi\Middleware\CliRequest;
     use SlimRestApi\Middleware\Cacheable;
@@ -428,7 +429,9 @@ namespace Zaplog {
                     stdClass $args): Response {
                     return self::response($request, $response, $args, Methods::getSingleLink($args->id));
                 })
-                    ->add(new QueryParameters(['{http_referer:\url},null']));
+                    ->add(new QueryParameters(['{http_referer:\url},null']))
+                    ->add(new CacheablePrivate(60/*sec*/));
+
 
                 // --------------------------------------------------
                 // delete a link by it's id
