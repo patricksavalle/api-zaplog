@@ -33,7 +33,7 @@ namespace Zaplog\Library {
         static public function getPaymentShares(): array
         {
             $in_address = Db::fetchAll("SELECT bitcoinaddress FROM channels WHERE id=1");
-            $channels = Db::fetchAll("SELECT avatar, name, reputation AS share FROM channels WHERE bitcoinaddress <> NULL ORDER BY reputation DESC LIMIT 50");
+            $channels = Db::fetchAll("SELECT avatar, name, reputation AS share FROM channels WHERE NOT bitcoinaddress IS NULL ORDER BY reputation DESC LIMIT 50");
             // normalize to ratio's of 1
             if (sizeof($channels) > 0) {
                 // get smallest share (last in set)
@@ -142,6 +142,7 @@ namespace Zaplog\Library {
         static public function trendingtopicsQuery(): string
         {
             $frontpage = self::frontpageQuery();
+            /** @noinspection SqlResolve */
             return "SELECT tag FROM tags
                 JOIN links ON tags.linkid=links.id
                 JOIN ($frontpage) AS x ON x.id=tags.linkid
@@ -156,6 +157,7 @@ namespace Zaplog\Library {
         static public function trendingchannelsQuery(): string
         {
             $frontpage = self::frontpageQuery();
+            /** @noinspection SqlResolve */
             return "SELECT channels.* FROM channels
                 JOIN ($frontpage) AS x ON x.channelid=channels.id
                 GROUP BY channels.id
@@ -342,7 +344,7 @@ namespace Zaplog\Library {
                     $link->url = ArchiveOrg::originalUrl($metadata['url']);
                     $link->image = $metadata['image'];
                 } catch (Exception $e) {
-                    throw new UserException($e->getMessage() . ": " . $link->url );
+                    throw new UserException($e->getMessage() . ": " . $link->url);
                 }
             }
         }
@@ -435,18 +437,31 @@ namespace Zaplog\Library {
 
         static public function getTranslation(string $text, string $target_lang): string
         {
-            $postdata = http_build_query(
-                ['auth_key' => Ini::get("deepl_auth_key"),
-                    'target_lang' => $target_lang,
-                    'text' => $text]
-            );
-            $opts = ['http' =>
-                ['method' => 'POST',
-                    'header' => 'Content-Type: application/x-www-form-urlencoded',
-                    'content' => $postdata],
-            ];
-            $translation = file_get_contents(Ini::get("deepl_api_url"), false, stream_context_create($opts));
-            return json_decode($translation, true)["translations"][0]["text"] ?? $text;
+            try {
+                $postdata = http_build_query(
+                    ['auth_key' => Ini::get("deepl_auth_key"),
+                        'target_lang' => $target_lang,
+                        'text' => $text]
+                );
+                $curl = curl_init();
+                curl_setopt($curl, CURLOPT_URL, Ini::get("deepl_api_url"));
+                curl_setopt($curl, CURLOPT_TIMEOUT, 30);
+                curl_setopt($curl, CURLOPT_RETURNTRANSFER, true); // no echo, just return result
+                curl_setopt($curl, CURLOPT_POST, 1);
+                curl_setopt($curl, CURLOPT_POSTFIELDS, $postdata);
+                $content = curl_exec($curl);
+                $error = curl_error($curl);
+                $errno = curl_errno($curl);
+                if (0 !== $errno or $content === false) {
+                    throw new Exception($error, $errno);
+                }
+            } catch (Exception $e) {
+                error_log($e->getMessage() . " in " . __CLASS__);
+                throw new UserException("Translation service unavailable or failing");
+            } finally {
+                if (is_resource($curl)) curl_close($curl);
+            }
+            return json_decode($content, true)["translations"][0]["text"] ?? $text;
         }
 
         // ----------------------------------------------------------
