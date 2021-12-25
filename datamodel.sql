@@ -19,6 +19,8 @@ CREATE SCHEMA zaplog
     DEFAULT CHARACTER SET utf8
     DEFAULT COLLATE utf8_general_ci;
 USE zaplog;
+-- data integrity is not critical, choose maxumum performance
+SET GLOBAL TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
 -- -----------------------------------------------------
 -- Channels are collections of links
@@ -425,10 +427,18 @@ CREATE TRIGGER on_delete_reaction AFTER DELETE ON reactions FOR EACH ROW
 DELIMITER //
 CREATE PROCEDURE insert_reaction(IN arg_channelid INT, IN arg_linkid INT, IN arg_markdown TEXT, IN arg_xtext TEXT, IN arg_description VARCHAR(256))
 BEGIN
-    INSERT INTO reactions (channelid,linkid,markdown,xtext,description)
-        VALUES(arg_channelid,arg_linkid,arg_markdown,arg_xtext,arg_description);
-    -- threadid is a denormalisation / optimisation needed to be able to show forumstyle reactions pages
-    UPDATE reactions SET threadid=LAST_INSERT_ID() WHERE linkid=arg_linkid;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+    SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+    START TRANSACTION;
+        INSERT INTO reactions (channelid,linkid,markdown,xtext,description)
+            VALUES(arg_channelid,arg_linkid,arg_markdown,arg_xtext,arg_description);
+        -- threadid is a denormalisation / optimisation needed to be able to show forumstyle reactions pages
+        UPDATE reactions SET threadid=LAST_INSERT_ID() WHERE linkid=arg_linkid;
+    COMMIT;
 END //
 DELIMITER ;
 
