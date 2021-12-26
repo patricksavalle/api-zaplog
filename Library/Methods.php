@@ -755,7 +755,7 @@ namespace Zaplog\Library {
                      ) AS x
                      JOIN (
                         SELECT threadid FROM reactions
-                        JOIN links ON links.id=reactions.channelid
+                        JOIN links ON links.id=reactions.linkid
                         WHERE :channelid1 IS NULL OR :channelid2=links.channelid
                         GROUP BY threadid
                         ORDER BY threadid DESC LIMIT :offset, :count) AS t ON x.threadid=t.threadid
