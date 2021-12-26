@@ -584,7 +584,7 @@ namespace Zaplog\Library {
 
             // archive the link
             try {
-                if (!empty($link->url)) ArchiveOrg::archiveAsync($link->url);
+                // if (!empty($link->url)) ArchiveOrg::archiveAsync($link->url);
             } catch (Exception $e) {
                 error_log($e->getMessage() . $link->url);
             }
