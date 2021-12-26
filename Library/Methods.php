@@ -244,7 +244,7 @@ namespace Zaplog\Library {
 
                 "tags" => Db::fetchAll("SELECT tag, COUNT(tag) AS tagscount 
                     FROM tags JOIN links ON tags.linkid=links.id  
-                    WHERE links.channelid=:channelid 
+                    WHERE links.channelid=:channelid AND links.createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 YEAR) 
                     GROUP BY tag ORDER BY SUM(score) DESC LIMIT 10",
                     [":channelid" => $id], 60 * 60),
 
@@ -402,7 +402,7 @@ namespace Zaplog\Library {
         {
             $filterTags = function (?string $string): array {
                 $selected = [];
-                foreach (explode(" ", preg_replace("[\.\,\"\']", " ", $string ?? "")) as $tag) if (strlen($tag) > 7) $selected[] = $tag;
+                foreach (explode(" ", preg_replace("[\.,\"']", " ", $string ?? "")) as $tag) if (strlen($tag) > 7) $selected[] = $tag;
                 return $selected;
             };
             // use larger words from title
