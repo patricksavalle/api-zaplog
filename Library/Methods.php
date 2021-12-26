@@ -498,20 +498,29 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
+        /** @noinspection PhpArrayIndexImmediatelyRewrittenInspection */
         static public function postLink(stdClass $link): stdClass
         {
+            $profiling[__LINE__] = microtime(true);
             self::checkTranslation($link);
+            $profiling[__LINE__] = microtime(true);
             self::checkMarkdown($link);
+            $profiling[__LINE__] = microtime(true);
             self::checkTitle($link);
+            $profiling[__LINE__] = microtime(true);
             self::checkUrl($link);
+            $profiling[__LINE__] = microtime(true);
             self::checkImage($link);
+            $profiling[__LINE__] = microtime(true);
             self::checkCopyright($link);
+            $profiling[__LINE__] = microtime(true);
             if (sizeof($link->tags ?? []) === 0) {
                 // one of the ParseDonw-filters collected tag candidates based on typograhpy
                 $harvested_tags = TagHarvester::getTags();
                 $link->tags = array_merge($link->tags, $harvested_tags, self::suggestTags($link->title, $link->description));
             }
             $link->tags = self::sanitizeTags($link->tags);
+            $profiling[__LINE__] = microtime(true);
 
             $sqlparams = [
                 ":channelid" => $link->channelid,
@@ -533,6 +542,7 @@ namespace Zaplog\Library {
                         VALUES (:url, :channelid, :title, :markdown, :xtext, :description, :image, :mimetype, :language, :copyright, FALSE)",
                         $sqlparams)->rowCount() > 0);
                 $link->id = (int)Db::lastInsertId();
+                $profiling[__LINE__] = microtime(true);
 
             } else {
 
@@ -553,9 +563,11 @@ namespace Zaplog\Library {
                             language=:language, 
                             copyright=:copyright
                         WHERE id=:id AND channelid=:channelid", $sqlparams)->rowCount() >= 0);
+                $profiling[__LINE__] = microtime(true);
 
                 // remove the tags that this user / channel added
                 Db::execute("DELETE FROM tags WHERE linkid=:id AND channelid=:channelid", [":id" => $link->id, ":channelid" => $link->channelid]);
+                $profiling[__LINE__] = microtime(true);
 
                 // create diff as reaction
                 // if ($link->published === true) {
@@ -568,6 +580,7 @@ namespace Zaplog\Library {
                 /** @noinspection PhpCastIsUnnecessaryInspection */
                 self::postTags((int)$link->id, (int)$link->channelid, $link->tags);
             }
+            $profiling[__LINE__] = microtime(true);
 
             // archive the link
             try {
@@ -575,6 +588,8 @@ namespace Zaplog\Library {
             } catch (Exception $e) {
                 error_log($e->getMessage() . $link->url);
             }
+            $profiling[__LINE__] = microtime(true);
+            error_log("Profiling POST /link/$link->id " . print_r($profiling, true));
 
             return $link;
         }
