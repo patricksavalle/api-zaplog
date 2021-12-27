@@ -244,7 +244,7 @@ namespace Zaplog\Library {
 
                 "tags" => Db::fetchAll("SELECT tag, COUNT(tag) AS tagscount 
                     FROM tags JOIN links ON tags.linkid=links.id  
-                    WHERE links.channelid=:channelid AND links.createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 YEAR) 
+                    WHERE links.channelid=:channelid AND links.createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 YEAR)
                     GROUP BY tag ORDER BY SUM(score) DESC LIMIT 10",
                     [":channelid" => $id], 60 * 60),
 
@@ -770,6 +770,25 @@ namespace Zaplog\Library {
                 JOIN channels ON channels.id=reactions.channelid
                 WHERE linkid=:id AND reactions.published=TRUE 
                 ORDER BY reactions.id DESC", [":id" => $linkid]);
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function getReactions(int $offset, int $count): array
+        {
+            return Db::fetchAll("SELECT 
+                    reactions.id, 
+                    reactions.description, 
+                    reactions.createdatetime, 
+                    reactions.channelid, 
+                    channels.name 
+                FROM reactions 
+                JOIN channels ON channels.id=reactions.channelid
+                WHERE reactions.published=TRUE 
+                ORDER BY reactions.id DESC
+                LIMIT :offset, :count", [":offset" => $offset, ":count" => $count]);
         }
 
         // ----------------------------------------------------------

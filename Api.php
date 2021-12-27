@@ -214,10 +214,7 @@ namespace Zaplog {
                 stdClass $args): Response {
                 return self::response($request, $response, $args, Methods::getDiscussion(null, $args->offset, $args->count));
             })
-                ->add(new QueryParameters([
-                    '{offset:\int},0',
-                    '{count:\int},8',
-                ]));
+                ->add(new QueryParameters(['{offset:\int},0', '{count:\int},8',]));
 
             $this->get("/discussion/channel/{id:[\d]{1,10}}", function (
                 Request  $request,
@@ -225,10 +222,7 @@ namespace Zaplog {
                 stdClass $args): Response {
                 return self::response($request, $response, $args, Methods::getDiscussion($args->id, $args->offset, $args->count));
             })
-                ->add(new QueryParameters([
-                    '{offset:\int},0',
-                    '{count:\int},8',
-                ]));
+                ->add(new QueryParameters(['{offset:\int},0', '{count:\int},8',]));
 
 
             // ------------------------------------------------
@@ -303,9 +297,7 @@ namespace Zaplog {
                     return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM channels
                         ORDER BY name LIMIT :offset,:count", [":offset" => $args->offset, ":count" => $args->count]));
                 })
-                    ->add(new QueryParameters([
-                        '{offset:\int},0',
-                        '{count:\int},2147483647,',]))
+                    ->add(new QueryParameters(['{offset:\int},0', '{count:\int},2147483647,',]))
                     ->add(new Cacheable(60 * 10/*sec*/));
 
                 // ----------------------------------------------------------------
@@ -319,9 +311,7 @@ namespace Zaplog {
                     return self::response($request, $response, $args, Methods::getSingleChannel($args->id));
                 })
                     // don't cache, PATCH won't work
-                    ->add(new QueryParameters([
-                        '{offset:\int},0',
-                        '{count:\int},20']));
+                    ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20']));
 
                 // ----------------------------------------------------------------
                 // Return top channels for given tag
@@ -457,10 +447,7 @@ namespace Zaplog {
                     return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM links WHERE published=TRUE ORDER BY id DESC LIMIT :offset,:count",
                         [":offset" => $args->offset, ":count" => $args->count]));
                 })
-                    ->add(new QueryParameters([
-                        '{offset:\int},0',
-                        '{count:\int},20',
-                    ]));
+                    ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20']));
 
                 // -----------------------------------------------------
                 // Returns links for a given channel
@@ -472,9 +459,7 @@ namespace Zaplog {
                     stdClass $args): Response {
                     return self::response($request, $response, $args, Methods::getChannelLinks((int)$args->id, (int)$args->offset, (int)$args->count));
                 })
-                    ->add(new QueryParameters([
-                        '{offset:\int},0',
-                        '{count:\int},20']))
+                    ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20']))
                     ->add(new Cacheable(60/*sec*/));
 
                 // ----------------------------------------------------------------
@@ -508,10 +493,7 @@ namespace Zaplog {
                         [":tag" => $args->tag, ":offset" => $args->offset, ":count" => $args->count]));
                 })
                     ->add(new Cacheable(60 * 10/*sec*/))
-                    ->add(new QueryParameters([
-                        '{offset:\int},0',
-                        '{count:\int},20',
-                    ]));
+                    ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20',]));
             });
 
             $this->group('/reactions', function () {
@@ -543,6 +525,19 @@ namespace Zaplog {
                     stdClass $args): Response {
                     return self::response($request, $response, $args, Methods::getReactionsForLink((int)$args->linkid));
                 });
+
+                // ------------------------------------------------+
+                // get reactions
+                // ------------------------------------------------
+
+                $this->get("", function (
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
+                    return self::response($request, $response, $args, Methods::getReactions($args->offset, $args->count));
+                })
+                    ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20']))
+                    ->add(new Cacheable(60/*sec*/));
 
                 // ----------------------------------------------------------------
                 // Delete a reaction, only your own reactions
