@@ -14,6 +14,7 @@ WORKDIR /var/www/html/
 
 COPY php.ini /usr/local/etc/php/php.ini
 RUN mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
+RUN echo "apc.shm_size=64M" >> "$PHP_INI_DIR/php.ini"
 COPY . /var/www/html/
 COPY slim-rest-api.ini.docker.example /var/www/html/slim-rest-api.ini
 
