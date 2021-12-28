@@ -30,6 +30,7 @@ namespace Zaplog {
     use Zaplog\Library\Methods;
     use Zaplog\Library\TwoFactorAction;
     use Zaplog\Middleware\Authentication;
+    use Zaplog\Middleware\DoublePostPreventor;
     use Zaplog\Plugins\ResponseFilter;
 
     class Api extends SlimRestApi
@@ -64,6 +65,8 @@ namespace Zaplog {
                 Db::execute("UPDATE channels SET userid=IF(LENGTH(userid)=0,MD5(:email),userid) WHERE id=1", [":email" => Ini::get("email_admin")]);
                 // Make sure scheduler is running
                 Db::execute("SET GLOBAL event_scheduler = ON");
+                // No locking
+                Db::execute("SET GLOBAL TRANSACTION ISOLATION LEVEL READ UNCOMMITTED");
 
                 echo "<p>Repository: https://gitlab.com/zaplog/api-zaplog</p>";
                 echo "<p>Manual: https://gitlab.com/zaplog/api-zaplog/-/wikis/Zaplog-manual</p>";
@@ -380,12 +383,12 @@ namespace Zaplog {
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    set_time_limit(300);
                     (new UserException("Empty markdown"))(!empty($args->markdown));
                     (new UserException("Markdown exceeds 50k chars"))(strlen($args->markdown) < 50000);
                     $args->channelid = Authentication::getSession()->id;
                     return self::response($request, $response, $args, Methods::postLink($args));
                 })
+                    ->add(new DoublePostPreventor)
                     ->add(new BodyParameters([
                         '{id:\d+},null',    // empty will create new post (id is returned)
                         '{url:\url},null',
