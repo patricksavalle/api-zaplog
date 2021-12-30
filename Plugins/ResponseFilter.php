@@ -42,6 +42,9 @@ namespace Zaplog\Plugins {
         {
             $method = strtolower($method);
 
+            // remove the version from the API url
+            $uri = preg_replace("#^v\d/#", "", $uri);
+
             // scan plugin direcory for plugins that match the request method
             foreach (glob("Plugins/ResponseFilters/{$method}_*.php") as $file) {
 
