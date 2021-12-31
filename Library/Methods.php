@@ -717,7 +717,10 @@ namespace Zaplog\Library {
                             linkid,
                             (@num:=if(@threadid = threadid, @num +1, if(@threadid := threadid, 1, 1))) AS rownum
                         FROM reactions
+                        WHERE @num <= 3
                         ORDER BY threadid DESC, id DESC
+                        -- performance tweak
+                        LIMIT 10000
                     ) AS x ON x.threadid=t.threadid
                     WHERE x.rownum <= 3
                 ) AS r
