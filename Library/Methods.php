@@ -690,7 +690,7 @@ namespace Zaplog\Library {
             $threadids = [];
 
             // first fetch all threadid's
-            foreach( Db::fetchAll("SELECT threadid FROM reactions
+            foreach (Db::fetchAll("SELECT threadid FROM reactions
                 JOIN links ON links.id=reactions.linkid
                 WHERE :channelid1 IS NULL OR :channelid2=links.channelid
                 GROUP BY threadid
@@ -699,6 +699,7 @@ namespace Zaplog\Library {
                 [":offset" => $offset, ":count" => $count, ":channelid1" => $channelid, ":channelid2" => $channelid]) as $row) {
                 $threadids[] = $row->threadid;
             }
+            $threadids = implode(",", $threadids);
 
             // fetch first 3 reactions for selected threads
             return Db::fetchAll("SELECT
@@ -721,7 +722,7 @@ namespace Zaplog\Library {
                         channelid, 
                         linkid,
                         (@num:=if(@threadid = threadid, @num +1, if(@threadid := threadid, 1, 1))) AS rownum
-                    FROM reactions WHERE threadid IN (". implode(",", $threadids).")
+                    FROM reactions WHERE threadid IN ($threadids)
                     ORDER BY threadid DESC, id DESC
                 ) AS r 
                 JOIN reactions ON reactions.id=r.id
