@@ -16,6 +16,8 @@ require_once BASE_PATH . '/vendor/autoload.php';
 
 use SlimRestApi\Infra\Ini;
 use SlimRestApi\Infra\MemcachedFunction;
+use SlimRestApi\Middleware\CacheablePrivate;
+use SlimRestApi\Middleware\NoCache;
 use stdClass;
 use SlimRestApi\Middleware\CliRequest;
 use SlimRestApi\Middleware\Cacheable;
@@ -144,7 +146,7 @@ class Api extends SlimRestApi
                         '{subject:.{10,100}},Hier is jouw Zaplog login!',
                         '{template:\url},Content/nl.login.html',
                         '{*}' /* all {{variables}} used in template */,
-                    ]));
+                    ]))->add(new NoCache);
 
                 // -----------------------------------------------------
                 // change authenticated email, login again
@@ -160,6 +162,7 @@ class Api extends SlimRestApi
                         ->sendToken($args->email, $args->subject, $args->template, $args);
                     return self::response($request, $response, $args, true);
                 })
+                    ->add(new NoCache)
                     ->add(new BodyParameters([
                         '{email:\email}',
                         '{subject:.{10,100}},Bevestig dit nieuwe email adres!',
@@ -218,6 +221,7 @@ class Api extends SlimRestApi
                 stdClass $args): Response {
                 return self::response($request, $response, $args, Methods::getDiscussion(null, $args->offset, $args->count));
             })
+                ->add(new NoCache)
                 ->add(new QueryParameters(['{offset:\int},0', '{count:\int},8',]));
 
             $this->get("/discussion/channel/{id:[\d]{1,10}}", function (
@@ -226,6 +230,7 @@ class Api extends SlimRestApi
                 stdClass $args): Response {
                 return self::response($request, $response, $args, Methods::getDiscussion($args->id, $args->offset, $args->count));
             })
+                ->add(new NoCache)
                 ->add(new QueryParameters(['{offset:\int},0', '{count:\int},8',]));
 
 
@@ -280,6 +285,8 @@ class Api extends SlimRestApi
                 stdClass $args): Response {
                 return self::response($request, $response, $args, Methods::getMetadata($args->urlencoded));
             })
+                // authenticated AND cached (authentication is just to prevent abuse)
+                ->add(new Cacheable(60 * 10/*sec*/))
                 ->add(new QueryParameters(['{urlencoded:\urlencoded}']))
                 ->add(new Authentication);
 
@@ -314,7 +321,7 @@ class Api extends SlimRestApi
                     stdClass $args): Response {
                     return self::response($request, $response, $args, Methods::getSingleChannel($args->id));
                 })
-                    // don't cache, PATCH won't work
+                    ->add(new NoCache)
                     ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20']));
 
                 // ----------------------------------------------------------------
@@ -341,6 +348,7 @@ class Api extends SlimRestApi
                     $channel->channelid = Authentication::getSession()->id;
                     return self::response($request, $response, $channel, Methods::patchChannel($channel));
                 })
+                    ->add(new NoCache)
                     ->add(new BodyParameters([
                         '{name:[.\w-]{3,55}}',
                         '{avatar:\url},null',
@@ -389,6 +397,7 @@ class Api extends SlimRestApi
                     $args->channelid = Authentication::getSession()->id;
                     return self::response($request, $response, $args, Methods::postLink($args));
                 })
+                    ->add(new NoCache)
                     ->add(new DoublePostPreventor)
                     ->add(new BodyParameters([
                         '{id:\d+},null',    // empty will create new post (id is returned)
@@ -411,6 +420,7 @@ class Api extends SlimRestApi
                     return self::response($request, $response, $args, (new UserException)(Db::execute("UPDATE links SET published=TRUE WHERE id=:id and channelid=:channelid",
                             [":id" => $args->id, ":channelid" => $channelid])->rowCount() > 0));
                 })
+                    ->add(new NoCache)
                     ->add(new Authentication);
 
                 // ----------------------------------------------------------------
@@ -423,6 +433,7 @@ class Api extends SlimRestApi
                     stdClass $args): Response {
                     return self::response($request, $response, $args, Methods::getSingleLink($args->id));
                 })
+                    ->add(new NoCache)
                     ->add(new QueryParameters(['{http_referer:\url},null']));
 
                 // --------------------------------------------------
@@ -450,6 +461,7 @@ class Api extends SlimRestApi
                     return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM links WHERE published=TRUE ORDER BY id DESC LIMIT :offset,:count",
                         [":offset" => $args->offset, ":count" => $args->count]));
                 })
+                    ->add(new NoCache)
                     ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20']));
 
                 // -----------------------------------------------------
@@ -477,6 +489,7 @@ class Api extends SlimRestApi
                     return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM links
                         WHERE published=FALSE AND channelid=:channelid ORDER BY id DESC", [":channelid" => $channelid]));
                 })
+                    ->add(new CacheablePrivate)
                     ->add(new Authentication);
 
                 // -----------------------------------------------------
@@ -513,6 +526,7 @@ class Api extends SlimRestApi
                     $args->channelid = Authentication::getSession()->id;
                     return self::response($request, $response, $args, $args->preview ? Methods::previewReaction($args) : Methods::postReaction($args)->id);
                 })
+                    ->add(new NoCache)
                     ->add(new QueryParameters(['{preview:\boolean},0']))
                     ->add(new BodyParameters(['{markdown:\raw}']))
                     ->add(new Authentication);
@@ -526,7 +540,7 @@ class Api extends SlimRestApi
                     Response $response,
                     stdClass $args): Response {
                     return self::response($request, $response, $args, Methods::getReactionsForLink((int)$args->linkid));
-                });
+                })->add(new NoCache);
 
                 // ------------------------------------------------+
                 // get reactions
@@ -571,6 +585,7 @@ class Api extends SlimRestApi
                     Db::execute("CALL toggle_vote(:channelid,:linkid)", [":linkid" => $args->id, ":channelid" => $channelid]);
                     return self::response($request, $response, $args, Db::lastInsertId());
                 })
+                    ->add(new NoCache)
                     ->add(new Authentication);
 
             });
@@ -589,6 +604,7 @@ class Api extends SlimRestApi
                     $channelid = Authentication::getSession()->id;
                     return self::response($request, $response, $args, Methods::postTags((int)$args->linkid, $channelid, $tags));
                 })
+                    ->add(new NoCache)
                     ->add(new BodyParameters(['{tags[]:.{0,40}},null',]))
                     ->add(new Authentication);
 
