@@ -377,6 +377,7 @@ namespace Zaplog\Library {
                     $link->tags = [];
                     $link->markdown = (new Translation)($link->markdown, $system_language);
                     $link->title = (new Translation)($link->title, $system_language);
+                    if (empty($link->orig_language)) $link->orig_language = $link->language;
                     $link->language = $system_language;
                 }
             }
@@ -398,40 +399,12 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function suggestTags(?string $title, ?string $description): array
-        {
-            $filterTags = function (?string $string): array {
-                $selected = [];
-                foreach (explode(" ", preg_replace("[\.,\"']", " ", $string ?? "")) as $tag) if (strlen($tag) > 7) $selected[] = $tag;
-                return $selected;
-            };
-            // use larger words from title
-            $title_tags = $filterTags($title);
-            // use larger words from description
-            $description_tags = $filterTags($description);
-            // limit to words already in tgs database
-            $tags = self::sanitizeTags(array_merge($title_tags, $description_tags));
-            $tags = "'" . implode("','", $tags) . "'";
-            $tags = Db::fetch("SELECT GROUP_CONCAT(DISTINCT tag) AS tags FROM tags WHERE tag IN ($tags) ORDER BY COUNT(linkid) DESC LIMIT 8")->tags;
-            return empty($tags) ? [] : explode(",", $tags);
-        }
-
-        // ----------------------------------------------------------
-        //
-        // ----------------------------------------------------------
-
         static public function getMetadata(string $url): array
         {
-            $metadata = (new HtmlMetadata)($url);
-            if (sizeof($metadata["keywords"] ?? []) === 0) {
-                $metadata['keywords'] = array_merge(
-                    $metadata["keywords"] ?? [],
-                    self::suggestTags($metadata["title"], $metadata["description"] ?? ""));
-            }
-            return $metadata;
+            return (new HtmlMetadata)($url);
         }
 
-
+ø
         // ----------------------------------------------------------
         //
         // ----------------------------------------------------------
@@ -485,7 +458,7 @@ namespace Zaplog\Library {
             if (sizeof($link->tags ?? []) === 0) {
                 // one of the ParseDonw-filters collected tag candidates based on typograhpy
                 $harvested_tags = TagHarvester::getTags();
-                $link->tags = array_merge($link->tags, $harvested_tags, self::suggestTags($link->title, $link->description));
+                $link->tags = array_merge($link->tags, $harvested_tags);
             }
             $link->tags = self::sanitizeTags($link->tags);
             $profiling[__LINE__] = microtime(true);
@@ -500,6 +473,7 @@ namespace Zaplog\Library {
                 ":image" => $link->image,
                 ":mimetype" => $link->mimetype,
                 ":language" => $link->language,
+                ":orig_language" => $link->orig_language ?? null,
                 ":copyright" => $link->copyright,
             ];
 
@@ -507,8 +481,8 @@ namespace Zaplog\Library {
             if (empty($link->id)) {
 
                 (new ServerException)(Db::execute(
-                        "INSERT INTO links(url, channelid, title, markdown, xtext, description, image, mimetype, language, copyright, published)
-                        VALUES (:url, :channelid, :title, :markdown, :xtext, :description, :image, :mimetype, :language, :copyright, FALSE)",
+                        "INSERT INTO links(url, channelid, title, markdown, xtext, description, image, mimetype, language, orig_language, copyright, published)
+                        VALUES (:url, :channelid, :title, :markdown, :xtext, :description, :image, :mimetype, :language, :orig_language, :copyright, FALSE)",
                         $sqlparams)->rowCount() > 0);
                 $link->id = (int)Db::lastInsertId();
                 $profiling[__LINE__] = microtime(true);
@@ -530,6 +504,7 @@ namespace Zaplog\Library {
                             image=:image, 
                             mimetype=:mimetype, 
                             language=:language, 
+                            orig_language=:orig_language, 
                             copyright=:copyright
                         WHERE id=:id AND channelid=:channelid", $sqlparams)->rowCount() >= 0);
                 $profiling[__LINE__] = microtime(true);

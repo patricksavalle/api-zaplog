@@ -109,6 +109,7 @@ CREATE TABLE links
     latitude       FLOAT                  DEFAULT NULL,
     longitude      FLOAT                  DEFAULT NULL,
     language       CHAR(2)                DEFAULT NULL,
+    orig_language  CHAR(2)                DEFAULT NULL,
     title          VARCHAR(256)  NOT NULL,
     copyright      ENUM (
         'No Rights Apply', -- linkdump
