@@ -687,6 +687,20 @@ namespace Zaplog\Library {
 
         static public function getDiscussion(?string $channelid, int $offset, int $count): array
         {
+            $threadids = [];
+
+            // first fetch all threadid's
+            foreach( Db::fetchAll("SELECT threadid FROM reactions
+                JOIN links ON links.id=reactions.linkid
+                WHERE :channelid1 IS NULL OR :channelid2=links.channelid
+                GROUP BY threadid
+                ORDER BY threadid DESC 
+                LIMIT :offset, :count",
+                [":offset" => $offset, ":count" => $count, ":channelid1" => $channelid, ":channelid2" => $channelid]) as $row) {
+                $threadids[] = $row->threadid;
+            }
+
+            // fetch first 3 reactions for selected threads
             return Db::fetchAll("SELECT
                     r.threadid,
                     r.rownum,
@@ -701,33 +715,20 @@ namespace Zaplog\Library {
                     links.image,
                     links.createdatetime AS linkdatetime
                 FROM (
-                    SELECT id, channelid, linkid, x.threadid, x.rownum FROM (
-                        SELECT threadid FROM reactions
-                        JOIN links ON links.id=reactions.linkid
-                        WHERE :channelid1 IS NULL OR :channelid2=links.channelid
-                        GROUP BY threadid
-                        ORDER BY threadid DESC 
-                        LIMIT :offset, :count
-                    ) AS t
-                    JOIN (
-                        SELECT 
-                            threadid, 
-                            id, 
-                            channelid, 
-                            linkid,
-                            (@num:=if(@threadid = threadid, @num +1, if(@threadid := threadid, 1, 1))) AS rownum
-                        FROM reactions
-                        ORDER BY threadid DESC, id DESC
-                        -- performance tweak
-                        LIMIT 10000
-                    ) AS x ON x.threadid=t.threadid
-                    WHERE x.rownum <= 3
-                ) AS r
+                    SELECT 
+                        threadid, 
+                        id, 
+                        channelid, 
+                        linkid,
+                        (@num:=if(@threadid = threadid, @num +1, if(@threadid := threadid, 1, 1))) AS rownum
+                    FROM reactions WHERE threadid IN (". implode(",", $threadids).")
+                    ORDER BY threadid DESC, id DESC
+                ) AS r 
                 JOIN reactions ON reactions.id=r.id
                 JOIN channels ON channels.id=r.channelid
-                LEFT JOIN links ON links.id=r.linkid AND rownum=1
-                ORDER by r.threadid DESC, r.id DESC",
-                [":offset" => $offset, ":count" => $count, ":channelid1" => $channelid, ":channelid2" => $channelid]);
+                LEFT JOIN links ON links.id=r.linkid AND r.rownum=1
+                WHERE r.rownum <= 3
+                ORDER by r.threadid DESC, r.id DESC");
         }
 
         // ----------------------------------------------------------
