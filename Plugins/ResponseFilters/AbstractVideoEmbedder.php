@@ -10,12 +10,20 @@ namespace Zaplog\Plugins\ResponseFilters {
     {
         protected function getEmbedCode(string $url): ?string
         {
-            foreach (["Youtube", "Bitchute", "Odysee", "Vimeo", "FreeWorldNews", "Banned"] as $service) {
+            foreach (["Youtube", "Spotify", "Bitchute", "Odysee", "Vimeo", "FreeWorldNews", "Banned"] as $service) {
                 if (($embed = $this->{$service}($url)) !== null) {
                     return "<div class='iframe-wrapper'>$embed</div>";
                 }
             }
             return null;
+        }
+        protected function Spotify(string $normalized_url): ?string
+        {
+            // https://open.spotify.com/show/4rOoJ6Egrf8K2IrywzwOMk
+            if (preg_match("/.*open\.spotify\.com\/show\/([a-zA-Z0-9_-]+)/", $normalized_url, $matches) === 0) {
+                return null;
+            }
+            return "<iframe src='https://open.spotify.com/embed/show/$matches[1]'></iframe>";
         }
 
         protected function Bitchute(string $normalized_url): ?string
