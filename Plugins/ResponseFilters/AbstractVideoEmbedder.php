@@ -20,10 +20,10 @@ namespace Zaplog\Plugins\ResponseFilters {
         protected function Spotify(string $normalized_url): ?string
         {
             // https://open.spotify.com/show/4rOoJ6Egrf8K2IrywzwOMk
-            if (preg_match("/.*open\.spotify\.com\/show\/([a-zA-Z0-9_-]+)/", $normalized_url, $matches) === 0) {
+            if (preg_match("/.*open\.spotify\.com\/episode\/([a-zA-Z0-9_-]+)/", $normalized_url, $matches) === 0) {
                 return null;
             }
-            return "<iframe src='https://open.spotify.com/embed/show/$matches[1]'></iframe>";
+            return "<iframe class='video spotify' src='https://open.spotify.com/embed/episode/$matches[1]'></iframe>";
         }
 
         protected function Bitchute(string $normalized_url): ?string
