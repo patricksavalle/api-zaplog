@@ -323,7 +323,7 @@ namespace Zaplog\Library {
 
         static public function checkTitle(stdClass $link)
         {
-            $link->title = substr(strip_tags($link->title), 0, 257);
+            $link->title = str_replace('"', "'", substr(strip_tags($link->title), 0, 257));
         }
 
         // ----------------------------------------------------------
