@@ -438,9 +438,23 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
+        static public function checkQuotum(stdClass $link)
+        {
+            if (Db::fetch("SELECT COUNT(*) AS count FROM links WHERE channelid=:channelid 
+                AND createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 DAY)", [":channelid" => $link->channelid])->count > 4) {
+                throw new UserException("Only 4 articles per 24h allowed");
+            }
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
         /** @noinspection PhpArrayIndexImmediatelyRewrittenInspection */
         static public function postLink(stdClass $link): stdClass
         {
+            $profiling[__LINE__] = microtime(true);
+            self::checkQuotum($link);
             $profiling[__LINE__] = microtime(true);
             self::checkTranslation($link);
             $profiling[__LINE__] = microtime(true);
