@@ -417,8 +417,7 @@ class Api extends SlimRestApi
                     Response $response,
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
-                    return self::response($request, $response, $args, (new UserException)(Db::execute("UPDATE links SET published=TRUE WHERE id=:id and channelid=:channelid",
-                            [":id" => $args->id, ":channelid" => $channelid])->rowCount() > 0));
+                    return self::response($request, $response, $args, Methods::publishLink((int)$args->id, $channelid));
                 })
                     ->add(new NoCache)
                     ->add(new Authentication);

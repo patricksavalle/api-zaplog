@@ -438,23 +438,9 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function checkQuotum(stdClass $link)
-        {
-            if (Db::fetch("SELECT COUNT(*) AS count FROM links WHERE channelid=:channelid 
-                AND createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 DAY)", [":channelid" => $link->channelid])->count > 4) {
-                throw new UserException("Only 4 articles per 24h allowed");
-            }
-        }
-
-        // ----------------------------------------------------------
-        //
-        // ----------------------------------------------------------
-
         /** @noinspection PhpArrayIndexImmediatelyRewrittenInspection */
         static public function postLink(stdClass $link): stdClass
         {
-            $profiling[__LINE__] = microtime(true);
-            self::checkQuotum($link);
             $profiling[__LINE__] = microtime(true);
             self::checkTranslation($link);
             $profiling[__LINE__] = microtime(true);
@@ -549,6 +535,28 @@ namespace Zaplog\Library {
             error_log("Profiling POST /link/$link->id " . print_r($profiling, true));
 
             return $link;
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function publishLink(int $id, int $channelid): bool
+        {
+            // check quota
+            $check = Db::fetch("SELECT 
+            	(SELECT COUNT(*) FROM links WHERE channelid=:channelid1 AND createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 DAY)) AS article_count, 
+	            (SELECT reputation FROM channels WHERE id=:channelid2) AS channel_reputation",
+                [":channelid1" => $channelid, ":channelid2" => $channelid]);
+            if ($check->channel_reputation < 500.0 and $check->article_count > 4) {
+                throw new UserException("Only 4 articles can be published per 24h");
+            }
+            // publish
+            if (Db::execute("UPDATE links SET published=TRUE WHERE id=:id and channelid=:channelid",
+                    [":id" => $id, ":channelid" => $channelid])->rowCount() !== 1) {
+                throw new ServerException("Can't publish this article");
+            }
+            return true;
         }
 
         // ----------------------------------------------------------
