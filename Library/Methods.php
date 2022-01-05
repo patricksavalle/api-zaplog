@@ -704,10 +704,10 @@ namespace Zaplog\Library {
         }
 
         // ----------------------------------------------------------
-        //
+        // Show latest X reactions of selected Y threads
         // ----------------------------------------------------------
 
-        static public function getDiscussion(?string $channelid, int $offset, int $count): array
+        static public function getDiscussion(?string $channelid, int $offset, int $count, int $numreactions = 3): array
         {
             $threadids = [];
 
@@ -734,9 +734,9 @@ namespace Zaplog\Library {
                     reactions.linkid,
                     channels.name,
                     channels.avatar,
-                    links.title,
-                    links.image,
-                    links.createdatetime AS linkdatetime
+                    IF(r.rownum=1,links.title,NULL) as title,
+                    IF(r.rownum=1,links.image,NULL) as image,
+                    IF(r.rownum=1,links.createdatetime,NULL) AS linkdatetime
                 FROM (
                     SELECT 
                         threadid, 
@@ -749,9 +749,9 @@ namespace Zaplog\Library {
                 ) AS r 
                 JOIN reactions ON reactions.id=r.id
                 JOIN channels ON channels.id=r.channelid
-                LEFT JOIN links ON links.id=r.linkid AND r.rownum=1
-                WHERE r.rownum <= 3
-                ORDER by r.threadid DESC, r.id DESC");
+                JOIN links ON links.id=r.linkid  
+                WHERE r.rownum <= :reactions AND reactions.createdatetime>links.createdatetime AND links.published=TRUE
+                ORDER by r.threadid DESC, r.id DESC", [":reactions" => $numreactions]);
         }
 
         // ----------------------------------------------------------
@@ -769,6 +769,7 @@ namespace Zaplog\Library {
                     channels.avatar,
                     (SELECT COUNT(*) FROM reactionvotes WHERE reactionid=reactions.id) AS votescount
                 FROM reactions 
+                JOIN links ON reactions.linkid=links.id AND reactions.createdatetime>links.createdatetime
                 JOIN channels ON channels.id=reactions.channelid
                 WHERE linkid=:id AND reactions.published=TRUE 
                 ORDER BY reactions.id DESC", [":id" => $linkid]);
@@ -794,8 +795,8 @@ namespace Zaplog\Library {
                     (SELECT COUNT(*) FROM reactionvotes WHERE reactionid=reactions.id) AS votescount
                 FROM reactions 
                 JOIN channels ON channels.id=reactions.channelid
-                JOIN links ON links.id=reactions.linkid
-                WHERE reactions.published=TRUE 
+                JOIN links ON links.id=reactions.linkid AND reactions.createdatetime>links.createdatetime
+                WHERE reactions.published=TRUE AND links.published=TRUE
                 ORDER BY reactions.id DESC
                 LIMIT :offset, :count", [":offset" => $offset, ":count" => $count]);
         }
