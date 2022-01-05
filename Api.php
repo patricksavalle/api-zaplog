@@ -589,6 +589,25 @@ class Api extends SlimRestApi
 
             });
 
+            $this->group('/reactionvotes', function () {
+
+                // ------------------------------------------------
+                // toggle a vote
+                // ------------------------------------------------
+
+                $this->post("/reaction/{id:\d{1,10}}", function (
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
+                    $channelid = Authentication::getSession()->id;
+                    Db::execute("INSERT IGNORE INTO reactionvotes(reactionid,channelid)VALUES(:reactionid,:channelid)", [":reactionid" => $args->id, ":channelid" => $channelid]);
+                    return self::response($request, $response, $args, Db::lastInsertId());
+                })
+                    ->add(new NoCache)
+                    ->add(new Authentication);
+
+            });
+
             $this->group('/tags', function () {
 
                 // ------------------------------------------------

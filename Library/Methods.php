@@ -766,7 +766,9 @@ namespace Zaplog\Library {
                     reactions.createdatetime, 
                     reactions.channelid, 
                     channels.name, 
-                    channels.avatar FROM reactions 
+                    channels.avatar,
+                    (SELECT COUNT(*) FROM reactionvotes WHERE reactionid=reactions.id) AS votescount
+                FROM reactions 
                 JOIN channels ON channels.id=reactions.channelid
                 WHERE linkid=:id AND reactions.published=TRUE 
                 ORDER BY reactions.id DESC", [":id" => $linkid]);
@@ -780,12 +782,19 @@ namespace Zaplog\Library {
         {
             return Db::fetchAll("SELECT 
                     reactions.id, 
+                    reactions.linkid, 
+                    reactions.channelid, 
                     reactions.description, 
                     reactions.createdatetime, 
-                    reactions.channelid, 
-                    channels.name 
+                    channels.name, 
+                    channels.avatar,
+                    links.title,
+                    links.image,
+                    links.createdatetime AS linkdatetime,
+                    (SELECT COUNT(*) FROM reactionvotes WHERE reactionid=reactions.id) AS votescount
                 FROM reactions 
                 JOIN channels ON channels.id=reactions.channelid
+                JOIN links ON links.id=reactions.linkid
                 WHERE reactions.published=TRUE 
                 ORDER BY reactions.id DESC
                 LIMIT :offset, :count", [":offset" => $offset, ":count" => $count]);
