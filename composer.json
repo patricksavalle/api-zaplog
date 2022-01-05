@@ -4,11 +4,15 @@
   "version": "v1.1",
   "type": "library",
   "keywords": [
+    "REST-API",
+    "cms",
     "news",
+    "publication",
+    "blogging",
     "social blogging",
     "weblog",
     "social bookmarking",
-    "linkdump",
+    "linkdumping",
     "community"
   ],
   "license": "MIT",
@@ -16,7 +20,7 @@
     {
       "name": "Patrick Savalle",
       "email": "patrick@patricksavalle.com",
-      "homepage": "https://github.com/zaplogv2/api.zaplog",
+      "homepage": "https://gitlab.com/zaplog/api-zaplog",
       "role": "Developer"
     }
   ],
@@ -30,6 +34,7 @@
     "ext-curl": "*",
     "ext-gd": "*",
     "ext-fileinfo": "*",
+    "ext-apcu": "*",
     "slim/slim": "^3.0",
     "patricksavalle/slim-rest-api": "dev-master",
     "patricksavalle/slim-request-params": "dev-master",
@@ -40,10 +45,8 @@
     "atrox/haikunator": "^1.3",
     "erusev/parsedown": "^1.7",
     "multiavatar/multiavatar-php": "^1.0",
-    "smalot/pdfparser": "^1.1",
     "landrok/language-detector":  "*",
-    "gumlet/php-image-resize": "1.9.*",
-    "ext-apcu": "*"
+    "gumlet/php-image-resize": "1.9.*"
   },
   "autoload": {
     "psr-4": {
