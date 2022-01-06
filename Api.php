@@ -18,6 +18,7 @@ use SlimRestApi\Infra\Ini;
 use SlimRestApi\Infra\MemcachedFunction;
 use SlimRestApi\Middleware\CacheablePrivate;
 use SlimRestApi\Middleware\NoCache;
+use SlimRestApi\Middleware\NoStore;
 use stdClass;
 use SlimRestApi\Middleware\CliRequest;
 use SlimRestApi\Middleware\Cacheable;
@@ -146,7 +147,7 @@ class Api extends SlimRestApi
                         '{subject:.{10,100}},Hier is jouw Zaplog login!',
                         '{template:\url},Content/nl.login.html',
                         '{*}' /* all {{variables}} used in template */,
-                    ]))->add(new NoCache);
+                    ]))->add(new NoStore);
 
                 // -----------------------------------------------------
                 // change authenticated email, login again
@@ -162,7 +163,7 @@ class Api extends SlimRestApi
                         ->sendToken($args->email, $args->subject, $args->template, $args);
                     return self::response($request, $response, $args, true);
                 })
-                    ->add(new NoCache)
+                    ->add(new NoStore)
                     ->add(new BodyParameters([
                         '{email:\email}',
                         '{subject:.{10,100}},Bevestig dit nieuwe email adres!',
@@ -348,7 +349,7 @@ class Api extends SlimRestApi
                     $channel->channelid = Authentication::getSession()->id;
                     return self::response($request, $response, $channel, Methods::patchChannel($channel));
                 })
-                    ->add(new NoCache)
+                    ->add(new NoStore)
                     ->add(new BodyParameters([
                         '{name:[.\w-]{3,55}}',
                         '{avatar:\url},null',
@@ -397,7 +398,7 @@ class Api extends SlimRestApi
                     $args->channelid = Authentication::getSession()->id;
                     return self::response($request, $response, $args, Methods::postLink($args));
                 })
-                    ->add(new NoCache)
+                    ->add(new NoStore)
                     ->add(new DoublePostPreventor)
                     ->add(new BodyParameters([
                         '{id:\d+},null',    // empty will create new post (id is returned)
@@ -419,7 +420,7 @@ class Api extends SlimRestApi
                     $channelid = Authentication::getSession()->id;
                     return self::response($request, $response, $args, Methods::publishLink((int)$args->id, $channelid));
                 })
-                    ->add(new NoCache)
+                    ->add(new NoStore)
                     ->add(new Authentication);
 
                 // ----------------------------------------------------------------
@@ -525,7 +526,7 @@ class Api extends SlimRestApi
                     $args->channelid = Authentication::getSession()->id;
                     return self::response($request, $response, $args, $args->preview ? Methods::previewReaction($args) : Methods::postReaction($args)->id);
                 })
-                    ->add(new NoCache)
+                    ->add(new NoStore)
                     ->add(new QueryParameters(['{preview:\boolean},0']))
                     ->add(new BodyParameters(['{markdown:\raw}']))
                     ->add(new Authentication);
@@ -584,7 +585,7 @@ class Api extends SlimRestApi
                     Db::execute("CALL toggle_vote(:channelid,:linkid)", [":linkid" => $args->id, ":channelid" => $channelid]);
                     return self::response($request, $response, $args, Db::lastInsertId());
                 })
-                    ->add(new NoCache)
+                    ->add(new NoStore)
                     ->add(new Authentication);
 
             });
@@ -603,7 +604,7 @@ class Api extends SlimRestApi
                     Db::execute("INSERT IGNORE INTO reactionvotes(reactionid,channelid)VALUES(:reactionid,:channelid)", [":reactionid" => $args->id, ":channelid" => $channelid]);
                     return self::response($request, $response, $args, Db::lastInsertId());
                 })
-                    ->add(new NoCache)
+                    ->add(new NoStore)
                     ->add(new Authentication);
 
             });
@@ -622,7 +623,7 @@ class Api extends SlimRestApi
                     $channelid = Authentication::getSession()->id;
                     return self::response($request, $response, $args, Methods::postTags((int)$args->linkid, $channelid, $tags));
                 })
-                    ->add(new NoCache)
+                    ->add(new NoStore)
                     ->add(new BodyParameters(['{tags[]:.{0,40}},null',]))
                     ->add(new Authentication);
 
