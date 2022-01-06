@@ -29,14 +29,14 @@ Everyone is encouraged to help improve this project. Here are a few ways you can
 
 ## Required skills
 
-Advanced SQL and advanced PHP. We're using the full spectrum of OO PHP 7.3 syntax and the datamodel
-contains built-in referential integrity (foreign keys), events and triggers.
+Advanced SQL and advanced PHP. We're using the full spectrum of object-oriented PHP 7.3 syntax and the datamodel
+contains built-in referential integrity (foreign keys), events, transactions and triggers.
 
-Knowledge of the SLIM3 framework is useful but not required. The code speaks for itself.
+Knowledge of the SLIM3 framework (a port to SLIM4 is planned) is useful but not required. The code speaks for itself.
 
 ## Local deployment of the REST-server
 
-- Install a LAMP or XAMPP stack. Make sure MariaDb (mySQL) is running. I am using XAMP 3.2.4 (PHP 7.3, MariaDb 10.4.6), POSTMAN and MySQL Workbench. PHP needs the following extensions:
+- Install a LAMP or XAMPP stack using MariaDb. Make sure MariaDb is running. PHP versions above 8.0 generate errors. PHP needs the following extensions:
 
       ext-json
       ext-libxml
@@ -50,8 +50,9 @@ Knowledge of the SLIM3 framework is useful but not required. The code speaks for
       ext-gd
       ext-apcu
 
-- Clone the project from this Github to your local computer
+- Clone the project from this Gitlab to your local computer
 
+      https://gitlab.com/zaplog/api-zaplog
 
 - Run composer to fetch and update external libraries:
 
@@ -66,22 +67,27 @@ Knowledge of the SLIM3 framework is useful but not required. The code speaks for
 
       /datamodel.sql
 
+- Enable the MariaDb event scheduler and disable locking (on production this is critical)
+
+      SET GLOBAL event_scheduler = ON;
+      SET GLOBAL TRANSACTION ISOLATION LEVEL READ UNCOMMITTED; 
+
 - Run the built-in PHP interpreter:
 
       php -S localhost:8080
 
-- Open the homepage of the Api in a browser to initialize (you should see [a list of endpoints](https://api.zaplog.pro)):
+- Open the homepage of the Api in a browser to initialize (you should see [a list of endpoints](https://api.zaplog.pro/v1)):
 
-      http://localhost:8080/Api.php
+      http://localhost:8080/Api.php/v1
 
 - Optionally install the cronjobs (not needed for development), the command lines (from the root of the server) are:
 
-      php Api.php /cronjobs/minute GET
-      php Api.php /cronjobs/hour GET
-      php Api.php /cronjobs/day GET
-      php Api.php /cronjobs/month GET
+      php Api.php /v1/cronjobs/minute GET
+      php Api.php /v1/cronjobs/hour GET
+      php Api.php /v1/cronjobs/day GET
+      php Api.php /v1/cronjobs/month GET
 
-- This server does not do caching, rate-limiting, DDOS-mitigation or anything else that should be done by a reverse proxy
+- This server does not do response caching, rate-limiting, DDOS-mitigation or anything else that should be done by a reverse proxy
   (e.g. NGINX https://www.nginx.com/blog/rate-limiting-nginx/ and https://www.nginx.com/blog/mitigating-ddos-attacks-with-nginx-and-nginx-plus/)
 
 ## Production deploying of the REST-server (Docker)
