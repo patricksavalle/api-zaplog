@@ -52,6 +52,8 @@ CREATE TABLE channels
     header           VARCHAR(255)       DEFAULT NULL,
     bio              VARCHAR(255) NOT NULL DEFAULT "",
     bitcoinaddress   VARCHAR(60)        DEFAULT NULL,
+    -- number of chars translated by DeepL, reset every month
+    deeplusage       INT                DEFAULT 0,
     -- sum of all related link scores
     score            INT                DEFAULT 0,
     -- for internal bookkeeping during reputation calculations
@@ -63,6 +65,13 @@ CREATE TABLE channels
     UNIQUE INDEX (name),
     INDEX (reputation)
 );
+
+-- -----------------------------------------------------
+--
+-- -----------------------------------------------------
+
+CREATE EVENT reset_deeplusage ON SCHEDULE EVERY 1 MONTH STARTS '2021-01-01 00:00:00' DO
+UPDATE channels SET deeplusage=0;
 
 -- -----------------------------------------------------
 -- Set the updatedatetime on changed channel content

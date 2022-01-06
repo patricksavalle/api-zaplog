@@ -18,8 +18,6 @@
       <path value="$PROJECT_DIR$/vendor/league/html-to-markdown" />
       <path value="$PROJECT_DIR$/vendor/multiavatar/multiavatar-php" />
       <path value="$PROJECT_DIR$/vendor/genert/bbcode" />
-      <path value="$PROJECT_DIR$/vendor/smalot/pdfparser" />
-      <path value="$PROJECT_DIR$/vendor/symfony/polyfill-mbstring" />
       <path value="$PROJECT_DIR$/vendor/symfony/polyfill-ctype" />
       <path value="$PROJECT_DIR$/vendor/webmozart/assert" />
       <path value="$PROJECT_DIR$/vendor/landrok/language-detector" />

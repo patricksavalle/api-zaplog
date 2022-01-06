@@ -371,15 +371,31 @@ namespace Zaplog\Library {
             $link->language = (string)(new LanguageDetector)->evaluate($link->markdown ?? "");
             if (empty($link->language) or strlen($link->language) !== 2) {
                 $link->language = null;
-            } else {
-                $system_language = Db::fetch("SELECT language FROM channels WHERE id=1")->language;
-                if (!is_null($system_language) and $link->language !== $system_language /*and Ini::get("auto_translate")*/) {
-                    $link->tags = [];
-                    $link->markdown = (new Translation)($link->markdown, $system_language);
-                    $link->title = (new Translation)($link->title, $system_language);
-                    if (empty($link->orig_language)) $link->orig_language = $link->language;
-                    $link->language = $system_language;
+                return;
+            }
+            $system_language = Db::fetch("SELECT language FROM channels WHERE id=1")->language;
+            if (!is_null($system_language) and $link->language !== $system_language /*and Ini::get("auto_translate")*/) {
+
+                // TODO move to ini
+                $quotum = 10000;
+                $super_reputation = 500;
+                // check quotum
+                $size = strlen($link->markdown);
+                $channelstats = Db::fetch("SELECT deeplusage, reputation FROM channels WHERE id=:id", [":id" => $link->channelid]);
+                if ($channelstats->reputation < $super_reputation and ($channelstats->deeplusage + $size > $quotum)) {
+                    throw new UserException("This text would exceed your translation quotum of $quotum chars for this month");
                 }
+
+                // translate
+                $link->tags = [];
+                $link->markdown = (new Translation)($link->markdown, $system_language);
+                $link->title = (new Translation)($link->title, $system_language);
+                if (empty($link->orig_language)) $link->orig_language = $link->language;
+                $link->language = $system_language;
+
+                // update usage
+                Db::execute("UPDATE channels SET deeplusage = deeplusage + :size WHERE id=:id",
+                    [":id" => $link->channelid, ":size" => $size]);
             }
         }
 
