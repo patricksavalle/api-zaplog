@@ -11,6 +11,8 @@ broken_link_redirector=${ZAPLOG_GOTO_URL}
 auto_translate=${auto_translate}
 deepl_auth_key=${deepl_auth_key}
 deepl_api_url=https://api-free.deepl.com/v2/translate
+translate_user_quotum=10000
+translate_super_reputation=500
 
 [cors]
 cors_origin[]=
