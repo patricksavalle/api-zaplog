@@ -10,12 +10,13 @@ namespace Zaplog\Library {
 
     class Translation
     {
-        public function __invoke(string $text, string $target_lang): string
+        public function __invoke(string $text, string $target_lang, string $source_lang = ""): array
         {
             try {
                 $postdata = http_build_query(
                     ['auth_key' => Ini::get("deepl_auth_key"),
                         'target_lang' => $target_lang,
+                        'source_lang' => $source_lang,
                         'text' => $text]
                 );
                 $curl = curl_init();
@@ -36,7 +37,8 @@ namespace Zaplog\Library {
             } finally {
                 if (is_resource($curl)) curl_close($curl);
             }
-            return json_decode($content, true)["translations"][0]["text"] ?? $text;
+            $return = json_decode($content, true)["translations"][0];
+            return [$return["text"], strtolower($return["detected_source_language"])];
         }
     }
 }

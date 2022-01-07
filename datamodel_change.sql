@@ -1,4 +1,24 @@
 USE zaplog;
-ALTER TABLE channels ADD COLUMN deeplusage INT DEFAULT 0 AFTER bitcoinaddress;
-CREATE EVENT reset_deeplusage ON SCHEDULE EVERY 1 MONTH STARTS '2021-01-01 00:00:00' DO
-UPDATE channels SET deeplusage=0;
+DROP TRIGGER on_before_update_link;
+DELIMITER //
+CREATE TRIGGER on_before_update_link BEFORE UPDATE ON links FOR EACH ROW
+BEGIN
+    IF (NEW.title<>OLD.title
+        OR NEW.markdown<>OLD.markdown
+        OR NEW.copyright<>OLD.copyright
+        OR NEW.language<>OLD.language
+        OR NEW.url<>OLD.url
+        OR NEW.image<>OLD.image
+        OR NEW.published<>OLD.published) THEN
+        BEGIN
+            SET NEW.updatedatetime = CURRENT_TIMESTAMP;
+            IF (OLD.published=FALSE) THEN
+                SET NEW.createdatetime = CURRENT_TIMESTAMP;
+            END IF;
+        END;
+    END IF;
+    IF (NEW.published=FALSE AND OLD.published=TRUE) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Cannot unpublish only delete';
+END IF;
+END//
+DELIMITER ;

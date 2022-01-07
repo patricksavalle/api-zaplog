@@ -20,10 +20,14 @@
       <path value="$PROJECT_DIR$/vendor/genert/bbcode" />
       <path value="$PROJECT_DIR$/vendor/symfony/polyfill-ctype" />
       <path value="$PROJECT_DIR$/vendor/webmozart/assert" />
-      <path value="$PROJECT_DIR$/vendor/landrok/language-detector" />
       <path value="$PROJECT_DIR$/vendor/gumlet/php-image-resize" />
       <path value="$PROJECT_DIR$/vendor/patricksavalle/content-syndication" />
       <path value="$PROJECT_DIR$/vendor/patricksavalle/slim-rest-api" />
+      <path value="$PROJECT_DIR$/vendor/jfcherng/php-color-output" />
+      <path value="$PROJECT_DIR$/vendor/jfcherng/php-sequence-matcher" />
+      <path value="$PROJECT_DIR$/vendor/jfcherng/php-mb-string" />
+      <path value="$PROJECT_DIR$/vendor/jfcherng/php-diff" />
+      <path value="$PROJECT_DIR$/vendor/landrok/language-detector" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="7.3">

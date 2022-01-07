@@ -17,6 +17,11 @@
       <excludeFolder url="file://$MODULE_DIR$/vendor/pimple/pimple" />
       <excludeFolder url="file://$MODULE_DIR$/vendor/patricksavalle/content-syndication" />
       <excludeFolder url="file://$MODULE_DIR$/vendor/patricksavalle/slim-rest-api" />
+      <excludeFolder url="file://$MODULE_DIR$/vendor/jfcherng/php-color-output" />
+      <excludeFolder url="file://$MODULE_DIR$/vendor/jfcherng/php-sequence-matcher" />
+      <excludeFolder url="file://$MODULE_DIR$/vendor/jfcherng/php-mb-string" />
+      <excludeFolder url="file://$MODULE_DIR$/vendor/jfcherng/php-diff" />
+      <excludeFolder url="file://$MODULE_DIR$/vendor/landrok/language-detector" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

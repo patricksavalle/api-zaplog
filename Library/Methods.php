@@ -14,6 +14,8 @@ namespace Zaplog\Library {
     use ContentSyndication\Text;
     use Exception;
     use Gumlet\ImageResize;
+    use Jfcherng\Diff\DiffHelper;
+    use Jfcherng\Diff\Renderer\RendererConstant;
     use LanguageDetector\LanguageDetector;
     use SlimRestApi\Infra\Db;
     use SlimRestApi\Infra\Ini;
@@ -408,11 +410,15 @@ namespace Zaplog\Library {
             }
 
             // translate
-            $link->tags = [];
-            $link->markdown = (new Translation)($link->markdown, $system_language);
-            $link->title = (new Translation)($link->title, $system_language);
-            if (empty($link->orig_language)) $link->orig_language = $link->language;
+            [$translation, $source_language] = (new Translation)($link->markdown, $system_language);
+            $link->markdown = $translation;
+            [$translation, $source_language] =  (new Translation)($link->title, $system_language, $source_language);
+            $link->title = $translation;
+            if (empty($link->orig_language)) $link->orig_language = $source_language;
             $link->language = $system_language;
+            if ($source_language !== $system_language) {
+                $link->tags = [];
+            }
 
             // update quotum
             Db::execute("UPDATE channels SET deeplusage = deeplusage + :size WHERE id=:id",
@@ -446,14 +452,38 @@ namespace Zaplog\Library {
 
         static public function generateDiff(stdClass $old, stdClass $new)
         {
+            // see: https://github.com/jfcherng/php-diff/blob/v6/example/demo_web.php
+
+            // options for Diff class
+            $diffOptions = [
+                'context' => 0,
+                'ignoreCase' => true,
+                'ignoreWhitespace' => true,
+            ];
+
+            // options for renderer class
+            $rendererOptions = [
+                'detailLevel' => 'word',
+                'showHeader' => false,
+                'spacesToNbsp' => false,
+                'mergeThreshold' => 0.8,
+                'wordGlues' => [' ', '-'],
+                'resultForIdenticals' => null,
+                'wrapperClasses' => ['diff-wrapper'],
+            ];
+
+            $diff = function (string $old, string $new) use ($diffOptions, $rendererOptions) {
+                return DiffHelper::calculate($old, $new, 'Combined', $diffOptions, $rendererOptions);
+            };
+
             $xtext = "";
             if (strcmp($old->copyright, $new->copyright) !== 0) {
                 $xtext .= "<p><em>copyright changed: </em><del>$old->copyright</del><ins>$new->copyright</ins></p>";
             }
-            if (($changes = (new Diff)($old->title, $new->title)) !== "") {
+            if (($changes = $diff($old->title, $new->title)) !== "") {
                 $xtext .= "<p><em>title changed: </em>" . $changes . "</p>";
             }
-            if (($changes = (new Diff)($old->xtext, $new->xtext)) !== "") {
+            if (($changes = $diff(strip_tags($old->xtext), strip_tags($new->xtext))) !== "") {
                 $xtext .= "<p><em>text changed: </em>" . $changes . "</p>";
             }
             if (strcmp($old->url ?? "", $new->url ?? "") !== 0) {
@@ -474,29 +504,20 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        /** @noinspection PhpArrayIndexImmediatelyRewrittenInspection */
         static public function postLink(stdClass $link): stdClass
         {
-            $profiling[__LINE__] = microtime(true);
             self::checkTranslation($link);
-            $profiling[__LINE__] = microtime(true);
             self::checkMarkdown($link);
-            $profiling[__LINE__] = microtime(true);
             self::checkTitle($link);
-            $profiling[__LINE__] = microtime(true);
             self::checkUrl($link);
-            $profiling[__LINE__] = microtime(true);
             self::checkImage($link);
-            $profiling[__LINE__] = microtime(true);
             self::checkCopyright($link);
-            $profiling[__LINE__] = microtime(true);
             if (sizeof($link->tags ?? []) === 0) {
                 // one of the ParseDonw-filters collected tag candidates based on typograhpy
                 $harvested_tags = TagHarvester::getTags();
                 $link->tags = array_merge($link->tags, $harvested_tags);
             }
             $link->tags = self::sanitizeTags($link->tags);
-            $profiling[__LINE__] = microtime(true);
 
             $sqlparams = [
                 ":channelid" => $link->channelid,
@@ -512,7 +533,6 @@ namespace Zaplog\Library {
                 ":copyright" => $link->copyright,
             ];
 
-            /** @noinspection PhpIfWithCommonPartsInspection */
             if (empty($link->id)) {
 
                 (new ServerException)(Db::execute(
@@ -520,14 +540,13 @@ namespace Zaplog\Library {
                         VALUES (:url, :channelid, :title, :markdown, :xtext, :description, :image, :mimetype, :language, :orig_language, :copyright, FALSE)",
                         $sqlparams)->rowCount() > 0);
                 $link->id = (int)Db::lastInsertId();
-                $profiling[__LINE__] = microtime(true);
 
             } else {
 
                 $sqlparams[":id"] = $link->id;
 
                 // get old version for diff
-                // $old_link = Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $link->id]);
+                $old_link = Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $link->id]);
 
                 (new UserException("Unchanged"))(Db::execute(
                         "UPDATE links SET
@@ -542,16 +561,12 @@ namespace Zaplog\Library {
                             orig_language=:orig_language, 
                             copyright=:copyright
                         WHERE id=:id AND channelid=:channelid", $sqlparams)->rowCount() >= 0);
-                $profiling[__LINE__] = microtime(true);
 
                 // remove the tags that this user / channel added
                 Db::execute("DELETE FROM tags WHERE linkid=:id AND channelid=:channelid", [":id" => $link->id, ":channelid" => $link->channelid]);
-                $profiling[__LINE__] = microtime(true);
 
                 // create diff as reaction
-                // if ($link->published === true) {
-                //     self::generateDiff($old_link, $link);
-                // }
+                self::generateDiff($old_link, $link);
             }
 
             // insert tags
@@ -559,7 +574,6 @@ namespace Zaplog\Library {
                 /** @noinspection PhpCastIsUnnecessaryInspection */
                 self::postTags((int)$link->id, (int)$link->channelid, $link->tags);
             }
-            $profiling[__LINE__] = microtime(true);
 
             // archive the link
             try {
@@ -567,8 +581,6 @@ namespace Zaplog\Library {
             } catch (Exception $e) {
                 error_log($e->getMessage() . $link->url);
             }
-            $profiling[__LINE__] = microtime(true);
-            error_log("Profiling POST /link/$link->id " . print_r($profiling, true));
 
             return $link;
         }
@@ -762,7 +774,7 @@ namespace Zaplog\Library {
             // fetch first 3 reactions for selected threads
             return Db::fetchAll("SELECT
                     r.threadid,
-                    r.rownum,
+                    r.rownum,   
                     reactions.id,
                     reactions.createdatetime,
                     reactions.description,
@@ -805,7 +817,7 @@ namespace Zaplog\Library {
                     channels.avatar,
                     (SELECT COUNT(*) FROM reactionvotes WHERE reactionid=reactions.id) AS votescount
                 FROM reactions 
-                JOIN links ON reactions.linkid=links.id AND reactions.createdatetime>links.createdatetime
+                JOIN links ON reactions.linkid=links.id AND reactions.createdatetime>=links.createdatetime
                 JOIN channels ON channels.id=reactions.channelid
                 WHERE linkid=:id AND reactions.published=TRUE 
                 ORDER BY reactions.id DESC", [":id" => $linkid]);
