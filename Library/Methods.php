@@ -305,6 +305,10 @@ namespace Zaplog\Library {
         static public function checkImage(stdClass $link)
         {
             if (!empty($link->image)) {
+                if (strlen($link->image) > 256) {
+                    $link->image = null;
+                    return;
+                }
                 $image_mimetype = "";
                 try {
                     $image_mimetype = (new Mimetype)($link->image);
@@ -368,35 +372,51 @@ namespace Zaplog\Library {
 
         static public function checkTranslation(stdClass $link)
         {
-            $link->language = (string)(new LanguageDetector)->evaluate($link->markdown ?? "");
-            if (empty($link->language) or strlen($link->language) !== 2) {
-                $link->language = null;
+            assert(strlen($link->markdown ?? "") > 0);
+
+            $link->language = (string)(new LanguageDetector)->evaluate($link->markdown);
+            if (strlen($link->language ?? "") !== 2) {
+                throw new ServerException("Error detecting language");
+            }
+
+            // do we need to translate anything?
+            if (!Ini::get("auto_translate")) {
                 return;
             }
-            $system_language = Db::fetch("SELECT language FROM channels WHERE id=1")->language;
-            if (!is_null($system_language) and $link->language !== $system_language /*and Ini::get("auto_translate")*/) {
 
-                // TODO move to ini
-                $quotum = 10000;
-                $super_reputation = 500;
-                // check quotum
-                $size = strlen($link->markdown);
-                $channelstats = Db::fetch("SELECT deeplusage, reputation FROM channels WHERE id=:id", [":id" => $link->channelid]);
-                if ($channelstats->reputation < $super_reputation and ($channelstats->deeplusage + $size > $quotum)) {
-                    throw new UserException("This text would exceed your translation quotum of $quotum chars for this month");
-                }
+            // fetch all neccessary data in a single query
+            $stats = Db::fetch("SELECT 
+                (SELECT deeplusage FROM channels WHERE id=:id1) AS deeplusage, 
+                (SELECT reputation FROM channels WHERE id=:id2) AS reputation, 
+                (SELECT language FROM channels WHERE id=1) AS language",
+                [":id1" => $link->channelid, ":id2" => $link->channelid]);
 
-                // translate
-                $link->tags = [];
-                $link->markdown = (new Translation)($link->markdown, $system_language);
-                $link->title = (new Translation)($link->title, $system_language);
-                if (empty($link->orig_language)) $link->orig_language = $link->language;
-                $link->language = $system_language;
-
-                // update usage
-                Db::execute("UPDATE channels SET deeplusage = deeplusage + :size WHERE id=:id",
-                    [":id" => $link->channelid, ":size" => $size]);
+            // do we need to translate anything?
+            $system_language = $stats->language;
+            if (is_null($system_language) or $link->language === $system_language) {
+                return;
             }
+
+            // check quotum
+            // TODO move to ini
+            $quotum = 10000;
+            $super_reputation = 500;
+            $size = strlen($link->markdown);
+            $remaining = $quotum - $stats->deeplusage;
+            if ($stats->reputation < $super_reputation and ($remaining < $size)) {
+                throw new UserException("This text exceeds your remaining translation quotum of $remaining chars for this month");
+            }
+
+            // translate
+            $link->tags = [];
+            $link->markdown = (new Translation)($link->markdown, $system_language);
+            $link->title = (new Translation)($link->title, $system_language);
+            if (empty($link->orig_language)) $link->orig_language = $link->language;
+            $link->language = $system_language;
+
+            // update quotum
+            Db::execute("UPDATE channels SET deeplusage = deeplusage + :size WHERE id=:id",
+                [":id" => $link->channelid, ":size" => $size]);
         }
 
         // ----------------------------------------------------------
