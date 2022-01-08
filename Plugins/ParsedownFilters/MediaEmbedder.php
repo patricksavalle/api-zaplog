@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Zaplog\Plugins\ParsedownFilters {
 
     use ContentSyndication\HtmlMetadata;
+    use ContentSyndication\Mimetype;
     use Exception;
     use Zaplog\Plugins\AbstractParsedownFilter;
 
@@ -46,6 +47,8 @@ namespace Zaplog\Plugins\ParsedownFilters {
                 return null;
             };
 
+            error_log(print_r($element, true));
+
             // the Parsedown parser recognized and translated Markdown image syntax, we intercept it
             if (strcmp($element['name'], "img") === 0 and isset($element['attributes']['src'])) {
 
@@ -56,6 +59,7 @@ namespace Zaplog\Plugins\ParsedownFilters {
                     // EMBEDS: for specific domains we will use Markdown image-syntax to embed media
                     [$embedurl, $class] = $getEmbedLink($metadata["url"]);
                     if (!empty($embedurl)) {
+
                         return [
                             "name" => "iframe",
                             "title" => html_entity_decode($metadata['title'] ?? ""),
@@ -77,6 +81,27 @@ namespace Zaplog\Plugins\ParsedownFilters {
                                 "title" => html_entity_decode($metadata['title'] ?? ""),
 //                                "width" => "100%",
                                 "src" => $metadata['image'],
+                            ],
+                        ];
+                    }
+
+                } catch (Exception $e) {
+                    // ignore
+                }
+
+                try {
+
+                    $mimetype = (new Mimetype)($element['attributes']['src']);
+
+                    // PDF
+                    if ($mimetype === "application/pdf") {
+
+                        return [
+                            "name" => "iframe",
+                            "text" => "", // forces Parsedown parser to insert a closing tag
+                            "attributes" => [
+                                "src" => $element['attributes']['src'],
+                                "class" => "pdf",
                             ],
                         ];
                     }
