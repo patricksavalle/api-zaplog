@@ -10,7 +10,7 @@ namespace Zaplog\Plugins\ResponseFilters {
     {
         protected function getEmbedCode(string $url): ?string
         {
-            foreach (["Youtube", "Spotify", "Bitchute", "Odysee", "Vimeo", "FreeWorldNews", "Banned"] as $service) {
+            foreach (["Youtube", "Spotify", "Bitchute", "Odysee", "Vimeo", "FreeWorldNews", "Banned", "DocDroid"] as $service) {
                 if (($embed = $this->{$service}($url)) !== null) {
                     return "<div class='iframe-wrapper'>$embed</div>";
                 }
@@ -80,6 +80,14 @@ namespace Zaplog\Plugins\ResponseFilters {
                 return null;
             }
             return "<iframe class='video youtube' src='https://www.youtube.com/embed/$matches[1]'></iframe>";
+        }
+        protected function DocDroid(string $normalized_url): ?string
+        {
+            // https://www.docdroid.net/M4dJCZc/schwab2020-pdf
+            if (preg_match("/.*docdroid.net\/([a-zA-Z0-9_-]+)\/(.+)/", $$normalized_url) === 0) {
+                return null;
+            }
+            return "<iframe class='pdf docdroid' src='$normalized_url'></iframe>";
         }
     }
 }
