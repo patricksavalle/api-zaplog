@@ -53,15 +53,17 @@ namespace Zaplog\Plugins\ResponseFilters {
             return "<iframe class='video vimeo' src='https://player.vimeo.com/video/$matches[1]/'></iframe>";
         }
 
+        /** @noinspection JSUnresolvedLibraryURL */
         protected function FreeWorldNews(string $normalized_url): ?string
         {
-            https://freeworldnews.tv/watch?id=61897f79b2140737c32728d6
+            // https://freeworldnews.tv/watch?id=61897f79b2140737c32728d6
             if (preg_match("/.*freeworldnews\.tv\/watch\?id=\/([a-zA-Z0-9]+)/", $normalized_url, $matches) === 0) {
                 return null;
             }
             return "<div class='video ifw-player' data-video-id='$matches[1]'></div><script src='https://infowarsmedia.com/js/player.js' async></script>";
         }
 
+        /** @noinspection JSUnresolvedLibraryURL */
         protected function Banned(string $normalized_url): ?string
         {
             // https://banned.video/watch?id=6189aaf3b2140737c32d0273
