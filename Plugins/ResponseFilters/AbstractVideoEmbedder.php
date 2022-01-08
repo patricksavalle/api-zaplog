@@ -84,7 +84,7 @@ namespace Zaplog\Plugins\ResponseFilters {
         protected function DocDroid(string $normalized_url): ?string
         {
             // https://www.docdroid.net/M4dJCZc/schwab2020-pdf
-            if (preg_match("/.*docdroid.net\/([a-zA-Z0-9_-]+)\/(.+)/", $$normalized_url) === 0) {
+            if (preg_match("/.*docdroid.net\/([a-zA-Z0-9_-]+)\/(.+)/", $normalized_url) === 0) {
                 return null;
             }
             return "<iframe class='pdf docdroid' src='$normalized_url'></iframe>";
