@@ -468,11 +468,11 @@ class Api extends SlimRestApi
                 // Returns links for a given channel
                 // -----------------------------------------------------
 
-                $this->get("/channel/{id:\d{1,10}}", function (
+                $this->get("/channel/{id:[\d\w-]{1,55}}", function (
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, Methods::getChannelLinks((int)$args->id, (int)$args->offset, (int)$args->count));
+                    return self::response($request, $response, $args, Methods::getChannelLinks($args->id, (int)$args->offset, (int)$args->count));
                 })
                     ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20']))
                     ->add(new Cacheable(60/*sec*/));

@@ -62,9 +62,18 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function getChannelLinks(int $channelid, int $offset, int $count): array
+        static public function getChannelLinks(string $channelid, int $offset, int $count): array
         {
-            $algorithm = Db::fetch("SELECT algorithm FROM channels WHERE id=:id", [":id" => $channelid])->algorithm;
+            $channel = Db::fetch("SELECT algorithm, id FROM channels WHERE id=:id1 OR name=:id2",
+                [":id1" => $channelid, ":id2" => $channelid,]);
+
+            if ($channel === false) {
+                throw new UserException("Channel $channelid not found", 404);
+            }
+
+            $algorithm = $channel->algorithm;
+            $channelid = $channel->id;
+
             switch ($algorithm) {
 
                 case "all":
