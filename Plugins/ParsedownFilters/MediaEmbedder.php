@@ -47,8 +47,6 @@ namespace Zaplog\Plugins\ParsedownFilters {
                 return null;
             };
 
-            error_log(print_r($element, true));
-
             // the Parsedown parser recognized and translated Markdown image syntax, we intercept it
             if (strcmp($element['name'], "img") === 0 and isset($element['attributes']['src'])) {
 

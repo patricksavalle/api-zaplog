@@ -15,7 +15,6 @@ namespace Zaplog\Library {
     use Exception;
     use Gumlet\ImageResize;
     use Jfcherng\Diff\DiffHelper;
-    use Jfcherng\Diff\Renderer\RendererConstant;
     use LanguageDetector\LanguageDetector;
     use SlimRestApi\Infra\Db;
     use SlimRestApi\Infra\Ini;
