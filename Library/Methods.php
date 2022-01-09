@@ -411,7 +411,7 @@ namespace Zaplog\Library {
             // translate
             [$translation, $source_language] = (new Translation)($link->markdown, $system_language);
             $link->markdown = $translation;
-            [$translation, $source_language] =  (new Translation)($link->title, $system_language, $source_language);
+            [$translation, $source_language] = (new Translation)($link->title, $system_language, $source_language);
             $link->title = $translation;
             if (empty($link->orig_language)) $link->orig_language = $source_language;
             $link->language = $system_language;
@@ -480,10 +480,14 @@ namespace Zaplog\Library {
                 $xtext .= "<p><em>copyright changed: </em><del>$old->copyright</del><ins>$new->copyright</ins></p>";
             }
             if (($changes = $diff($old->title, $new->title)) !== "") {
-                $xtext .= "<p><em>title changed: </em>" . $changes . "</p>";
+                if (strlen(strip_tags($changes)) > 0) {
+                    $xtext .= "<p><em>title changed: </em>" . $changes . "</p>";
+                }
             }
             if (($changes = $diff(strip_tags($old->xtext), strip_tags($new->xtext))) !== "") {
-                $xtext .= "<p><em>text changed: </em>" . $changes . "</p>";
+                if (strlen(strip_tags($changes)) > 0) {
+                    $xtext .= "<p><em>text changed: </em>" . $changes . "</p>";
+                }
             }
             if (strcmp($old->url ?? "", $new->url ?? "") !== 0) {
                 $xtext .= "<p><em>link changed: </em><del>$old->url</del><ins>$new->url</ins></p>";
