@@ -68,7 +68,7 @@ namespace Zaplog\Library {
                 [":id1" => $channelid, ":id2" => $channelid,]);
 
             if ($channel === false) {
-                throw new UserException("Channel $channelid not found", 404);
+                throw new Exception("Channel $channelid not found", 404);
             }
 
             $algorithm = $channel->algorithm;
@@ -616,6 +616,8 @@ namespace Zaplog\Library {
                     [":id" => $id, ":channelid" => $channelid])->rowCount() !== 1) {
                 throw new ServerException("Can't publish this article");
             }
+            // remove reactions on concept
+            Db::execute("DELETE FROM reactions WHERE linkid=:id", [":id" => $id]);
             return true;
         }
 
@@ -774,10 +776,7 @@ namespace Zaplog\Library {
             // first fetch all threadid's
             foreach (Db::fetchAll("SELECT threadid FROM reactions
                 JOIN links ON links.id=reactions.linkid
-                WHERE (:channelid1 IS NULL OR :channelid2=links.channelid) 
-                  AND reactions.createdatetime>links.createdatetime 
-                  AND links.published=TRUE
-                  AND reactions.channelid<>1
+                WHERE (:channelid1 IS NULL OR :channelid2=links.channelid) AND links.published=TRUE
                 GROUP BY threadid
                 ORDER BY threadid DESC 
                 LIMIT :offset, :count",
@@ -807,13 +806,13 @@ namespace Zaplog\Library {
                         channelid, 
                         linkid,
                         (@num:=if(@threadid = threadid, @num +1, if(@threadid := threadid, 1, 1))) AS rownum
-                    FROM reactions WHERE threadid IN ($threadids) AND channelid<>1 AND published=TRUE
+                    FROM reactions WHERE threadid IN ($threadids) AND published=TRUE AND channelid<>1
                     ORDER BY threadid DESC, id DESC
                 ) AS r 
                 JOIN reactions ON reactions.id=r.id
                 JOIN channels ON channels.id=r.channelid
                 JOIN links ON links.id=r.linkid  
-                WHERE r.rownum <= :reactions AND reactions.createdatetime>links.createdatetime AND links.published=TRUE
+                WHERE r.rownum <= :reactions AND reactions.published=TRUE
                 ORDER by r.threadid DESC, r.id DESC", [":reactions" => $numreactions]);
         }
 
@@ -832,7 +831,7 @@ namespace Zaplog\Library {
                     channels.avatar,
                     (SELECT COUNT(*) FROM reactionvotes WHERE reactionid=reactions.id) AS votescount
                 FROM reactions 
-                JOIN links ON reactions.linkid=links.id AND reactions.createdatetime>=links.createdatetime
+                JOIN links ON reactions.linkid=links.id 
                 JOIN channels ON channels.id=reactions.channelid
                 WHERE linkid=:id AND reactions.published=TRUE 
                 ORDER BY reactions.id DESC", [":id" => $linkid]);
@@ -858,7 +857,7 @@ namespace Zaplog\Library {
                     (SELECT COUNT(*) FROM reactionvotes WHERE reactionid=reactions.id) AS votescount
                 FROM reactions 
                 JOIN channels ON channels.id=reactions.channelid
-                JOIN links ON links.id=reactions.linkid AND reactions.createdatetime>links.createdatetime
+                JOIN links ON links.id=reactions.linkid 
                 WHERE reactions.published=TRUE AND links.published=TRUE
                 ORDER BY reactions.id DESC
                 LIMIT :offset, :count", [":offset" => $offset, ":count" => $count]);
