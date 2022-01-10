@@ -48,6 +48,10 @@ namespace Zaplog\Plugins\ParsedownFilters {
                 if (preg_match("/.*scribd.com\/doc\/([a-zA-Z0-9_-]+)\/(.+)/", $url, $matches) === 1) {
                     return ["https://www.scribd.com/embeds/$matches[1]/content", "scribd"];
                 }
+                // https://www.dailymotion.com/video/x87005y?playlist=x6lgtp
+                if (preg_match("/.*dailymotion.com\/video\/([a-zA-Z0-9_-]+)/", $url, $matches) === 1) {
+                    return ["https://www.dailymotion.com/embed/video/$matches[1]", "scribd"];
+                }
                 return null;
             };
 
