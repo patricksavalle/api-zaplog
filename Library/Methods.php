@@ -507,7 +507,7 @@ namespace Zaplog\Library {
                 $description = (string)(new Text($xtext))->blurbify();
 
                 // insert diff as comment
-                Db::execute("INSERT INTO reactions(linkid, channelid, xtext, description) VALUES(:linkid, 1, :xtext, :description)",
+                Db::execute("CALL insert_reaction(1, :linkid, null, :xtext, :description)",
                     [":linkid" => $new->id, ":xtext" => $xtext, ":description" => $description]);
             }
         }
@@ -769,12 +769,15 @@ namespace Zaplog\Library {
 
         static public function getDiscussion(?string $channelid, int $offset, int $count, int $numreactions = 3): array
         {
-            $threadids = [];
+            $threadids = [0]; // prevent SQL syntax error in empty database
 
             // first fetch all threadid's
             foreach (Db::fetchAll("SELECT threadid FROM reactions
                 JOIN links ON links.id=reactions.linkid
-                WHERE :channelid1 IS NULL OR :channelid2=links.channelid
+                WHERE (:channelid1 IS NULL OR :channelid2=links.channelid) 
+                  AND reactions.createdatetime>links.createdatetime 
+                  AND links.published=TRUE
+                  AND reactions.channelid<>1
                 GROUP BY threadid
                 ORDER BY threadid DESC 
                 LIMIT :offset, :count",
