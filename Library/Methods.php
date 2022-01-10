@@ -806,7 +806,7 @@ namespace Zaplog\Library {
                         channelid, 
                         linkid,
                         (@num:=if(@threadid = threadid, @num +1, if(@threadid := threadid, 1, 1))) AS rownum
-                    FROM reactions WHERE threadid IN ($threadids) AND published=TRUE AND channelid<>1
+                    FROM reactions WHERE threadid IN ($threadids) AND published=TRUE
                     ORDER BY threadid DESC, id DESC
                 ) AS r 
                 JOIN reactions ON reactions.id=r.id

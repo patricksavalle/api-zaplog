@@ -17,7 +17,7 @@ namespace Zaplog\Plugins {
      */
     abstract class AbstractResponseFilter
     {
-        abstract public function __invoke(string $requestUri, stdClass $requestArgs, &$responseData);
+        abstract public function __invoke(string $requestUri, stdClass $requestArgs, $responseData);
 
         /*
             responsedata is the payload just before it will be translated into JSON and returned, often an array

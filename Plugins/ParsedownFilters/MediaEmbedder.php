@@ -63,7 +63,6 @@ namespace Zaplog\Plugins\ParsedownFilters {
                             "title" => html_entity_decode($metadata['title'] ?? ""),
                             "text" => html_entity_decode($metadata['title'] ?? ""), // forces Parsedown parser to insert a closing tag
                             "attributes" => [
-                                "width" => "100%",
                                 "src" => $embedurl,
                                 "class" => "$class",
                             ],
@@ -77,7 +76,6 @@ namespace Zaplog\Plugins\ParsedownFilters {
                             "name" => "img",
                             "attributes" => [
                                 "class" => "image",
-                                "width" => "100%",
                                 "title" => html_entity_decode($metadata['title'] ?? ""),
 //                                "width" => "100%",
                                 "src" => $metadata['image'],
@@ -100,7 +98,6 @@ namespace Zaplog\Plugins\ParsedownFilters {
                             "name" => "iframe",
                             "text" => "", // forces Parsedown parser to insert a closing tag
                             "attributes" => [
-                                "width" => "100%",
                                 "src" => $element['attributes']['src'],
                                 "class" => "pdf",
                             ],

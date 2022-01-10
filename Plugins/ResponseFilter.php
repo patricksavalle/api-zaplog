@@ -61,7 +61,7 @@ namespace Zaplog\Plugins {
                 });
         }
 
-        public function __invoke(string $requestUri, stdClass $requestArgs, &$responseData)
+        public function __invoke(string $requestUri, stdClass $requestArgs, $responseData)
         {
             foreach ($this->processors as [$request, $file, $classname]) {
                 //execute the plugin
