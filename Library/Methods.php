@@ -427,7 +427,6 @@ namespace Zaplog\Library {
             if ($source_language !== $system_language) {
                 $link->tags = [];
             }
-
             // update quotum
             Db::execute("UPDATE channels SET deeplusage = deeplusage + :size WHERE id=:id",
                 [":id" => $link->channelid, ":size" => $size]);

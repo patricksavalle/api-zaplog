@@ -44,6 +44,10 @@ namespace Zaplog\Plugins\ParsedownFilters {
                 if (preg_match("/.*docdroid.net\/([a-zA-Z0-9_-]+)\/(.+)/", $url, $matches) === 1) {
                     return [$url, "docdroid pdf"];
                 }
+                // https://www.scribd.com/doc/19098316/Whistleblower-Sibel-Edmonds-Ohio-deposition-Schmidt-v-Krikorian
+                if (preg_match("/.*scribd.com\/doc\/([a-zA-Z0-9_-]+)\/(.+)/", $url, $matches) === 1) {
+                    return ["https://www.scribd.com/embeds/$matches[1]/content", "scribd"];
+                }
                 return null;
             };
 
