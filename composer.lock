@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "fc6a8c66e684f9395a51095122b535c3",
+    "content-hash": "09b3a198108f96ade48cd062826b6a38",
     "packages": [
         {
             "name": "atrox/haikunator",
@@ -739,12 +739,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/patricksavalle/php-content-syndication.git",
-                "reference": "1727179155761ac220b3450c6d0a93c9368b0b60"
+                "reference": "9107a1ed71639f090b2c0f62c97ab0e13845f072"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/patricksavalle/php-content-syndication/zipball/1727179155761ac220b3450c6d0a93c9368b0b60",
-                "reference": "1727179155761ac220b3450c6d0a93c9368b0b60",
+                "url": "https://api.github.com/repos/patricksavalle/php-content-syndication/zipball/9107a1ed71639f090b2c0f62c97ab0e13845f072",
+                "reference": "9107a1ed71639f090b2c0f62c97ab0e13845f072",
                 "shasum": ""
             },
             "require": {
@@ -790,7 +790,7 @@
                 "issues": "https://github.com/patricksavalle/php-content-syndication/issues",
                 "source": "https://github.com/patricksavalle/php-content-syndication/tree/master"
             },
-            "time": "2022-01-06T19:34:39+00:00"
+            "time": "2022-01-11T09:29:58+00:00"
         },
         {
             "name": "patricksavalle/slim-request-params",
@@ -852,12 +852,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/patricksavalle/slim-rest-api.git",
-                "reference": "2d9e3b59c6bff0c37773892612f0fd6a6b70eb9d"
+                "reference": "e28e7277b69cfbbc1ff41a4bd1980d16264f2a8d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/patricksavalle/slim-rest-api/zipball/2d9e3b59c6bff0c37773892612f0fd6a6b70eb9d",
-                "reference": "2d9e3b59c6bff0c37773892612f0fd6a6b70eb9d",
+                "url": "https://api.github.com/repos/patricksavalle/slim-rest-api/zipball/e28e7277b69cfbbc1ff41a4bd1980d16264f2a8d",
+                "reference": "e28e7277b69cfbbc1ff41a4bd1980d16264f2a8d",
                 "shasum": ""
             },
             "require": {
@@ -905,7 +905,7 @@
                 "issues": "https://github.com/patricksavalle/slim-rest-api/issues",
                 "source": "https://github.com/patricksavalle/slim-rest-api/tree/master"
             },
-            "time": "2022-01-06T10:42:38+00:00"
+            "time": "2022-01-11T11:05:12+00:00"
         },
         {
             "name": "pavlakis/slim-cli",

@@ -14,25 +14,25 @@ define("BASE_PATH", __DIR__);
 
 require_once BASE_PATH . '/vendor/autoload.php';
 
-use SlimRestApi\Infra\Ini;
-use SlimRestApi\Infra\MemcachedFunction;
-use SlimRestApi\Middleware\CacheablePrivate;
-use SlimRestApi\Middleware\NoCache;
-use SlimRestApi\Middleware\NoStore;
-use stdClass;
-use SlimRestApi\Middleware\CliRequest;
-use SlimRestApi\Middleware\Cacheable;
-use SlimRequestParams\BodyParameters;
-use SlimRequestParams\QueryParameters;
-use SlimRestApi\SlimRestApi;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use SlimRequestParams\BodyParameters;
+use SlimRequestParams\QueryParameters;
 use SlimRestApi\Infra\Db;
+use SlimRestApi\Infra\Ini;
+use SlimRestApi\Infra\MemcachedFunction;
+use SlimRestApi\Middleware\Cacheable;
+use SlimRestApi\Middleware\CacheablePrivate;
+use SlimRestApi\Middleware\CliRequest;
+use SlimRestApi\Middleware\NoCache;
+use SlimRestApi\Middleware\NoStore;
+use SlimRestApi\SlimRestApi;
+use stdClass;
 use Zaplog\Exception\UserException;
+use Zaplog\Library\DoublePostProtection;
 use Zaplog\Library\Methods;
 use Zaplog\Library\TwoFactorAction;
 use Zaplog\Middleware\Authentication;
-use Zaplog\Middleware\DoublePostPreventor;
 use Zaplog\Plugins\ResponseFilter;
 
 class Api extends SlimRestApi
@@ -136,6 +136,7 @@ class Api extends SlimRestApi
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
+                    (new DoublePostProtection)($args, 20);
                     (new TwoFactorAction)
                         ->addAction('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'createSession'], [$args->email])
                         ->createToken()
@@ -347,6 +348,7 @@ class Api extends SlimRestApi
                     Response $response,
                     stdClass $channel): Response {
                     $channel->channelid = Authentication::getSession()->id;
+                    (new DoublePostProtection)($channel);
                     return self::response($request, $response, $channel, Methods::patchChannel($channel));
                 })
                     ->add(new NoStore)
@@ -392,14 +394,14 @@ class Api extends SlimRestApi
                 $this->post("", function (
                     Request  $request,
                     Response $response,
-                    stdClass $args): Response {
-                    (new UserException("Empty markdown"))(!empty($args->markdown));
-                    (new UserException("Markdown exceeds 50k chars"))(strlen($args->markdown) < 50000);
-                    $args->channelid = Authentication::getSession()->id;
-                    return self::response($request, $response, $args, Methods::postLink($args));
+                    stdClass $link): Response {
+                    (new UserException("Empty markdown"))(!empty($link->markdown));
+                    (new UserException("Markdown exceeds 50k chars"))(strlen($link->markdown) < 50000);
+                    $link->channelid = Authentication::getSession()->id;
+                    (new DoublePostProtection)($link);
+                    return self::response($request, $response, $link, Methods::postLink($link));
                 })
                     ->add(new NoStore)
-                    ->add(new DoublePostPreventor)
                     ->add(new BodyParameters([
                         '{id:\d+},null',    // empty will create new post (id is returned)
                         '{url:\url},null',
@@ -520,11 +522,12 @@ class Api extends SlimRestApi
                 $this->post("/link/{linkid:\d{1,10}}", function (
                     Request  $request,
                     Response $response,
-                    stdClass $args): Response {
-                    (new UserException("Empty markdown"))(!empty($args->markdown));
-                    (new UserException("Markdown exceeds 50k chars"))(strlen($args->markdown) < 50000);
-                    $args->channelid = Authentication::getSession()->id;
-                    return self::response($request, $response, $args, $args->preview ? Methods::previewReaction($args) : Methods::postReaction($args)->id);
+                    stdClass $reaction): Response {
+                    (new UserException("Empty markdown"))(!empty($reaction->markdown));
+                    (new UserException("Markdown exceeds 50k chars"))(strlen($reaction->markdown) < 50000);
+                    $reaction->channelid = Authentication::getSession()->id;
+                    (new DoublePostProtection)($reaction);
+                    return self::response($request, $response, $reaction, $reaction->preview ? Methods::previewReaction($reaction) : Methods::postReaction($reaction)->id);
                 })
                     ->add(new NoStore)
                     ->add(new QueryParameters(['{preview:\boolean},0']))

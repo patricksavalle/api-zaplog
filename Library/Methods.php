@@ -247,10 +247,16 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function getSingleChannel(string $id): array
+        static public function getSingleChannel(string $id_or_name): array
         {
+            $channel = (new ResourceNotFoundException)(
+                Db::fetch("SELECT * FROM channels WHERE id=:id1 OR name=:id2",
+                    [":id1" => $id_or_name, ":id2" => $id_or_name])
+            );
+            $id = $channel->id;
+
             return [
-                "channel" => (new ResourceNotFoundException)(Db::fetch("SELECT * FROM channels WHERE id=:id1 OR name=:id2", [":id1" => $id, ":id2" => $id])),
+                "channel" => $channel,
 
                 "tags" => Db::fetchAll("SELECT tag, COUNT(tag) AS tagscount 
                     FROM tags JOIN links ON tags.linkid=links.id  
@@ -271,8 +277,6 @@ namespace Zaplog\Library {
                     AND channels.id<>:channelid2
                     GROUP BY channels.id ORDER BY COUNT(tags.tag) DESC LIMIT 5",
                     ["channelid1" => $id, "channelid2" => $id], 60 * 60),
-
-                "activity" => self::getActivityStream(0, 25, $id),
             ];
         }
 
