@@ -37,10 +37,7 @@ namespace Zaplog\Library {
             } finally {
                 if (is_resource($curl)) curl_close($curl);
             }
-            $return = json_decode($content, true)["translations"][0] ?? null;
-            if ($return === null) {
-                throw new Exception("Translation failure, service limited or unavailable");
-            }
+            $return = json_decode($content, true)["translations"][0];
             return [$return["text"], strtolower($return["detected_source_language"])];
         }
     }
