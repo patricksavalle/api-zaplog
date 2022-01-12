@@ -386,8 +386,6 @@ namespace Zaplog\Library {
 
         static public function checkTranslation(stdClass $link)
         {
-            assert(strlen($link->markdown ?? "") > 0);
-
             $link->language = (string)(new LanguageDetector)->evaluate($link->markdown);
             if (strlen($link->language ?? "") !== 2) {
                 throw new ServerException("Error detecting language");
@@ -426,11 +424,14 @@ namespace Zaplog\Library {
             $link->markdown = $translation;
             [$translation, $source_language] = (new Translation)($link->title, $system_language, $source_language);
             $link->title = $translation;
-            if (empty($link->orig_language)) $link->orig_language = $source_language;
             $link->language = $system_language;
+            $link->orig_language = $source_language;
+
+            // clear tags )
             if ($source_language !== $system_language) {
                 $link->tags = [];
             }
+
             // update quotum
             Db::execute("UPDATE channels SET deeplusage = deeplusage + :size WHERE id=:id",
                 [":id" => $link->channelid, ":size" => $size]);
@@ -474,17 +475,16 @@ namespace Zaplog\Library {
 
             // options for renderer class
             $rendererOptions = [
-                'detailLevel' => 'word',
+                'detailLevel' => 'char',
                 'showHeader' => false,
                 'spacesToNbsp' => false,
                 'mergeThreshold' => 0.8,
                 'wordGlues' => [' ', '-'],
                 'resultForIdenticals' => null,
-                'wrapperClasses' => ['diff-wrapper'],
             ];
 
             $diff = function (string $old, string $new) use ($diffOptions, $rendererOptions) {
-                return DiffHelper::calculate($old, $new, 'Combined', $diffOptions, $rendererOptions);
+                return html_entity_decode(DiffHelper::calculate($old, $new, 'Combined', $diffOptions, $rendererOptions));
             };
 
             $xtext = "";
@@ -519,6 +519,19 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
+        static public function checkTags(stdClass $link)
+        {
+            if (sizeof($link->tags ?? []) === 0) {
+                // one of the ParseDonw-filters collected tag candidates based on typograhpy
+                $link->tags = TagHarvester::getTags();
+            }
+            $link->tags = self::sanitizeTags($link->tags);
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
         static public function postLink(stdClass $link): stdClass
         {
             self::checkTranslation($link);
@@ -527,12 +540,7 @@ namespace Zaplog\Library {
             self::checkUrl($link);
             self::checkImage($link);
             self::checkCopyright($link);
-            if (sizeof($link->tags ?? []) === 0) {
-                // one of the ParseDonw-filters collected tag candidates based on typograhpy
-                $harvested_tags = TagHarvester::getTags();
-                $link->tags = array_merge($link->tags, $harvested_tags);
-            }
-            $link->tags = self::sanitizeTags($link->tags);
+            self::checkTags($link);
 
             $sqlparams = [
                 ":channelid" => $link->channelid,
