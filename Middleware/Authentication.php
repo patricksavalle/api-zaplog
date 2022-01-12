@@ -6,6 +6,8 @@ namespace Zaplog\Middleware {
 
     use Atrox\Haikunator;
     use Multiavatar;
+    use Psr\Http\Message\ResponseInterface;
+    use Psr\Http\Message\ServerRequestInterface;
     use SlimRestApi\Infra\Db;
     use stdClass;
 
@@ -20,7 +22,7 @@ namespace Zaplog\Middleware {
         // Override of the parent calls, decorates the original call. Returns logged in channel
         // ---------------------------------------------------------------------------------------
 
-        static public function getSession(): stdClass
+        static public function getSession()
         {
             return Db::fetch("SELECT * FROM channels WHERE userid=:userid", [":userid" => parent::getSession()->userid]);
         }
@@ -66,6 +68,16 @@ namespace Zaplog\Middleware {
                 "token" => parent::createSession($userid),
                 "channel" => Db::fetch("SELECT * FROM channels WHERE userid=MD5(:userid)", [":userid" => $userid]),
             ];
+        }
+
+        public function __invoke(ServerRequestInterface $request, ResponseInterface $response, callable $next): ResponseInterface
+        {
+            $return = parent::__invoke($request, $response, $next);
+            $session = parent::getSession();
+            if (!empty($session)) {
+                Db::execute("UPDATE channels SET lastseendatetime=CURRENT_TIMESTAMP WHERE userid=:userid", [":userid" => $session->userid]);
+            }
+            return $return;
         }
     }
 }
