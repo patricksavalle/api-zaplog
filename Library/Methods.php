@@ -389,6 +389,7 @@ namespace Zaplog\Library {
 
         static public function checkTranslation(stdClass $link)
         {
+            $link->orig_language = null;
             $link->language = (string)(new LanguageDetector)->evaluate($link->markdown);
             if (strlen($link->language ?? "") !== 2) {
                 throw new ServerException("Error detecting language");
@@ -425,10 +426,10 @@ namespace Zaplog\Library {
             // translate
             [$translation, $source_language] = (new Translation)($link->markdown, $system_language);
             $link->markdown = $translation;
+            $link->orig_language = $source_language;
             [$translation, $source_language] = (new Translation)($link->title, $system_language, $source_language);
             $link->title = $translation;
             $link->language = $system_language;
-            $link->orig_language = $source_language;
 
             // clear tags )
             if ($source_language !== $system_language) {
@@ -555,7 +556,7 @@ namespace Zaplog\Library {
                 ":image" => $link->image,
                 ":mimetype" => $link->mimetype,
                 ":language" => $link->language,
-                ":orig_language" => $link->orig_language ?? null,
+                ":orig_language" => $link->orig_language,
                 ":copyright" => $link->copyright,
             ];
 
@@ -584,7 +585,7 @@ namespace Zaplog\Library {
                             image=:image, 
                             mimetype=:mimetype, 
                             language=:language, 
-                            orig_language=:orig_language, 
+                            orig_language=IFNULL(orig_language,:orig_language), 
                             copyright=:copyright
                         WHERE id=:id AND channelid=:channelid", $sqlparams)->rowCount() >= 0);
 
@@ -715,10 +716,9 @@ namespace Zaplog\Library {
 
             // get post
             // TODO must be authenticated for published=FALSE
-            $link = (new ResourceNotFoundException)(Db::fetch("SELECT * FROM links 
-                WHERE id=:id", [":id" => $id]));
+            $link = (new ResourceNotFoundException)(Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $id]));
 
-            // some updates in the plugin system clear the xtext -> parse and store again
+            // some updates in the plugin system can clear the xtext -> parse and store again
             if (empty($link->xtext)) {
                 // parse and filter the original markdown into safe xhtml, if not done on INSERT
                 $link->xtext = (string)(new Text($link->markdown ?? ""))->parseDown(new ParsedownFilter);
