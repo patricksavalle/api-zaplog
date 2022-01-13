@@ -4,7 +4,6 @@
 email_admin=
 
 [content]
-default_post_image=https://api.zaplog.pro/content/dark-background-3494082_1280.jpg
 broken_link_redirector="http://localhost:8080/Api.php/goto?urlencoded="
 
 [translation]
