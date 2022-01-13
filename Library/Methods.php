@@ -321,17 +321,20 @@ namespace Zaplog\Library {
             if (!empty($link->image)) {
                 if (strlen($link->image) > 256) {
                     $link->image = null;
-                    return;
+                } else {
+                    $image_mimetype = "";
+                    try {
+                        $image_mimetype = (new Mimetype)($link->image);
+                    } catch (Exception $e) {
+                        // nothing
+                    }
+                    if (strpos($image_mimetype, "image/") !== 0) {
+                        $link->image = null;
+                    }
                 }
-                $image_mimetype = "";
-                try {
-                    $image_mimetype = (new Mimetype)($link->image);
-                } catch (Exception $e) {
-                    // nothing
-                }
-                if (strpos($image_mimetype, "image/") !== 0) {
-                    $link->image = Ini::get("default_post_image");
-                }
+            } else {
+                // explicitely null
+                $link->image = null;
             }
         }
 
