@@ -19,7 +19,8 @@ namespace Zaplog\Plugins\ParsedownFilters {
 
         function __invoke(array $element): array
         {
-            if (in_array($element['name'], ["em", "b", "i", "strong"])) {
+            if (in_array($element['name'], ["em", "b", "i", "strong"])
+                and strlen($element["text"]) <= 40) {
                 self::$tags[$element["text"]] = $element["text"];
             }
             return $element;
