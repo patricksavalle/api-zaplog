@@ -318,6 +318,9 @@ namespace Zaplog\Library {
 
         static public function checkImage(stdClass $link)
         {
+            if (empty($link->image)) {
+                $link->image = TagHarvester::getFirstImage();
+            }
             if (!empty($link->image)) {
                 if (strlen($link->image) > 256) {
                     $link->image = null;
@@ -344,6 +347,9 @@ namespace Zaplog\Library {
 
         static public function checkTitle(stdClass $link)
         {
+            if (empty($link->title)) {
+                $link->title = TagHarvester::getTitle();
+            }
             $link->title = str_replace('"', "'", substr(strip_tags($link->title), 0, 257));
         }
 
@@ -351,7 +357,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function checkUrl(stdClass $link)
+        static public function checkLink(stdClass $link)
         {
             if (empty($link->url)) {
                 $link->url = null;
@@ -525,8 +531,7 @@ namespace Zaplog\Library {
 
         static public function checkTags(stdClass $link)
         {
-            if (sizeof($link->tags ?? []) === 0) {
-                // one of the ParseDonw-filters collected tag candidates based on typograhpy
+            if (empty($link->tags)) {
                 $link->tags = TagHarvester::getTags();
             }
             $link->tags = self::sanitizeTags($link->tags);
@@ -541,7 +546,7 @@ namespace Zaplog\Library {
             self::checkTranslation($link);
             self::checkMarkdown($link);
             self::checkTitle($link);
-            self::checkUrl($link);
+            self::checkLink($link);
             self::checkImage($link);
             self::checkCopyright($link);
             self::checkTags($link);
