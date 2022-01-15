@@ -397,9 +397,8 @@ class Api extends SlimRestApi
                     stdClass $link): Response {
                     (new UserException("Empty markdown"))(!empty($link->markdown));
                     (new UserException("Markdown exceeds 50k chars"))(strlen($link->markdown) < 50000);
-                    $link->channelid = Authentication::getSession()->id;
                     (new DoublePostProtection)($link);
-                    return self::response($request, $response, $link, Methods::postLink($link));
+                    return self::response($request, $response, $link, Methods::postLink($link, Authentication::getSession()));
                 })
                     ->add(new NoStore)
                     ->add(new BodyParameters([
@@ -407,7 +406,7 @@ class Api extends SlimRestApi
                         '{url:\url},null',
                         '{title:.{3,256}}',
                         '{markdown:\raw}',
-                        '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))},No Rights Reserved (CC0 1.0)',
+                        '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))},Some Rights Reserved \(CC BY-SA 4\.0\)',
                         '{tags[]:.{0,40}},null']))
                     ->add(new Authentication);
 

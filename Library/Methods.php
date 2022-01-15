@@ -347,9 +347,6 @@ namespace Zaplog\Library {
 
         static public function checkTitle(stdClass $link)
         {
-            if (empty($link->title)) {
-                $link->title = TagHarvester::getTitle();
-            }
             $link->title = str_replace('"', "'", substr(strip_tags($link->title), 0, 257));
         }
 
@@ -393,7 +390,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function checkTranslation(stdClass $link)
+        static public function translateMarkdown(stdClass $link, stdClass $channel)
         {
             $link->orig_language = null;
             $link->language = (string)(new LanguageDetector)->evaluate($link->markdown);
@@ -406,16 +403,9 @@ namespace Zaplog\Library {
                 return;
             }
 
-            // fetch all neccessary data in a single query
-            $stats = Db::fetch("SELECT 
-                (SELECT deeplusage FROM channels WHERE id=:id1) AS deeplusage, 
-                (SELECT reputation FROM channels WHERE id=:id2) AS reputation, 
-                (SELECT language FROM channels WHERE id=1) AS language",
-                [":id1" => $link->channelid, ":id2" => $link->channelid]);
-
             // do we need to translate anything?
-            $system_language = $stats->language;
-            if (is_null($system_language) or $link->language === $system_language) {
+            $system_language = Db::fetch("SELECT language FROM channels WHERE id=1")->language;
+            if (empty($system_language) or $link->language === $system_language) {
                 return;
             }
 
@@ -424,8 +414,8 @@ namespace Zaplog\Library {
             $quotum = 10000;
             $super_reputation = 500;
             $size = strlen($link->markdown);
-            $remaining = $quotum - $stats->deeplusage;
-            if ($stats->reputation < $super_reputation and ($remaining < $size)) {
+            $remaining = $quotum - $channel->deeplusage;
+            if ($channel->reputation < $super_reputation and ($remaining < $size)) {
                 throw new UserException("This text exceeds your remaining translation quotum of $remaining chars for this month");
             }
 
@@ -451,7 +441,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function checkMarkdown(stdClass $link)
+        static public function parseMarkdown(stdClass $link)
         {
             // render article text
             $link->xtext = (string)(new Text($link->markdown))->parseDown(new ParsedownFilter);
@@ -541,10 +531,12 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function postLink(stdClass $link): stdClass
+        static public function postLink(stdClass $link, stdClass $channel): stdClass
         {
-            self::checkTranslation($link);
-            self::checkMarkdown($link);
+            $link->channelid = $channel->id;
+
+            self::translateMarkdown($link, $channel);
+            self::parseMarkdown($link);
             self::checkTitle($link);
             self::checkLink($link);
             self::checkImage($link);
