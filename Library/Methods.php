@@ -79,7 +79,7 @@ namespace Zaplog\Library {
                 case "all":
                 case "channel":
                     // channel displays all posts made by this channel
-                    return Db::fetchAll("SELECT * FROM links WHERE published=TRUE AND channelid=:channelid ORDER BY id DESC LIMIT :offset, :count",
+                    return Db::fetchAll("SELECT * FROM links WHERE published=TRUE AND channelid=:channelid ORDER BY createdatetime DESC LIMIT :offset, :count",
                         [":channelid" => $channelid, ":offset" => $offset, ":count" => $count]);
 
                 case "popular":
@@ -96,7 +96,7 @@ namespace Zaplog\Library {
                                 UNION DISTINCT 
                                 SELECT links.* FROM links JOIN votes ON links.id=votes.linkid 
                                 WHERE votes.channelid=:channelid2 AND links.published=TRUE 
-                            ) AS x ORDER BY id DESC LIMIT :offset, :count",
+                            ) AS x ORDER BY createdatetime DESC LIMIT :offset, :count",
                         [":channelid1" => $channelid, ":channelid2" => $channelid, ":offset" => $offset, ":count" => $count]);
 
                 default:
@@ -116,11 +116,11 @@ namespace Zaplog\Library {
 
                 case "all":
                     // show all articles across all channels
-                    return "SELECT * FROM links ORDER BY id DESC LIMIT :count";
+                    return "SELECT * FROM links ORDER BY createdatetime DESC LIMIT :count";
 
                 case "channel":
                     // show all articles posted by channel 1
-                    return "SELECT * FROM links WHERE channelid=1 ORDER BY id DESC LIMIT :count";
+                    return "SELECT * FROM links WHERE channelid=1 ORDER BY createdatetime DESC LIMIT :count";
 
                 case "popular":
                     // show the most popular articles in the system
@@ -138,7 +138,7 @@ namespace Zaplog\Library {
                                 UNION DISTINCT 
                                 SELECT links.* FROM links JOIN votes ON links.id=votes.linkid 
                                 WHERE links.published=TRUE AND votes.channelid=1 
-                            ) AS x ORDER BY id DESC LIMIT :count";
+                            ) AS x ORDER BY createdatetime DESC LIMIT :count";
 
                 default:
                     throw new Exception("Invalid algorithm: " . $algorithm);
@@ -183,6 +183,7 @@ namespace Zaplog\Library {
             return [
                 "trendingtags" => Db::fetchAll(self::trendingtopicsQuery(), [":count" => $count]),
                 "trendingchannels" => Db::fetchAll(self::trendingchannelsQuery(), [":count" => $count]),
+                "trendingreactions" => Db::fetchAll("SELECT * FROM topreactions"),
                 "trendinglinks" => Db::fetchAll(self::frontpageQuery(), [":count" => $count])];
         }
 
@@ -347,7 +348,13 @@ namespace Zaplog\Library {
 
         static public function checkTitle(stdClass $link)
         {
-            $link->title = str_replace('"', "'", substr(strip_tags($link->title), 0, 257));
+            if (empty($link->title)) {
+                $link->title = TagHarvester::getTitle();
+            }
+            if (strlen($link->title) < 3) {
+                throw new UserException("Title too short");
+            }
+            $link->title = str_replace('"', "'", substr(strip_tags($link->title), 0, 256));
         }
 
         // ----------------------------------------------------------
@@ -475,7 +482,7 @@ namespace Zaplog\Library {
 
             // options for renderer class
             $rendererOptions = [
-                'detailLevel' => 'char',
+                'detailLevel' => 'word',
                 'showHeader' => false,
                 'spacesToNbsp' => false,
                 'mergeThreshold' => 0.8,
@@ -534,7 +541,6 @@ namespace Zaplog\Library {
         static public function postLink(stdClass $link, stdClass $channel): stdClass
         {
             $link->channelid = $channel->id;
-
             self::translateMarkdown($link, $channel);
             self::parseMarkdown($link);
             self::checkTitle($link);
@@ -708,19 +714,11 @@ namespace Zaplog\Library {
 
         static public function getSingleLink(string $id): array
         {
-            // update view counter
-            Db::execute("UPDATE links SET viewscount=viewscount+1 WHERE id=:id", [":id" => $id]);
+            // update view counter and referers
+            (new ResourceNotFoundException)(Db::execute("UPDATE links SET viewscount=viewscount+1 WHERE id=:id", [":id" => $id])->rowCount() > 0);
 
             // get post
-            // TODO must be authenticated for published=FALSE
-            $link = (new ResourceNotFoundException)(Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $id]));
-
-            // some updates in the plugin system can clear the xtext -> parse and store again
-            if (empty($link->xtext)) {
-                // parse and filter the original markdown into safe xhtml, if not done on INSERT
-                $link->xtext = (string)(new Text($link->markdown ?? ""))->parseDown(new ParsedownFilter);
-                Db::execute("UPDATE links SET xtext=:xtext WHERE id=:id", [":id" => $id, ":xtext" => $link->xtext]);
-            }
+            $link = Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $id]);
 
             return [
                 "link" => $link,

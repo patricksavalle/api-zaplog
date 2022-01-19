@@ -404,7 +404,7 @@ class Api extends SlimRestApi
                     ->add(new BodyParameters([
                         '{id:\d+},null',    // empty will create new post (id is returned)
                         '{url:\url},null',
-                        '{title:.{3,256}}',
+                        '{title:.{3,256}},null',
                         '{markdown:\raw}',
                         '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))},Some Rights Reserved \(CC BY-SA 4\.0\)',
                         '{tags[]:.{0,40}},null']))
@@ -459,7 +459,7 @@ class Api extends SlimRestApi
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM links WHERE published=TRUE ORDER BY id DESC LIMIT :offset,:count",
+                    return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM links WHERE published=TRUE ORDER BY createdatetime DESC LIMIT :offset,:count",
                         [":offset" => $args->offset, ":count" => $args->count]));
                 })
                     ->add(new NoCache)

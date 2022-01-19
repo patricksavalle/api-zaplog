@@ -1,24 +1,33 @@
 USE zaplog;
-DROP TRIGGER on_before_update_link;
-DELIMITER //
-CREATE TRIGGER on_before_update_link BEFORE UPDATE ON links FOR EACH ROW
-BEGIN
-    IF (NEW.title<>OLD.title
-        OR NEW.markdown<>OLD.markdown
-        OR NEW.copyright<>OLD.copyright
-        OR NEW.language<>OLD.language
-        OR NEW.url<>OLD.url
-        OR NEW.image<>OLD.image
-        OR NEW.published<>OLD.published) THEN
-        BEGIN
-            SET NEW.updatedatetime = CURRENT_TIMESTAMP;
-            IF (OLD.published=FALSE) THEN
-                SET NEW.createdatetime = CURRENT_TIMESTAMP;
-            END IF;
-        END;
-    END IF;
-    IF (NEW.published=FALSE AND OLD.published=TRUE) THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Cannot unpublish only delete';
-END IF;
-END//
-DELIMITER ;
+DROP TABLE referrals;
+DROP TABLE referrers;
+CREATE VIEW topreactions AS
+    SELECT links.title, channels.name, channels.avatar, x.* FROM (
+        SELECT
+            COUNT(reactionvotes.id) AS votecount,
+            reactions.id,
+            reactions.linkid,
+            reactions.channelid,
+            reactions.description
+        FROM reactions
+        LEFT JOIN reactionvotes ON reactions.id = reactionid AND reactions.createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 3 HOUR)
+        WHERE reactions.channelid<>1
+        GROUP BY reactions.id
+        ORDER BY reactions.id DESC LIMIT 50
+    ) AS x
+    JOIN links ON x.linkid = links.id
+    JOIN channels ON x.channelid = channels.id
+    ORDER BY votecount DESC, id DESC;
+CREATE TABLE emailaddresses
+(
+    id             INT       NOT NULL AUTO_INCREMENT,
+    channelid      INT       NOT NULL,
+    email          VARCHAR(60) NOT NULL,
+    createdatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE INDEX (channelid, email),
+    FOREIGN KEY (channelid) REFERENCES channels (id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
