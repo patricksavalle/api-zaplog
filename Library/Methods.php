@@ -819,10 +819,9 @@ namespace Zaplog\Library {
             $threadids = [0]; // prevent SQL syntax error in empty database
 
             // first fetch all threadid's
-            foreach (Db::fetchAll("SELECT threadid FROM reactions
+            foreach (Db::fetchAll("SELECT DISTINCT threadid FROM reactions
                 JOIN links ON links.id=reactions.linkid
                 WHERE (:channelid1 IS NULL OR :channelid2=links.channelid) AND links.published=TRUE
-                GROUP BY threadid
                 ORDER BY threadid DESC 
                 LIMIT :offset, :count",
                 [":offset" => $offset, ":count" => $count, ":channelid1" => $channelid, ":channelid2" => $channelid]) as $row) {
@@ -860,7 +859,9 @@ namespace Zaplog\Library {
                 WHERE r.rownum <= :reactions AND reactions.published=TRUE
                 ORDER by r.threadid DESC, r.id DESC", [":reactions" => $numreactions]);
 
-            apcu_add(self::$discussion_cache_key, $return, 60*20);
+            if ($channelid === null and $offset === 0) {
+                apcu_add(self::$discussion_cache_key, $return, 60 * 20);
+            }
 
             return $return;
         }
