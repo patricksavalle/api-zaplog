@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Zaplog;
 
-define("VERSION", "v1.2");
+define("VERSION", "v1.3");
 
 define("BASE_PATH", __DIR__);
 
@@ -396,7 +396,7 @@ class Api extends SlimRestApi
                     Response $response,
                     stdClass $link): Response {
                     (new UserException("Empty markdown"))(!empty($link->markdown));
-                    (new UserException("Markdown exceeds 50k chars"))(strlen($link->markdown) < 50000);
+                    (new UserException("Markdown exceeds 100k chars"))(strlen($link->markdown) < 100000);
                     (new DoublePostProtection)($link);
                     return self::response($request, $response, $link, Methods::postLink($link, Authentication::getSession()));
                 })
@@ -459,11 +459,14 @@ class Api extends SlimRestApi
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM links WHERE published=TRUE ORDER BY createdatetime DESC LIMIT :offset,:count",
-                        [":offset" => $args->offset, ":count" => $args->count]));
+                    return self::response($request, $response, $args, Methods::getArchive($args->offset, $args->count, $args->search));
                 })
                     ->add(new NoCache)
-                    ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20']));
+                    ->add(new QueryParameters([
+                        '{offset:\int},0',
+                        '{count:\int},20',
+                        '{search:.+},null',
+                    ]));
 
                 // -----------------------------------------------------
                 // Returns links for a given channel
@@ -595,7 +598,7 @@ class Api extends SlimRestApi
             $this->group('/reactionvotes', function () {
 
                 // ------------------------------------------------
-                // toggle a vote
+                // insert a reaction vote
                 // ------------------------------------------------
 
                 $this->post("/reaction/{id:\d{1,10}}", function (
@@ -612,22 +615,6 @@ class Api extends SlimRestApi
             });
 
             $this->group('/tags', function () {
-
-                // ------------------------------------------------
-                // post space separated tags POST /tags/{id}/{tag}
-                // ------------------------------------------------
-
-                $this->post("/link/{linkid:\d{1,10}}", function (
-                    Request  $request,
-                    Response $response,
-                    stdClass $args): Response {
-                    $tags = Methods::sanitizeTags($args->tags);
-                    $channelid = Authentication::getSession()->id;
-                    return self::response($request, $response, $args, Methods::postTags((int)$args->linkid, $channelid, $tags));
-                })
-                    ->add(new NoStore)
-                    ->add(new BodyParameters(['{tags[]:.{0,40}},null',]))
-                    ->add(new Authentication);
 
                 // ------------------------------------------------
                 // get related tags
@@ -654,20 +641,6 @@ class Api extends SlimRestApi
                 })
                     ->add(new QueryParameters(['{count:\int},20',]))
                     ->add(new Cacheable(60 * 10/*sec*/));
-
-                // ------------------------------------------------
-                // delete a tag, only delete your own tags
-                // ------------------------------------------------
-
-                $this->delete("/id/{id:\d{1,10}}", function (
-                    Request  $request,
-                    Response $response,
-                    stdClass $args): Response {
-                    $channelid = Authentication::getSession()->id;
-                    return self::response($request, $response, $args, (new UserException)(Db::execute("DELETE tags FROM tags WHERE id=:id and channelid=:channelid",
-                            [":id" => $args->id, ":channelid" => $channelid])->rowCount() > 0));
-                })
-                    ->add(new Authentication);
 
             });
 

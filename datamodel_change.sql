@@ -1,12 +1,25 @@
 USE zaplog;
-ALTER TABLE tags DROP FOREIGN KEY tags_ibfk_2;
-ALTER TABLE tags DROP COLUMN channelid, DROP INDEX channelid;
+ALTER TABLE links
+    CHANGE COLUMN markdown markdown MEDIUMTEXT NULL DEFAULT NULL ,
+    CHANGE COLUMN xtext xtext MEDIUMTEXT NULL DEFAULT NULL ;
+ALTER TABLE links ADD FULLTEXT (markdown);
+DROP VIEW topreactions;
+CREATE VIEW topreactions AS
+SELECT links.title, channels.name, channels.avatar, x.* FROM (
+     SELECT
+         COUNT(reactionvotes.id) AS votecount,
+         reactions.id,
+         reactions.linkid,
+         reactions.channelid,
+         reactions.description
+     FROM reactions
+              LEFT JOIN reactionvotes ON reactions.id = reactionid AND reactions.createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 12 HOUR)
+     WHERE reactions.channelid<>1
+     GROUP BY reactions.id
+     ORDER BY reactions.id DESC LIMIT 50
+    ) AS x
+     JOIN links ON x.linkid = links.id
+     JOIN channels ON x.channelid = channels.id
+ORDER BY votecount DESC, id DESC;
 
-DROP TRIGGER on_insert_tag;
-DELIMITER //
-CREATE TRIGGER on_insert_tag AFTER INSERT ON tags FOR EACH ROW
-BEGIN
-    UPDATE links SET tagscount = tagscount + 1 WHERE id = NEW.linkid;
-END//
-DELIMITER ;
 

@@ -27,6 +27,9 @@ namespace Zaplog\Library {
 
     class Methods
     {
+        // fields to select when returning a list of links
+        static $blurbfields = "id,channelid,createdatetime,updatedatetime,published,url,language,title,copyright,description,image";
+
         // ----------------------------------------------------------
         //
         // ----------------------------------------------------------
@@ -73,26 +76,28 @@ namespace Zaplog\Library {
 
             $algorithm = $channel->algorithm;
             $channelid = $channel->id;
+            $fields = self::$blurbfields;
 
             switch ($algorithm) {
 
                 case "all":
                 case "channel":
                     // channel displays all posts made by this channel
-                    return Db::fetchAll("SELECT * FROM links WHERE published=TRUE AND channelid=:channelid ORDER BY createdatetime DESC LIMIT :offset, :count",
+                    return Db::fetchAll("SELECT $fields FROM links WHERE published=TRUE AND channelid=:channelid ORDER BY createdatetime DESC LIMIT :offset, :count",
                         [":channelid" => $channelid, ":offset" => $offset, ":count" => $count]);
 
                 case "popular":
                 case "voted":
                     // channel displays posts voted upon by this channel
-                    return Db::fetchAll("SELECT links.* FROM links JOIN votes ON links.id=votes.linkid 
-                        WHERE votes.channelid=:channelid AND links.published=TRUE ORDER BY links.id DESC LIMIT :offset, :count",
+                    return Db::fetchAll("SELECT $fields FROM links  
+                        WHERE id IN (SELECT linkid FROM votes WHERE channelid=:channelid) 
+                        AND links.published=TRUE ORDER BY links.id DESC LIMIT :offset, :count",
                         [":channelid" => $channelid, ":offset" => $offset, ":count" => $count]);
 
                 case "mixed":
                     // channel displays voted AND channel
                     return Db::fetchAll("SELECT * FROM (
-                                SELECT * FROM links WHERE channelid=:channelid1 AND published=TRUE  
+                                SELECT $fields FROM links WHERE channelid=:channelid1 AND published=TRUE  
                                 UNION DISTINCT 
                                 SELECT links.* FROM links JOIN votes ON links.id=votes.linkid 
                                 WHERE votes.channelid=:channelid2 AND links.published=TRUE 
@@ -110,35 +115,38 @@ namespace Zaplog\Library {
 
         static public function frontpageQuery(): string
         {
+            $fields = self::$blurbfields;
+
             // channel 1 is the master channel, determines site frontpage
             $algorithm = Db::fetch("SELECT algorithm FROM channels WHERE id=1")->algorithm;
             switch ($algorithm) {
 
                 case "all":
                     // show all articles across all channels
-                    return "SELECT * FROM links ORDER BY createdatetime DESC LIMIT :count";
+                    return "SELECT $fields FROM links ORDER BY createdatetime DESC LIMIT :count";
 
                 case "channel":
                     // show all articles posted by channel 1
-                    return "SELECT * FROM links WHERE channelid=1 ORDER BY createdatetime DESC LIMIT :count";
+                    return "SELECT $fields FROM links WHERE channelid=1 ORDER BY createdatetime DESC LIMIT :count";
 
                 case "popular":
                     // show the most popular articles in the system
-                    return "SELECT * FROM frontpage LIMIT :count";
+                    return "SELECT $fields FROM frontpage LIMIT :count";
 
                 case "voted":
                     // show only articles voted upon by channel 1
-                    return "SELECT links.* FROM links JOIN votes ON links.id=votes.linkid 
-                        WHERE votes.channelid=1 AND links.published=TRUE ORDER BY links.id DESC LIMIT :count";
+                    return "SELECT $fields FROM links  
+                        WHERE id IN (SELECT linkid FROM votes WHERE channelid=1)
+                        AND links.published=TRUE ORDER BY links.id DESC LIMIT :count";
 
                 case "mixed":
                     // show popular articles in the system AND articles voted upon by channel 1
-                    return "SELECT * FROM (
-                                SELECT links.* FROM frontpage JOIN links ON frontpage.id=links.id 
-                                UNION DISTINCT 
-                                SELECT links.* FROM links JOIN votes ON links.id=votes.linkid 
-                                WHERE links.published=TRUE AND votes.channelid=1 
-                            ) AS x ORDER BY createdatetime DESC LIMIT :count";
+                    return "SELECT $fields FROM (
+                            SELECT links.* FROM frontpage JOIN links ON frontpage.id=links.id 
+                            UNION DISTINCT 
+                            SELECT links.* FROM links JOIN votes ON links.id=votes.linkid 
+                            WHERE links.published=TRUE AND votes.channelid=1 
+                        ) AS x ORDER BY createdatetime DESC LIMIT :count";
 
                 default:
                     throw new Exception("Invalid algorithm: " . $algorithm);
@@ -185,6 +193,19 @@ namespace Zaplog\Library {
                 "trendingchannels" => Db::fetchAll(self::trendingchannelsQuery(), [":count" => $count]),
                 "trendingreactions" => Db::fetchAll("SELECT * FROM topreactions"),
                 "trendinglinks" => Db::fetchAll(self::frontpageQuery(), [":count" => $count])];
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function getArchive(int $offset, int $count, ?string $search): array
+        {
+            $fields = self::$blurbfields;
+            return Db::fetchAll("SELECT $fields FROM links WHERE published=TRUE 
+                        AND (:search1 IS NULL OR MATCH(markdown) AGAINST(:search2 IN BOOLEAN MODE))
+                        ORDER BY createdatetime DESC LIMIT :offset,:count",
+                [":offset" => $offset, ":count" => $count, ":search1" => $search, ":search2" => $search]);
         }
 
         // ----------------------------------------------------------

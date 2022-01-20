@@ -77,7 +77,7 @@ namespace Zaplog\Plugins\ParsedownFilters {
                         ];
                     }
 
-                    // IMAGES: other domains get the og:image (no copyright) through metadata-inspection
+                    // IMAGES: other domains -> get the og:image (no copyright) through metadata-inspection
                     if (!empty($metadata['image'])) {
 
                         return [
@@ -119,7 +119,7 @@ namespace Zaplog\Plugins\ParsedownFilters {
                 // block normal <img> elements to avoid copyright claims, translate into links
                 return [
                     "name" => "a",
-                    "text" => $element['attributes']['alt'] ?? $element['attributes']['title'],
+                    "text" => "<< error >> (our Markdown requires webpage links, not image links, see manual)",
                     "attributes" => [
                         "class" => "blocked-image-link",
                         "href" => $element['attributes']['src'],

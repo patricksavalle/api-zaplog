@@ -126,9 +126,9 @@ CREATE TABLE links
         'No Rights Reserved (CC0 1.0)',
         'Some Rights Reserved (CC BY-SA 4.0)' ) DEFAULT NULL,
     -- Original raw markdown input
-    markdown       TEXT                   DEFAULT NULL,
+    markdown       MEDIUMTEXT             DEFAULT NULL,
     -- Parsed and filtered XHTML output, xtext can safely be cleared the API will render when null
-    xtext          TEXT                   DEFAULT NULL,
+    xtext          MEDIUMTEXT             DEFAULT NULL,
     -- Clean text blurb, set on insert
     description    VARCHAR(256)           DEFAULT NULL,
     image          VARCHAR(256)           DEFAULT NULL,
@@ -635,7 +635,7 @@ CREATE VIEW topreactions AS
             reactions.channelid,
             reactions.description
         FROM reactions
-        LEFT JOIN reactionvotes ON reactions.id = reactionid AND reactions.createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 3 HOUR)
+        LEFT JOIN reactionvotes ON reactions.id = reactionid AND reactions.createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 12 HOUR)
         WHERE reactions.channelid<>1
         GROUP BY reactions.id
         ORDER BY reactions.id DESC LIMIT 50
