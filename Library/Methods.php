@@ -261,20 +261,22 @@ namespace Zaplog\Library {
 
                 "tags" => Db::fetchAll("SELECT tag, COUNT(tag) AS tagscount 
                     FROM tags JOIN links ON tags.linkid=links.id  
-                    WHERE links.channelid=:channelid AND links.createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 YEAR)
-                    GROUP BY tag ORDER BY SUM(score) DESC LIMIT 10",
+                    WHERE links.channelid=:channelid 
+                    GROUP BY tag ORDER BY SUM((score / GREATEST(9, POW(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, createdatetime),2)))) DESC LIMIT 10",
                     [":channelid" => $id], 60 * 60),
 
                 "related" => Db::fetchAll("SELECT channels.*
                     FROM (
                         SELECT tag FROM tags
-                        WHERE channelid=:channelid1
+                        JOIN links ON tags.linkid=links.id
+                        WHERE links.channelid=:channelid1 
                         GROUP BY tag
                         ORDER BY COUNT(tag) DESC
                         LIMIT 10
                     ) AS ttags
                     JOIN tags ON ttags.tag=tags.tag 
-                    JOIN channels ON tags.channelid=channels.id
+                    JOIN links ON tags.linkid=links.id
+                    JOIN channels ON links.channelid=channels.id
                     AND channels.id<>:channelid2
                     GROUP BY channels.id ORDER BY COUNT(tags.tag) DESC LIMIT 5",
                     ["channelid1" => $id, "channelid2" => $id], 60 * 60),
@@ -304,12 +306,12 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function postTags(int $linkid, int $channelid, array $tags)
+        static public function postTags(int $linkid, array $tags)
         {
             // insert keywords into database;
             foreach ($tags as $tag)
-                Db::execute("INSERT IGNORE INTO tags(linkid, channelid, tag) VALUES (:linkid, :channelid, :tag)",
-                    [":linkid" => $linkid, ":channelid" => $channelid, ":tag" => $tag]);
+                Db::execute("INSERT IGNORE INTO tags(linkid, tag) VALUES (:linkid, :tag)",
+                    [":linkid" => $linkid, ":tag" => $tag]);
             return Db::lastInsertid();
         }
 
@@ -399,6 +401,11 @@ namespace Zaplog\Library {
 
         static public function translateMarkdown(stdClass $link, stdClass $channel)
         {
+            // if this is an anonymous post
+            if (empty($link->channelid)) {
+                return;
+            }
+
             $link->orig_language = null;
             $link->language = (string)(new LanguageDetector)->evaluate($link->markdown);
             if (strlen($link->language ?? "") !== 2) {
@@ -593,7 +600,7 @@ namespace Zaplog\Library {
                         WHERE id=:id AND channelid=:channelid", $sqlparams)->rowCount() >= 0);
 
                 // remove the tags that this user / channel added
-                Db::execute("DELETE FROM tags WHERE linkid=:id AND channelid=:channelid", [":id" => $link->id, ":channelid" => $link->channelid]);
+                Db::execute("DELETE FROM tags WHERE linkid=:id", [":id" => $link->id]);
 
                 // create diff as reaction
                 self::generateDiff($old_link, $link);
@@ -602,7 +609,7 @@ namespace Zaplog\Library {
             // insert tags
             if (!empty($link->tags)) {
                 /** @noinspection PhpCastIsUnnecessaryInspection */
-                self::postTags((int)$link->id, (int)$link->channelid, $link->tags);
+                self::postTags((int)$link->id, $link->tags);
             }
 
             // archive the link
@@ -736,10 +743,9 @@ namespace Zaplog\Library {
                 "interactors" => Db::fetchAll("SELECT c.id, c.name, c.avatar, GROUP_CONCAT(action) AS interactions FROM channels AS c JOIN
                     (SELECT channelid, 'links' AS action FROM links WHERE id=:id1
                     UNION SELECT channelid, 'reactions' AS action FROM reactions WHERE linkid=:id2
-                    UNION SELECT channelid, 'tags' AS action  FROM tags WHERE linkid=:id3
-                    UNION SELECT channelid, 'votes' AS action FROM votes WHERE linkid=:id4) AS i ON i.channelid=c.id
+                    UNION SELECT channelid, 'votes' AS action FROM votes WHERE linkid=:id3) AS i ON i.channelid=c.id
                     GROUP BY c.id",
-                    [":id1" => $id, ":id2" => $id, ":id3" => $id, ":id4" => $id]),
+                    [":id1" => $id, ":id2" => $id, ":id3" => $id]),
             ];
         }
 
@@ -750,8 +756,8 @@ namespace Zaplog\Library {
         static public function getTopChannelsForTag(string $tag, int $count): array
         {
             return Db::fetchAll("SELECT channels.* FROM channels
-                        JOIN tags ON tags.channelid=channels.id
-                        JOIN links ON tags.linkid=links.id
+                        JOIN links ON channels.id=links.channelid
+                        JOIN tags ON tags.linkid=links.id
                         WHERE tag=:tag
                         GROUP BY channels.id
                         ORDER BY SUM(links.score)/COUNT(links.id) DESC LIMIT :count",

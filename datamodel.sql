@@ -463,19 +463,13 @@ CREATE TABLE tags
 (
     id             INT         NOT NULL AUTO_INCREMENT,
     linkid         INT         NOT NULL,
-    -- channel (=user) that added the tags
-    channelid      INT         NOT NULL,
     -- analyzed 340.000 tags on old zaplog, 40 is usefull max
     -- most used table in the system, optimize for speed (no VARCHAR)
     tag            CHAR(40)    NOT NULL,
     PRIMARY KEY (id),
     INDEX (linkid),
-    INDEX (channelid),
     UNIQUE INDEX (tag, linkid),
     FOREIGN KEY (linkid) REFERENCES links (id)
-        ON DELETE CASCADE
-        ON UPDATE CASCADE,
-    FOREIGN KEY (channelid) REFERENCES channels (id)
         ON DELETE CASCADE
         ON UPDATE CASCADE
 );
@@ -484,7 +478,6 @@ DELIMITER //
 CREATE TRIGGER on_insert_tag AFTER INSERT ON tags FOR EACH ROW
 BEGIN
     UPDATE links SET tagscount = tagscount + 1 WHERE id = NEW.linkid;
-    INSERT INTO interactions(linkid,channelid,type) VALUES(NEW.linkid, NEW.channelid,'on_insert_tag');
 END//
 DELIMITER ;
 
