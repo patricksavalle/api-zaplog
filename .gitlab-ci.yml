@@ -7,7 +7,7 @@ stages:
   - compliance
   - build
   - deploy
- # - package
+  - update
  # - release
  # - deploy
 
@@ -47,7 +47,7 @@ deploy-to-prod-api:
 
 
 execute_sql:
-  stage: deploy
+  stage: update
   only:
     changes:
       - datamodel_change.sql
