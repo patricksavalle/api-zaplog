@@ -98,8 +98,8 @@ namespace Zaplog\Library {
 
                 case "mixed":
                     // channel displays voted AND channel
-                    return Db::fetchAll("SELECT * FROM (
-                                SELECT $fields FROM links WHERE channelid=:channelid1 AND published=TRUE  
+                    return Db::fetchAll("SELECT $fields FROM (
+                                SELECT * FROM links WHERE channelid=:channelid1 AND published=TRUE  
                                 UNION DISTINCT 
                                 SELECT links.* FROM links JOIN votes ON links.id=votes.linkid 
                                 WHERE votes.channelid=:channelid2 AND links.published=TRUE 

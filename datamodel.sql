@@ -39,7 +39,7 @@ CREATE TABLE channels
         'channel',                  -- only own articles selected for channelpage
         'popular',                  -- only most popular selected for channelpage
         'voted',                    -- articles voted upon selected for channelpage
-        'mixed' ) DEFAULT 'mixed',  -- popular|channels + voted
+        'mixed' ) DEFAULT 'channel',-- popular|channels + voted
     -- automatic RSS content
     feedurl          VARCHAR(255)       DEFAULT NULL,
     theme            VARCHAR(255)       DEFAULT NULL,
@@ -50,7 +50,7 @@ CREATE TABLE channels
     avatar           VARCHAR(16384)     DEFAULT NULL,
     -- url to image
     header           VARCHAR(255)       DEFAULT NULL,
-    bio              VARCHAR(255) NOT NULL DEFAULT "",
+    bio              VARCHAR(255)       DEFAULT NULL,
     bitcoinaddress   VARCHAR(60)        DEFAULT NULL,
     -- number of chars translated by DeepL, reset every month
     deeplusage       INT                DEFAULT 0,
