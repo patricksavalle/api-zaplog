@@ -30,6 +30,8 @@ namespace Zaplog\Library {
         // fields to select when returning a list of links
         static $blurbfields = "id,channelid,createdatetime,updatedatetime,published,url,language,title,copyright,description,image";
 
+        static $discussion_cache_key = "8de4e0df2488775c3c3f30377cd2645a";
+
         // ----------------------------------------------------------
         //
         // ----------------------------------------------------------
@@ -733,6 +735,8 @@ namespace Zaplog\Library {
 
             $reaction->id = (int)Db::lastInsertId();
 
+            apcu_delete(self::$discussion_cache_key);
+
             return $reaction;
         }
 
@@ -807,6 +811,11 @@ namespace Zaplog\Library {
 
         static public function getDiscussion(?string $channelid, int $offset, int $count, int $numreactions = 3): array
         {
+            // cache is invalidated by postReaction
+            if (($result = apcu_fetch(self::$discussion_cache_key)) !== false) {
+                return $result;
+            }
+
             $threadids = [0]; // prevent SQL syntax error in empty database
 
             // first fetch all threadid's
@@ -822,7 +831,7 @@ namespace Zaplog\Library {
             $threadids = implode(",", $threadids);
 
             // fetch first 3 reactions for selected threads
-            return Db::fetchAll("SELECT
+            $return = Db::fetchAll("SELECT
                     r.threadid,
                     r.rownum,   
                     reactions.id,
@@ -850,6 +859,10 @@ namespace Zaplog\Library {
                 JOIN links ON links.id=r.linkid  
                 WHERE r.rownum <= :reactions AND reactions.published=TRUE
                 ORDER by r.threadid DESC, r.id DESC", [":reactions" => $numreactions]);
+
+            apcu_add(self::$discussion_cache_key, $return, 60*20);
+
+            return $return;
         }
 
         // ----------------------------------------------------------
