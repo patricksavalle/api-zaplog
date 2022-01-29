@@ -684,6 +684,8 @@ namespace Zaplog\Library {
             } catch (Exception $e) {
                 throw new UserException("Invalid file or filetype for avatar (use PNG, GIF, JPG)");
             }
+            (new UserException("Name already in use"))(Db::fetch("SELECT * FROM channels WHERE name=:name AND id<>:id",
+                    [":name" => $channel->name, ":id" => $channel->channelid]) === false);
             (new UserException("Unchanged"))(Db::execute("UPDATE channels SET 
                     name=:name, 
                     avatar=IFNULL(:avatar,avatar), 
