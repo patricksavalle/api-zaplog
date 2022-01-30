@@ -633,7 +633,8 @@ CREATE VIEW topreactions AS
             reactions.id,
             reactions.linkid,
             reactions.channelid,
-            reactions.description
+            reactions.description,
+            reactions.createdatetime
         FROM reactions
         LEFT JOIN reactionvotes ON reactions.id = reactionid AND reactions.createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 12 HOUR)
         WHERE reactions.channelid<>1
