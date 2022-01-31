@@ -893,7 +893,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function getReactions(int $offset, int $count): array
+        static public function getReactions(int $offset, int $count, ?string $channelid = null): array
         {
             return Db::fetchAll("SELECT 
                     reactions.id, 
@@ -907,12 +907,14 @@ namespace Zaplog\Library {
                     links.image,
                     links.createdatetime AS linkdatetime,
                     (SELECT COUNT(*) FROM reactionvotes WHERE reactionid=reactions.id) AS votescount
-                FROM reactions 
-                JOIN channels ON channels.id=reactions.channelid
-                JOIN links ON links.id=reactions.linkid 
-                WHERE reactions.published=TRUE AND links.published=TRUE
-                ORDER BY reactions.id DESC
-                LIMIT :offset, :count", [":offset" => $offset, ":count" => $count]);
+				FROM (
+					SELECT * FROM reactions 
+                    WHERE published=TRUE AND channelid<>1 AND (:channelid1 IS NULL OR linkid IN (SELECT id FROM links WHERE channelid=:channelid2 AND published=TRUE))
+                    ORDER BY reactions.createdatetime DESC LIMIT :offset, :count
+				) AS reactions
+                LEFT JOIN channels ON channels.id=reactions.channelid
+                LEFT JOIN links ON links.id=reactions.linkid" ,
+                [":offset" => $offset, ":count" => $count, ":channelid1" => $channelid, ":channelid2" => $channelid]);
         }
 
         // ----------------------------------------------------------

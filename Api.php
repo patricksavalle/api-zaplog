@@ -540,6 +540,14 @@ class Api extends SlimRestApi
                 // get reactions
                 // ------------------------------------------------
 
+                $this->get("", function (
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
+                    return self::response($request, $response, $args, Methods::getReactions($args->offset, $args->count));
+                })
+                    ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20']));
+
                 $this->get("/link/{linkid:\d{1,10}}", function (
                     Request  $request,
                     Response $response,
@@ -547,18 +555,13 @@ class Api extends SlimRestApi
                     return self::response($request, $response, $args, Methods::getReactionsForLink((int)$args->linkid));
                 })->add(new NoCache);
 
-                // ------------------------------------------------+
-                // get reactions
-                // ------------------------------------------------
-
-                $this->get("", function (
+                $this->get("/channel/{channel:[\d\w-]{1,55}}", function (
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, Methods::getReactions($args->offset, $args->count));
+                    return self::response($request, $response, $args, Methods::getReactions($args->offset, $args->count, $args->channel));
                 })
-                    ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20']))
-                    ->add(new Cacheable(60/*sec*/));
+                    ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20']));
 
                 // ----------------------------------------------------------------
                 // Delete a reaction, only your own reactions
