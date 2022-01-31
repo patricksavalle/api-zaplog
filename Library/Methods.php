@@ -69,8 +69,7 @@ namespace Zaplog\Library {
 
         static public function getChannelLinks(string $channelid, int $offset, int $count): array
         {
-            $channel = Db::fetch("SELECT algorithm, id FROM channels WHERE (:id0 REGEXP '^[0-9]+$' AND id=:id1) OR name=:id2",
-                [":id0" => $channelid, ":id1" => $channelid, ":id2" => $channelid,]);
+            $channel = Db::fetch("SELECT algorithm, id FROM channels WHERE name=:id", [":id" => $channelid]);
 
             if ($channel === false) {
                 throw new Exception("Channel $channelid not found", 404);
@@ -214,7 +213,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function getActivityStream(int $offset, int $count, $channelid, bool $grouped = true): array
+        static public function getActivityStream(int $offset, int $count, ?string $channelid, bool $grouped = true): array
         {
             $stream = Db::fetchAll("SELECT
                         interactions.*,
@@ -271,12 +270,9 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function getSingleChannel(string $id_or_name): array
+        static public function getSingleChannel(string $name): array
         {
-            $channel = (new ResourceNotFoundException)(
-                Db::fetch("SELECT * FROM channels WHERE (:id0 REGEXP '^[0-9]+$' AND id=:id1) OR name=:id2",
-                    [":id0" => $id_or_name, ":id1" => $id_or_name, ":id2" => $id_or_name])
-            );
+            $channel = (new ResourceNotFoundException)(Db::fetch("SELECT * FROM channels WHERE name=:id", [":id" => $name]));
             $id = $channel->id;
 
             return [
@@ -914,7 +910,7 @@ namespace Zaplog\Library {
                     AND (
                         :id1 IS NULL OR linkid IN (
                             SELECT links.id FROM links JOIN channels ON links.channelid=channels.id 
-                            WHERE ((:id2 REGEXP '^[0-9]+$' AND channels.id=:id3) OR name=:id4) AND published=TRUE
+                            WHERE name=:id2 AND published=TRUE
                         )
                     ) 
 					ORDER BY reactions.createdatetime DESC LIMIT :offset, :count
@@ -926,8 +922,6 @@ namespace Zaplog\Library {
                     ":count" => $count,
                     ":id1" => $id,
                     ":id2" => $id,
-                    ":id3" => $id,
-                    ":id4" => $id,
                 ]);
         }
 

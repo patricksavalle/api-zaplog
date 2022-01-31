@@ -317,7 +317,7 @@ class Api extends SlimRestApi
                 // Return single channel plus its tags and related channels
                 // ----------------------------------------------------------------
 
-                $this->get("/id/{id:[\d\w-]{1,55}}", function (
+                $this->get("/id/{id:[\w-]{3,55}}", function (
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
@@ -472,7 +472,7 @@ class Api extends SlimRestApi
                 // Returns links for a given channel
                 // -----------------------------------------------------
 
-                $this->get("/channel/{id:[\d\w-]{1,55}}", function (
+                $this->get("/channel/{id:[\w-]{3,55}}", function (
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
@@ -555,7 +555,7 @@ class Api extends SlimRestApi
                     return self::response($request, $response, $args, Methods::getReactionsForLink((int)$args->linkid));
                 })->add(new NoCache);
 
-                $this->get("/channel/{channel:[\d\w-]{1,55}}", function (
+                $this->get("/channel/{channel:[\w-]{3,55}}", function (
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
