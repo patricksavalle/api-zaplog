@@ -893,7 +893,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function getReactions(int $offset, int $count, ?string $channelid = null): array
+        static public function getReactions(int $offset, int $count, ?string $id = null): array
         {
             return Db::fetchAll("SELECT 
                     reactions.id, 
@@ -909,12 +909,26 @@ namespace Zaplog\Library {
                     (SELECT COUNT(*) FROM reactionvotes WHERE reactionid=reactions.id) AS votescount
 				FROM (
 					SELECT * FROM reactions 
-                    WHERE published=TRUE AND channelid<>1 AND (:channelid1 IS NULL OR linkid IN (SELECT id FROM links WHERE channelid=:channelid2 AND published=TRUE))
-                    ORDER BY reactions.createdatetime DESC LIMIT :offset, :count
+                    WHERE published=TRUE 
+                    AND channelid<>1 
+                    AND (
+                        :id1 IS NULL OR linkid IN (
+                            SELECT links.id FROM links JOIN channels ON links.channelid=channels.id 
+                            WHERE ((:id2 REGEXP '^[0-9]+$' AND channels.id=:id3) OR name=:id4) AND published=TRUE
+                        )
+                    ) 
+					ORDER BY reactions.createdatetime DESC LIMIT :offset, :count
 				) AS reactions
                 LEFT JOIN channels ON channels.id=reactions.channelid
-                LEFT JOIN links ON links.id=reactions.linkid" ,
-                [":offset" => $offset, ":count" => $count, ":channelid1" => $channelid, ":channelid2" => $channelid]);
+                LEFT JOIN links ON links.id=reactions.linkid",
+                [
+                    ":offset" => $offset,
+                    ":count" => $count,
+                    ":id1" => $id,
+                    ":id2" => $id,
+                    ":id3" => $id,
+                    ":id4" => $id,
+                ]);
         }
 
         // ----------------------------------------------------------
