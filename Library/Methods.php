@@ -69,8 +69,8 @@ namespace Zaplog\Library {
 
         static public function getChannelLinks(string $channelid, int $offset, int $count): array
         {
-            $channel = Db::fetch("SELECT algorithm, id FROM channels WHERE id=:id1 OR name=:id2",
-                [":id1" => $channelid, ":id2" => $channelid,]);
+            $channel = Db::fetch("SELECT algorithm, id FROM channels WHERE (:id0 REGEXP '^[0-9]+$' AND id=:id1) OR name=:id2",
+                [":id0" => $channelid, ":id1" => $channelid, ":id2" => $channelid,]);
 
             if ($channel === false) {
                 throw new Exception("Channel $channelid not found", 404);
@@ -274,8 +274,8 @@ namespace Zaplog\Library {
         static public function getSingleChannel(string $id_or_name): array
         {
             $channel = (new ResourceNotFoundException)(
-                Db::fetch("SELECT * FROM channels WHERE id=:id1 OR name=:id2",
-                    [":id1" => $id_or_name, ":id2" => $id_or_name])
+                Db::fetch("SELECT * FROM channels WHERE (:id0 REGEXP '^[0-9]+$' AND id=:id1) OR name=:id2",
+                    [":id0" => $id_or_name, ":id1" => $id_or_name, ":id2" => $id_or_name])
             );
             $id = $channel->id;
 
