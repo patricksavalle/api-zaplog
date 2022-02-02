@@ -207,7 +207,9 @@ namespace Zaplog\Library {
 
             // extract tags and channels
             if ($search !== null) {
-                foreach (explode(",", $search) as $term) {
+                foreach (explode(" ", trim($search)) as $term) {
+
+                    if (empty(trim($term))) continue;
 
                     if (strpos($term, "@") === 0) {
                         // check channel operator
@@ -219,9 +221,13 @@ namespace Zaplog\Library {
                         (new UserException("Invalid tagname: " . $term))(preg_match("/^#[\w-]+$/", $term) === 1);
                         $tags[] = substr($term, 1);
 
-                    } else {
+                    } elseif (preg_match("/^[(\"~+\-<>)]?[\w-]+[\")]?$/", $term)===1) {
                         // else normal SQL AGAINST search term
                         $against[] = $term;
+
+                    } else {
+                        // can't be used with MATCH-AGAINST
+                        throw new UserException("Invalid search string:" . $search);
                     }
                 }
             }
