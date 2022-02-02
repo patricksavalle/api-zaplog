@@ -202,10 +202,46 @@ namespace Zaplog\Library {
 
         static public function getArchive(int $offset, int $count, ?string $search): array
         {
+            // we will allow #tags and @channels in the search
+            $tags = $channels = $against = null;
+
+            // extract tags and channels
+            if ($search !== null) {
+                foreach (explode(",", $search) as $term) {
+
+                    if (strpos($term, "@") === 0) {
+                        // check channel operator
+                        (new UserException("Invalid channelname: " . $term))(preg_match("/^@[\w-]+$/", $term) === 1);
+                        $channels[] = substr($term, 1);
+
+                    } elseif (strpos($term, "#") === 0) {
+                        // check tag operator
+                        (new UserException("Invalid tagname: " . $term))(preg_match("/^#[\w-]+$/", $term) === 1);
+                        $tags[] = substr($term, 1);
+
+                    } else {
+                        // else normal SQL AGAINST search term
+                        $against[] = $term;
+                    }
+                }
+            }
+
+            // create the SQL for optional tag matching (note beware of SQL injection in this case)
+            $tags = empty($tags) ? "" : "id IN (SELECT linkid FROM tags WHERE tag IN ('" . implode("','", $tags) . "')) AND";
+            // create the SQL for optional channel matching  (note beware of SQL injection in this case)
+            $channels = empty($channels) ? "" : "id IN (SELECT links.id FROM links JOIN channels ON links.channelid=channels.id WHERE name IN ('" . implode("','", $channels) . "')) AND";
+            // reconstruct search without channels and tags
+            $search = empty($against) ? null : implode(",", $against);
+            // choose the search mode based on presence of boolean operators
+            $mode = preg_match("/^[^()\"~+\-<>]+$/", $search ?? "") === 1 ? "IN NATURAL LANGUAGE MODE" : "IN BOOLEAN MODE";
+            // if searching don't sort on date, user relevance order
+            $order = empty($search) ? "ORDER BY createdatetime DESC" : "";
+
             $fields = self::$blurbfields;
-            return Db::fetchAll("SELECT $fields FROM links WHERE published=TRUE 
-                        AND (:search1 IS NULL OR MATCH(markdown) AGAINST(:search2 IN BOOLEAN MODE))
-                        ORDER BY createdatetime DESC LIMIT :offset,:count",
+            return Db::fetchAll("SELECT $fields FROM links 
+                        WHERE $tags $channels published=TRUE 
+                        AND (:search1 IS NULL OR MATCH(markdown) AGAINST(:search2 $mode))
+                        $order LIMIT :offset,:count",
                 [":offset" => $offset, ":count" => $count, ":search1" => $search, ":search2" => $search]);
         }
 

@@ -353,7 +353,7 @@ class Api extends SlimRestApi
                 })
                     ->add(new NoStore)
                     ->add(new BodyParameters([
-                        '{name:[.\w-]{3,55}}',
+                        '{name:[\w-]{3,55}}',
                         '{avatar:\url},null',
                         '{header:\url},null',
                         '{bio:\xtext},null',
@@ -465,7 +465,7 @@ class Api extends SlimRestApi
                     ->add(new QueryParameters([
                         '{offset:\int},0',
                         '{count:\int},20',
-                        '{search:.+},null',
+                        '{search:\urlencoded},null',
                     ]));
 
                 // -----------------------------------------------------

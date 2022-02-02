@@ -177,6 +177,7 @@ CREATE TABLE links
     INDEX (createdatetime),
     INDEX (urlhash),
     INDEX (score),
+    FULLTEXT (markdown),
     FOREIGN KEY (channelid) REFERENCES channels (id)
         ON DELETE CASCADE
         ON UPDATE CASCADE
