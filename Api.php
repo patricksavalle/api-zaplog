@@ -220,6 +220,7 @@ class Api extends SlimRestApi
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
+                assert($args->count < 100);
                 return self::response($request, $response, $args, Methods::getArchivePage($args->offset, $args->count, $args->search));
             })
                 ->add(new NoCache)
@@ -238,6 +239,7 @@ class Api extends SlimRestApi
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
+                assert($args->count < 100);
                 return self::response($request, $response, $args, Methods::getDiscussion(null, $args->offset, $args->count));
             })
                 ->add(new NoCache)
@@ -247,6 +249,7 @@ class Api extends SlimRestApi
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
+                assert($args->count < 100);
                 return self::response($request, $response, $args, Methods::getDiscussion($args->id, $args->offset, $args->count));
             })
                 ->add(new NoCache)
@@ -261,6 +264,7 @@ class Api extends SlimRestApi
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
+                assert($args->count < 250);
                 return self::response($request, $response, $args, Methods::getActivityStream($args->offset, $args->count, $args->channel, $args->grouped));
             })
                 ->add(new QueryParameters([
@@ -351,6 +355,7 @@ class Api extends SlimRestApi
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
+                    assert($args->count < 100);
                     return self::response($request, $response, $args, Methods::getTopChannelsForTag($args->tag, $args->count));
                 })
                     ->add(new QueryParameters(['{count:\int},10',]))
@@ -476,13 +481,13 @@ class Api extends SlimRestApi
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, Methods::getArchive($args->offset, $args->count, $args->search));
+                    assert($args->count < 250);
+                    return self::response($request, $response, $args, Methods::getArchive($args->offset, $args->count));
                 })
                     ->add(new NoCache)
                     ->add(new QueryParameters([
                         '{offset:\int},0',
                         '{count:\int},20',
-                        '{search:\urlencoded},null',
                     ]));
 
                 // -----------------------------------------------------
@@ -493,7 +498,8 @@ class Api extends SlimRestApi
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, Methods::getChannelLinks($args->id, (int)$args->offset, (int)$args->count));
+                    assert($args->count < 250);
+                    return self::response($request, $response, $args, Methods::getChannelLinks($args->id, $args->offset, $args->count));
                 })
                     ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20']))
                     ->add(new Cacheable(60/*sec*/));
@@ -561,6 +567,7 @@ class Api extends SlimRestApi
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
+                    assert($args->count < 100);
                     return self::response($request, $response, $args, Methods::getReactions($args->offset, $args->count));
                 })
                     ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20']));
@@ -576,6 +583,7 @@ class Api extends SlimRestApi
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
+                    assert($args->count < 250);
                     return self::response($request, $response, $args, Methods::getReactions($args->offset, $args->count, $args->channel));
                 })
                     ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20']));
