@@ -201,43 +201,10 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function getArchive(int $offset, int $count, ?string $search): array
+        static public function getArchive(int $offset, int $count): array
         {
-            // we will allow #tags and @channels in the search
-            $tags = $channels = "";
-
-            // extract tags and channels
-            if ($search !== null) {
-
-                // extract channels
-                preg_match_all('/@([\w-]+)/', $search, $channels);
-                $search = preg_replace('/@[\w-]+/', "", $search);
-                // create the SQL for optional channel matching  (note beware of SQL injection in this case)
-                $channels = empty($channels[1])
-                    ? ""
-                    : "id IN (SELECT links.id FROM links JOIN channels ON links.channelid=channels.id WHERE name IN ('" . implode("','", $channels[1]) . "')) AND";
-
-                // extract tags
-                preg_match_all('/#([\w-]+)/', $search, $tags);
-                $search = preg_replace('/#[\w-]+/', "", $search);
-                // create the SQL for optional tag matching (note beware of SQL injection in this case)
-                $tags = empty($tags[1])
-                    ? ""
-                    : "id IN (SELECT linkid FROM tags WHERE tag IN ('" . implode("','", $tags[1]) . "')) AND";
-            }
-            // set to true null
-            if (empty($search)) $search = null;
-            // choose the search mode based on presence of boolean operators
-            $mode = preg_match("/[()\"~+\-<>]/", $search ?? "") === 1 ? "IN BOOLEAN MODE" : "IN NATURAL LANGUAGE MODE";
-            // if searching don't sort on date, user relevance order
-            $order = empty($search) ? "ORDER BY createdatetime DESC" : "";
-
-            $fields = self::$blurbfields;
-            return Db::fetchAll("SELECT $fields FROM links 
-                        WHERE $tags $channels published=TRUE 
-                        AND (:search1 IS NULL OR MATCH(markdown) AGAINST(:search2 $mode))
-                        $order LIMIT :offset,:count",
-                [":offset" => $offset, ":count" => $count, ":search1" => $search, ":search2" => $search]);
+            return Db::fetchAll("SELECT " . self::$blurbfields . " FROM links ORDER BY createdatetime DESC LIMIT :offset,:count",
+                [":offset" => $offset, ":count" => $count]);
         }
 
         // ----------------------------------------------------------
