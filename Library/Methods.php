@@ -240,33 +240,34 @@ namespace Zaplog\Library {
 
                 if (!empty(trim($search))) {
                     if (preg_match("/[()\"~+\-<>]/", $search) === 1) {
-                        $sql .= " AND (:search1 IS NULL OR MATCH(markdown) AGAINST(:search2 IN BOOLEAN MODE))";
+                        $sql .= " AND (MATCH(markdown) AGAINST(:search IN BOOLEAN MODE))";
                     } else {
-                        $sql .= " AND (:search1 IS NULL OR MATCH(markdown) AGAINST(:search2 IN NATURAL LANGUAGE MODE))";
+                        $sql .= " AND (MATCH(markdown) AGAINST(:search IN NATURAL LANGUAGE MODE))";
                         $use_order_by = false;
                     }
-                    $args[":search1"] = $args[":search2"] = $search;
+                    $args[":search"] = $search;
                 }
             }
 
-            $sql .= ($use_order_by ? " ORDER BY createdatetime DESC" : "") . " LIMIT :offset,:count";
+            $sql .= ($use_order_by ? " ORDER BY createdatetime DESC " : "") . "LIMIT :offset,:count";
             $args[":count"] = $count;
             $args[":offset"] = $offset;
 
             // run the query
             $links = Db::fetchAll($sql, $args);
 
-            // extract the id's
-            $set = [];
-            foreach ($links as $id) $set[] = $id->id;
-            $set = "('" . implode("','", $set) . "')";
+            // extract id's
+            $linkids = "('" . implode("','", array_column($links, 'id')) . "')";
 
             return [
+                "lastmodified" => $use_order_by ? $links[0]->createdatetime : null,
+
                 "links" => $links,
-                "tags" => Db::fetchAll("SELECT tag FROM tags WHERE linkid IN $set GROUP BY tag ORDER BY COUNT(tag) DESC LIMIT 25"),
-                "channels" => Db::fetchAll("SELECT channels.* FROM channels JOIN links ON links.channelid=channels.id 
-                                    WHERE links.id IN $set GROUP BY name ORDER BY COUNT(name) DESC LIMIT 25"),
-                //"reactions" => Db::fetchAll("SELECT * FROM reactions WHERE linkid IN $set ORDER BY createdatetime DESC LIMIT 12"),
+
+                "tags" => Db::fetchAll("SELECT tag FROM tags WHERE linkid IN $linkids GROUP BY tag ORDER BY COUNT(tag) DESC LIMIT 25"),
+
+                "channels" => Db::fetchAll("SELECT channels.id, name, avatar FROM channels JOIN links ON links.channelid=channels.id 
+                                    WHERE links.id IN $linkids GROUP BY name ORDER BY COUNT(name) DESC, reputation DESC LIMIT 25"),
             ];
         }
 
