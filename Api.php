@@ -227,7 +227,7 @@ class Api extends SlimRestApi
                 ->add(new QueryParameters([
                     '{offset:\int},0',
                     '{count:\int},20',
-                    '{search:\urlencoded},null',
+                    '{search:.+},null',
                 ]));
 
             // ----------------------------------------------------------------

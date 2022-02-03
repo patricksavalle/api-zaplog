@@ -233,9 +233,9 @@ namespace Zaplog\Library {
                 preg_match_all('/#([\w-]+)/', $search, $matches);
                 $search = preg_replace('/#[\w-]+/', "", $search);
                 // create the SQL for optional tag matching (note beware of SQL injection in this case)
-                if (!empty($tags[1])) {
+                if (!empty($matches[1])) {
                     $tags = "('" . implode("','", $matches[1]) . "')";
-                    $sql = " AND id IN (SELECT linkid FROM tags WHERE tag IN $tags)";
+                    $sql .= " AND id IN (SELECT linkid FROM tags WHERE tag IN $tags)";
                 }
 
                 if (!empty(trim($search))) {
