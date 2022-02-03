@@ -213,53 +213,56 @@ namespace Zaplog\Library {
 
         static public function getArchivePage(int $offset, int $count, ?string $search): array
         {
-            // we will allow #tags and @channels in the search
-            $tags = $channels = "";
+            // build a query
+            $use_order_by = true;
+            $sql = "SELECT " . self::$blurbfields . " FROM links WHERE published=TRUE";
 
-            // extract tags and channels
+            // we added #tag and @channel operators to the MATCHES AGAINST syntax of MySQL
             if ($search !== null) {
 
                 // extract channels
-                preg_match_all('/@([\w-]+)/', $search, $channels);
+                preg_match_all('/@([\w-]+)/', $search, $matches);
                 $search = preg_replace('/@[\w-]+/', "", $search);
                 // create the SQL for optional channel matching  (note beware of SQL injection in this case)
-                /** @noinspection PhpParamsInspection */
-                $channels = empty($channels[1])
-                    ? ""
-                    : ("id IN (SELECT links.id FROM links JOIN channels ON links.channelid=channels.id WHERE name IN ('" . implode("','", $channels[1]) . "')) AND");
+                if (!empty($matches[1])) {
+                    $names = "('" . implode("','", $matches[1]) . "')";
+                    $sql .= " AND id IN (SELECT links.id FROM links JOIN channels ON links.channelid=channels.id WHERE name IN $names)";
+                }
 
                 // extract tags
-                preg_match_all('/#([\w-]+)/', $search, $tags);
+                preg_match_all('/#([\w-]+)/', $search, $matches);
                 $search = preg_replace('/#[\w-]+/', "", $search);
                 // create the SQL for optional tag matching (note beware of SQL injection in this case)
-                /** @noinspection PhpParamsInspection */
-                $tags = empty($tags[1])
-                    ? ""
-                    : ("id IN (SELECT linkid FROM tags WHERE tag IN ('" . implode("','", $tags[1]) . "')) AND");
-            }
-            // set to true null
-            if (empty(trim($search))) $search = null;
-            // choose the search mode based on presence of boolean operators
-            $mode = preg_match("/[()\"~+\-<>]/", $search ?? "") === 1 ? "IN BOOLEAN MODE" : "IN NATURAL LANGUAGE MODE";
-            // if searching don't sort on date, user relevance order
-            $order = (empty($search) or $mode === "IN BOOLEAN MODE") ? "ORDER BY createdatetime DESC" : "";
+                if (!empty($tags[1])) {
+                    $tags = "('" . implode("','", $matches[1]) . "')";
+                    $sql = " AND id IN (SELECT linkid FROM tags WHERE tag IN $tags)";
+                }
 
-            // create the subquery for all other qeuries
-            try {
-                $ids = Db::fetchAll("SELECT id FROM links WHERE $tags $channels published=TRUE 
-                    AND (:search1 IS NULL OR MATCH(markdown) AGAINST(:search2 $mode)) $order LIMIT :offset,:count",
-                    [":offset" => $offset, ":count" => $count, ":search1" => $search, ":search2" => $search]);
-            } catch (Throwable $e) {
-                throw new UserException("Invalid search string:" . $search);
+                if (!empty(trim($search))) {
+                    if (preg_match("/[()\"~+\-<>]/", $search) === 1) {
+                        $sql .= " AND (:search1 IS NULL OR MATCH(markdown) AGAINST(:search2 IN BOOLEAN MODE))";
+                    } else {
+                        $sql .= " AND (:search1 IS NULL OR MATCH(markdown) AGAINST(:search2 IN NATURAL LANGUAGE MODE))";
+                        $use_order_by = false;
+                    }
+                    $args[":search1"] = $args[":search2"] = $search;
+                }
             }
 
-            // create the set with id's
+            $sql .= ($use_order_by ? " ORDER BY createdatetime DESC" : "") . " LIMIT :offset,:count";
+            $args[":count"] = $count;
+            $args[":offset"] = $offset;
+
+            // run the query
+            $links = Db::fetchAll($sql, $args);
+
+            // extract the id's
             $set = [];
-            foreach ($ids as $id) $set[] = $id->id;
+            foreach ($links as $id) $set[] = $id->id;
             $set = "('" . implode("','", $set) . "')";
 
             return [
-                "links" => Db::fetchAll("SELECT " . self::$blurbfields . " FROM links WHERE id IN $set"),
+                "links" => $links,
                 "tags" => Db::fetchAll("SELECT tag FROM tags WHERE linkid IN $set GROUP BY tag ORDER BY COUNT(tag) DESC LIMIT 25"),
                 "channels" => Db::fetchAll("SELECT channels.* FROM channels JOIN links ON links.channelid=channels.id 
                                     WHERE links.id IN $set GROUP BY name ORDER BY COUNT(name) DESC LIMIT 25"),
@@ -707,11 +710,11 @@ namespace Zaplog\Library {
         {
             // check quota
             $check = Db::fetch("SELECT 
-            	(SELECT COUNT(*) FROM links WHERE channelid=:channelid1 AND createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 DAY)) AS article_count, 
+            	(SELECT COUNT(*) FROM links WHERE channelid=:channelid1 AND createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 6 HOUR)) AS article_count, 
 	            (SELECT reputation FROM channels WHERE id=:channelid2) AS channel_reputation",
                 [":channelid1" => $channelid, ":channelid2" => $channelid]);
             if ($check->channel_reputation < 500.0 and $check->article_count > 4) {
-                throw new UserException("Only 4 articles can be published per 24h");
+                throw new UserException("Max 4 articles can be published per 6h");
             }
             // publish
             if (Db::execute("UPDATE links SET published=TRUE WHERE id=:id and channelid=:channelid",
