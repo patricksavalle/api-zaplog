@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Zaplog;
 
-define("VERSION", "v1.3");
+define("VERSION", "v1.4");
 
 define("BASE_PATH", __DIR__);
 

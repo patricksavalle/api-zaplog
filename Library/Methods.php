@@ -204,7 +204,7 @@ namespace Zaplog\Library {
         static public function getArchive(int $offset, int $count, ?string $search): array
         {
             // we will allow #tags and @channels in the search
-            $tags = $channels = [];
+            $tags = $channels = "";
 
             // extract tags and channels
             if ($search !== null) {
@@ -247,7 +247,7 @@ namespace Zaplog\Library {
         static public function getArchivePage(int $offset, int $count, ?string $search): array
         {
             // we will allow #tags and @channels in the search
-            $tags = $channels = [];
+            $tags = $channels = "";
 
             // extract tags and channels
             if ($search !== null) {
@@ -970,7 +970,7 @@ namespace Zaplog\Library {
                 JOIN links ON reactions.linkid=links.id 
                 JOIN channels ON channels.id=reactions.channelid
                 WHERE linkid=:id AND reactions.published=TRUE 
-                ORDER BY reactions.id DESC", [":id" => $linkid]);
+                ORDER BY reactions.id", [":id" => $linkid]);
         }
 
         // ----------------------------------------------------------
