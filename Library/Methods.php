@@ -256,24 +256,26 @@ namespace Zaplog\Library {
                 preg_match_all('/@([\w-]+)/', $search, $channels);
                 $search = preg_replace('/@[\w-]+/', "", $search);
                 // create the SQL for optional channel matching  (note beware of SQL injection in this case)
+                /** @noinspection PhpParamsInspection */
                 $channels = empty($channels[1])
                     ? ""
-                    : "id IN (SELECT links.id FROM links JOIN channels ON links.channelid=channels.id WHERE name IN ('" . implode("','", $channels[1]) . "')) AND";
+                    : ("id IN (SELECT links.id FROM links JOIN channels ON links.channelid=channels.id WHERE name IN ('" . implode("','", $channels[1]) . "')) AND");
 
                 // extract tags
                 preg_match_all('/#([\w-]+)/', $search, $tags);
                 $search = preg_replace('/#[\w-]+/', "", $search);
                 // create the SQL for optional tag matching (note beware of SQL injection in this case)
+                /** @noinspection PhpParamsInspection */
                 $tags = empty($tags[1])
                     ? ""
-                    : "id IN (SELECT linkid FROM tags WHERE tag IN ('" . implode("','", $tags[1]) . "')) AND";
+                    : ("id IN (SELECT linkid FROM tags WHERE tag IN ('" . implode("','", $tags[1]) . "')) AND");
             }
             // set to true null
-            if (empty($search)) $search = null;
+            if (empty(trim($search))) $search = null;
             // choose the search mode based on presence of boolean operators
             $mode = preg_match("/[()\"~+\-<>]/", $search ?? "") === 1 ? "IN BOOLEAN MODE" : "IN NATURAL LANGUAGE MODE";
             // if searching don't sort on date, user relevance order
-            $order = empty($search) ? "ORDER BY createdatetime DESC" : "";
+            $order = (empty($search) or $mode === "IN BOOLEAN MODE") ? "ORDER BY createdatetime DESC" : "";
 
             // create the subquery for all other qeuries
             try {
@@ -291,8 +293,9 @@ namespace Zaplog\Library {
 
             return [
                 "links" => Db::fetchAll("SELECT " . self::$blurbfields . " FROM links WHERE id IN $set"),
-                "tags" => Db::fetchAll("SELECT tag FROM tags WHERE linkid IN $set GROUP BY tag ORDER BY COUNT(tag) DESC"),
-                "channels" => Db::fetchAll("SELECT DISTINCT channels.* FROM channels JOIN links ON links.channelid=channels.id WHERE links.id IN $set"),
+                "tags" => Db::fetchAll("SELECT tag FROM tags WHERE linkid IN $set GROUP BY tag ORDER BY COUNT(tag) DESC LIMIT 25"),
+                "channels" => Db::fetchAll("SELECT channels.* FROM channels JOIN links ON links.channelid=channels.id 
+                                    WHERE links.id IN $set GROUP BY name ORDER BY COUNT(name) DESC LIMIT 25"),
                 //"reactions" => Db::fetchAll("SELECT * FROM reactions WHERE linkid IN $set ORDER BY createdatetime DESC LIMIT 12"),
             ];
         }
