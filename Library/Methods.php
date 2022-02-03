@@ -124,11 +124,11 @@ namespace Zaplog\Library {
 
                 case "all":
                     // show all articles across all channels
-                    return "SELECT $fields FROM links ORDER BY createdatetime DESC LIMIT :count";
+                    return "SELECT $fields FROM links WHERE published=TRUE ORDER BY createdatetime DESC LIMIT :count";
 
                 case "channel":
                     // show all articles posted by channel 1
-                    return "SELECT $fields FROM links WHERE channelid=1 ORDER BY createdatetime DESC LIMIT :count";
+                    return "SELECT $fields FROM links WHERE channelid=1 AND published=TRUE ORDER BY createdatetime DESC LIMIT :count";
 
                 case "popular":
                     // show the most popular articles in the system
@@ -163,7 +163,7 @@ namespace Zaplog\Library {
             $frontpage = self::frontpageQuery();
             /** @noinspection SqlResolve */
             return "SELECT tag FROM tags
-                JOIN links ON tags.linkid=links.id
+                JOIN links ON tags.linkid=links.id AND links.published=TRUE
                 JOIN ($frontpage) AS x ON x.id=tags.linkid
                 GROUP BY tags.tag
                 ORDER BY SUM(links.score) DESC LIMIT 20";
@@ -341,7 +341,7 @@ namespace Zaplog\Library {
 
                 "tags" => Db::fetchAll("SELECT tag, COUNT(tag) AS tagscount 
                     FROM tags JOIN links ON tags.linkid=links.id  
-                    WHERE links.channelid=:channelid 
+                    WHERE links.channelid=:channelid AND links.published=TRUE
                     GROUP BY tag ORDER BY SUM((score / GREATEST(9, POW(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, createdatetime),2)))) DESC LIMIT 10",
                     [":channelid" => $id], 60 * 60),
 
@@ -349,7 +349,7 @@ namespace Zaplog\Library {
                     FROM (
                         SELECT tag FROM tags
                         JOIN links ON tags.linkid=links.id
-                        WHERE links.channelid=:channelid1 
+                        WHERE links.channelid=:channelid1 AND links.published=TRUE 
                         GROUP BY tag
                         ORDER BY COUNT(tag) DESC
                         LIMIT 10
@@ -842,7 +842,7 @@ namespace Zaplog\Library {
             return Db::fetchAll("SELECT channels.* FROM channels
                         JOIN links ON channels.id=links.channelid
                         JOIN tags ON tags.linkid=links.id
-                        WHERE tag=:tag
+                        WHERE tag=:tag AND links.published=TRUE 
                         GROUP BY channels.id
                         ORDER BY SUM(links.score)/COUNT(links.id) DESC LIMIT :count",
                 [":tag" => $tag, ":count" => $count], 60 * 60 * 12);
@@ -856,10 +856,8 @@ namespace Zaplog\Library {
         {
             return Db::fetchAll("SELECT tag FROM tags
                 JOIN links ON tags.linkid=links.id
-                WHERE links.id IN (SELECT links.id 
-                    FROM links JOIN tags ON tags.linkid=links.id 
-                    WHERE tag=:tag1)
-                AND tag<>:tag2
+                WHERE links.id IN (SELECT links.id FROM links JOIN tags ON tags.linkid=links.id 
+                WHERE tag=:tag1) AND links.published=TRUE AND tag<>:tag2
                 GROUP BY tag ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT :count",
                 [":tag1" => $tag, ":tag2" => $tag, ":count" => $count], 60 * 60);
         }
