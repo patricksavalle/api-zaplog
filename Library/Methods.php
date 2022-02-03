@@ -19,6 +19,7 @@ namespace Zaplog\Library {
     use SlimRestApi\Infra\Db;
     use SlimRestApi\Infra\Ini;
     use stdClass;
+    use Throwable;
     use Zaplog\Exception\ResourceNotFoundException;
     use Zaplog\Exception\ServerException;
     use Zaplog\Exception\UserException;
@@ -203,43 +204,31 @@ namespace Zaplog\Library {
         static public function getArchive(int $offset, int $count, ?string $search): array
         {
             // we will allow #tags and @channels in the search
-            $tags = $channels = $against = null;
+            $tags = $channels = [];
 
             // extract tags and channels
             if ($search !== null) {
-                foreach (explode(" ", trim($search)) as $term) {
 
-                    if (empty(trim($term))) continue;
+                // extract channels
+                preg_match_all('/@([\w-]+)/', $search, $channels);
+                $search = preg_replace('/@[\w-]+/', "", $search);
+                // create the SQL for optional channel matching  (note beware of SQL injection in this case)
+                $channels = empty($channels[1])
+                    ? ""
+                    : "id IN (SELECT links.id FROM links JOIN channels ON links.channelid=channels.id WHERE name IN ('" . implode("','", $channels[1]) . "')) AND";
 
-                    if (strpos($term, "@") === 0) {
-                        // check channel operator
-                        (new UserException("Invalid channelname: " . $term))(preg_match("/^@[\w-]+$/", $term) === 1);
-                        $channels[] = substr($term, 1);
-
-                    } elseif (strpos($term, "#") === 0) {
-                        // check tag operator
-                        (new UserException("Invalid tagname: " . $term))(preg_match("/^#[\w-]+$/", $term) === 1);
-                        $tags[] = substr($term, 1);
-
-                    } elseif (preg_match("/^[(\"~+\-<>)]?[\w-]+[\")]?$/", $term)===1) {
-                        // else normal SQL AGAINST search term
-                        $against[] = $term;
-
-                    } else {
-                        // can't be used with MATCH-AGAINST
-                        throw new UserException("Invalid search string:" . $search);
-                    }
-                }
+                // extract tags
+                preg_match_all('/#([\w-]+)/', $search, $tags);
+                $search = preg_replace('/#[\w-]+/', "", $search);
+                // create the SQL for optional tag matching (note beware of SQL injection in this case)
+                $tags = empty($tags[1])
+                    ? ""
+                    : "id IN (SELECT linkid FROM tags WHERE tag IN ('" . implode("','", $tags[1]) . "')) AND";
             }
-
-            // create the SQL for optional tag matching (note beware of SQL injection in this case)
-            $tags = empty($tags) ? "" : "id IN (SELECT linkid FROM tags WHERE tag IN ('" . implode("','", $tags) . "')) AND";
-            // create the SQL for optional channel matching  (note beware of SQL injection in this case)
-            $channels = empty($channels) ? "" : "id IN (SELECT links.id FROM links JOIN channels ON links.channelid=channels.id WHERE name IN ('" . implode("','", $channels) . "')) AND";
-            // reconstruct search without channels and tags
-            $search = empty($against) ? null : implode(",", $against);
+            // set to true null
+            if (empty($search)) $search = null;
             // choose the search mode based on presence of boolean operators
-            $mode = preg_match("/^[^()\"~+\-<>]+$/", $search ?? "") === 1 ? "IN NATURAL LANGUAGE MODE" : "IN BOOLEAN MODE";
+            $mode = preg_match("/[()\"~+\-<>]/", $search ?? "") === 1 ? "IN BOOLEAN MODE" : "IN NATURAL LANGUAGE MODE";
             // if searching don't sort on date, user relevance order
             $order = empty($search) ? "ORDER BY createdatetime DESC" : "";
 
@@ -249,6 +238,63 @@ namespace Zaplog\Library {
                         AND (:search1 IS NULL OR MATCH(markdown) AGAINST(:search2 $mode))
                         $order LIMIT :offset,:count",
                 [":offset" => $offset, ":count" => $count, ":search1" => $search, ":search2" => $search]);
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function getArchivePage(int $offset, int $count, ?string $search): array
+        {
+            // we will allow #tags and @channels in the search
+            $tags = $channels = [];
+
+            // extract tags and channels
+            if ($search !== null) {
+
+                // extract channels
+                preg_match_all('/@([\w-]+)/', $search, $channels);
+                $search = preg_replace('/@[\w-]+/', "", $search);
+                // create the SQL for optional channel matching  (note beware of SQL injection in this case)
+                $channels = empty($channels[1])
+                    ? ""
+                    : "id IN (SELECT links.id FROM links JOIN channels ON links.channelid=channels.id WHERE name IN ('" . implode("','", $channels[1]) . "')) AND";
+
+                // extract tags
+                preg_match_all('/#([\w-]+)/', $search, $tags);
+                $search = preg_replace('/#[\w-]+/', "", $search);
+                // create the SQL for optional tag matching (note beware of SQL injection in this case)
+                $tags = empty($tags[1])
+                    ? ""
+                    : "id IN (SELECT linkid FROM tags WHERE tag IN ('" . implode("','", $tags[1]) . "')) AND";
+            }
+            // set to true null
+            if (empty($search)) $search = null;
+            // choose the search mode based on presence of boolean operators
+            $mode = preg_match("/[()\"~+\-<>]/", $search ?? "") === 1 ? "IN BOOLEAN MODE" : "IN NATURAL LANGUAGE MODE";
+            // if searching don't sort on date, user relevance order
+            $order = empty($search) ? "ORDER BY createdatetime DESC" : "";
+
+            // create the subquery for all other qeuries
+            try {
+                $ids = Db::fetchAll("SELECT id FROM links WHERE $tags $channels published=TRUE 
+                    AND (:search1 IS NULL OR MATCH(markdown) AGAINST(:search2 $mode)) $order LIMIT :offset,:count",
+                    [":offset" => $offset, ":count" => $count, ":search1" => $search, ":search2" => $search]);
+            } catch (Throwable $e) {
+                throw new UserException("Invalid search string:" . $search);
+            }
+
+            // create the set with id's
+            $set = [];
+            foreach ($ids as $id) $set[] = $id->id;
+            $set = "('" . implode("','", $set) . "')";
+
+            return [
+                "links" => Db::fetchAll("SELECT " . self::$blurbfields . " FROM links WHERE id IN $set"),
+                "tags" => Db::fetchAll("SELECT tag FROM tags WHERE linkid IN $set GROUP BY tag ORDER BY COUNT(tag) DESC"),
+                "channels" => Db::fetchAll("SELECT DISTINCT channels.* FROM channels JOIN links ON links.channelid=channels.id WHERE links.id IN $set"),
+                //"reactions" => Db::fetchAll("SELECT * FROM reactions WHERE linkid IN $set ORDER BY createdatetime DESC LIMIT 12"),
+            ];
         }
 
         // ----------------------------------------------------------

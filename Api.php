@@ -212,6 +212,23 @@ class Api extends SlimRestApi
                 ->add(new QueryParameters(['{count:\int},18', '{datetime:\date},null',]))
                 ->add(new Cacheable(60 * 10/*sec*/));
 
+            // -----------------------------------------------------
+            // Returns the currently selected frontpage links
+            // -----------------------------------------------------
+
+            $this->get("/archivepage", function (
+                Request  $request,
+                Response $response,
+                stdClass $args): Response {
+                return self::response($request, $response, $args, Methods::getArchivePage($args->offset, $args->count, $args->search));
+            })
+                ->add(new NoCache)
+                ->add(new QueryParameters([
+                    '{offset:\int},0',
+                    '{count:\int},20',
+                    '{search:\urlencoded},null',
+                ]));
+
             // ----------------------------------------------------------------
             // Get reactions, forum style, returns the latest reactions
             // grouped with the 2 previous in the same thread / link
