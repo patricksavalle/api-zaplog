@@ -344,8 +344,7 @@ class Api extends SlimRestApi
                     stdClass $args): Response {
                     return self::response($request, $response, $args, Methods::getSingleChannel($args->id));
                 })
-                    ->add(new NoCache)
-                    ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20']));
+                    ->add(new NoCache);
 
                 // ----------------------------------------------------------------
                 // Return top channels for given tag
@@ -485,10 +484,7 @@ class Api extends SlimRestApi
                     return self::response($request, $response, $args, Methods::getArchive($args->offset, $args->count));
                 })
                     ->add(new NoCache)
-                    ->add(new QueryParameters([
-                        '{offset:\int},0',
-                        '{count:\int},20',
-                    ]));
+                    ->add(new QueryParameters(['{offset:\int},0','{count:\int},20',]));
 
                 // -----------------------------------------------------
                 // Returns links for a given channel
@@ -527,11 +523,12 @@ class Api extends SlimRestApi
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
+                    assert($args->count < 100);
                     return self::response($request, $response, $args, Db::fetchAll("SELECT 
-                        links.id, links.channelid, links.createdatetime, links.updatedatetime, links.url, links.language,
-                        links.title, links.copyright, links.description, links.image
-                      FROM tags JOIN links ON tags.linkid=links.id 
-                        WHERE tags.tag=:tag AND published=TRUE ORDER BY links.id DESC LIMIT :offset,:count",
+                            links.id, links.channelid, links.createdatetime, links.updatedatetime, links.url, links.language,
+                            links.title, links.copyright, links.description, links.image
+                        FROM tags JOIN links ON tags.linkid=links.id 
+                        WHERE tags.tag=:tag AND published=TRUE ORDER BY createdatetime DESC LIMIT :offset,:count",
                         [":tag" => $args->tag, ":offset" => $args->offset, ":count" => $args->count]));
                 })
                     ->add(new Cacheable(60 * 10/*sec*/))
@@ -567,7 +564,7 @@ class Api extends SlimRestApi
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    assert($args->count < 100);
+                    assert($args->count < 250);
                     return self::response($request, $response, $args, Methods::getReactions($args->offset, $args->count));
                 })
                     ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20']));
