@@ -19,7 +19,6 @@ namespace Zaplog\Library {
     use SlimRestApi\Infra\Db;
     use SlimRestApi\Infra\Ini;
     use stdClass;
-    use Throwable;
     use Zaplog\Exception\ResourceNotFoundException;
     use Zaplog\Exception\ServerException;
     use Zaplog\Exception\UserException;
@@ -260,7 +259,7 @@ namespace Zaplog\Library {
             $linkids = "('" . implode("','", array_column($links, 'id')) . "')";
 
             return [
-                "lastmodified" => $use_order_by ? $links[0]->createdatetime : null,
+                "lastmodified" => $use_order_by ? $links[0]->createdatetime ?? null : null,
 
                 "links" => $links,
 
@@ -287,8 +286,8 @@ namespace Zaplog\Library {
                     FROM (SELECT * FROM interactions WHERE (:channelid1 IS NULL OR interactions.channelid=:channelid2)
                             ORDER BY id DESC
                             LIMIT :offset, :count) AS interactions
-                    JOIN channels ON channels.id=interactions.channelid
-                    LEFT JOIN links ON links.id=interactions.linkid AND interactions.type = 'on_insert_link'
+                    LEFT JOIN channels ON channels.id=interactions.channelid
+                    LEFT JOIN links ON links.id=interactions.linkid  
                     ORDER BY interactions.id DESC",
                 [
                     ":channelid1" => $channelid,
