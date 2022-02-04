@@ -158,42 +158,28 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function trendingtopicsQuery(): string
-        {
-            $frontpage = self::frontpageQuery();
-            /** @noinspection SqlResolve */
-            return "SELECT tag FROM tags
-                JOIN links ON tags.linkid=links.id AND links.published=TRUE
-                JOIN ($frontpage) AS x ON x.id=tags.linkid
-                GROUP BY tags.tag
-                ORDER BY SUM(links.score) DESC LIMIT 20";
-        }
-
-        // ----------------------------------------------------------
-        //
-        // ----------------------------------------------------------
-
-        static public function trendingchannelsQuery(): string
-        {
-            $frontpage = self::frontpageQuery();
-            /** @noinspection SqlResolve */
-            return "SELECT channels.* FROM channels
-                JOIN ($frontpage) AS x ON x.channelid=channels.id
-                GROUP BY channels.id
-                ORDER BY SUM(channels.score) DESC LIMIT 20";
-        }
-
-        // ----------------------------------------------------------
-        //
-        // ----------------------------------------------------------
-
         static public function getFrontpage(int $count): array
         {
+            $trendingTopics = function (string $linkids): array {
+                return Db::fetchAll("SELECT tag FROM tags WHERE linkid IN $linkids 
+                    GROUP BY tag ORDER BY COUNT(tag) DESC LIMIT 25");
+            };
+            $trendingChannels = function (string $channelids): array {
+                return Db::fetchAll("SELECT channels.* FROM channels WHERE id IN $channelids 
+                    GROUP BY id ORDER BY SUM(score) DESC LIMIT 25");
+            };
+            $trendingReactions = function(): array {
+                return Db::fetchAll("SELECT * FROM topreactions");
+            };
+            $frontpage = Db::fetchAll(self::frontpageQuery(), [":count" => $count]);
+            $linkids = "('" . implode("','", array_column($frontpage, "id")) . "')";
+            $channelids = "('" . implode("','", array_column($frontpage, "channelid")) . "')";
             return [
-                "trendingtags" => Db::fetchAll(self::trendingtopicsQuery(), [":count" => $count]),
-                "trendingchannels" => Db::fetchAll(self::trendingchannelsQuery(), [":count" => $count]),
-                "trendingreactions" => Db::fetchAll("SELECT * FROM topreactions"),
-                "trendinglinks" => Db::fetchAll(self::frontpageQuery(), [":count" => $count])];
+                "trendingtags" => $trendingTopics($linkids),
+                "trendingchannels" => $trendingChannels($channelids),
+                "trendingreactions" => $trendingReactions(),
+                "trendinglinks" => $frontpage,
+            ];
         }
 
         // ----------------------------------------------------------
@@ -212,6 +198,15 @@ namespace Zaplog\Library {
 
         static public function getArchivePage(int $offset, int $count, ?string $search): array
         {
+            $associatedTags = function (string $linkids): array {
+                return Db::fetchAll("SELECT tag FROM tags WHERE linkid IN $linkids 
+                    GROUP BY tag ORDER BY COUNT(tag) DESC LIMIT 25");
+            };
+            $associatedChannels = function (string $channelids): array {
+                return Db::fetchAll("SELECT id, name, avatar FROM channels WHERE id IN $channelids 
+                    GROUP BY name ORDER BY COUNT(name) DESC, reputation DESC LIMIT 25");
+            };
+
             // build a query
             $use_order_by = true;
             $sql = "SELECT " . self::$blurbfields . " FROM links WHERE published=TRUE";
@@ -257,16 +252,13 @@ namespace Zaplog\Library {
 
             // extract id's
             $linkids = "('" . implode("','", array_column($links, 'id')) . "')";
+            $channelids = "('" . implode("','", array_column($links, 'channelid')) . "')";
 
             return [
-                "lastmodified" => $use_order_by ? $links[0]->createdatetime ?? null : null,
-
                 "links" => $links,
-
-                "tags" => Db::fetchAll("SELECT tag FROM tags WHERE linkid IN $linkids GROUP BY tag ORDER BY COUNT(tag) DESC LIMIT 25"),
-
-                "channels" => Db::fetchAll("SELECT channels.id, name, avatar FROM channels JOIN links ON links.channelid=channels.id 
-                                    WHERE links.id IN $linkids GROUP BY name ORDER BY COUNT(name) DESC, reputation DESC LIMIT 25"),
+                "tags" => $associatedTags($linkids),
+                "channels" => $associatedChannels($channelids),
+                "lastmodified" => $use_order_by ? $links[0]->createdatetime ?? null : null,
             ];
         }
 

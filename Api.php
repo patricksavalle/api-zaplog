@@ -223,7 +223,7 @@ class Api extends SlimRestApi
                 assert($args->count < 100);
                 return self::response($request, $response, $args, Methods::getArchivePage($args->offset, $args->count, $args->search));
             })
-                ->add(new NoCache)
+                ->add(new Cacheable)
                 ->add(new QueryParameters([
                     '{offset:\int},0',
                     '{count:\int},20',
@@ -484,7 +484,7 @@ class Api extends SlimRestApi
                     return self::response($request, $response, $args, Methods::getArchive($args->offset, $args->count));
                 })
                     ->add(new NoCache)
-                    ->add(new QueryParameters(['{offset:\int},0','{count:\int},20',]));
+                    ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20',]));
 
                 // -----------------------------------------------------
                 // Returns links for a given channel
