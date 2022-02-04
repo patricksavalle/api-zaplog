@@ -783,7 +783,7 @@ namespace Zaplog\Library {
         static public function getSingleLink(string $id): array
         {
             $channel = function (int $id): stdClass {
-                return Db::fetch("SELECT * FROM channels WHERE id=:id", [":id" => $id]);
+                return Db::fetchAll("SELECT * FROM channels WHERE id=:id", [":id" => $id], 60)[0];
             };
 
             $tags = function (string $id): array {
@@ -793,7 +793,7 @@ namespace Zaplog\Library {
             $related = function (string $id): array {
                 return Db::fetchAll("SELECT links.id, links.description, links.createdatetime, links.channelid, links.title, links.image
                     FROM links JOIN tags ON tags.linkid=links.id AND links.id<>:id1
-                    WHERE tag IN (SELECT tags.tag FROM links JOIN tags on tags.linkid=links.id WHERE links.id=:id2) AND published=TRUE
+                    WHERE tag IN (SELECT tag FROM tags WHERE linkid=:id2) AND published=TRUE
                     GROUP BY links.id ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT 5",
                     [":id1" => $id, ":id2" => $id], 60 * 20);
             };
@@ -804,9 +804,8 @@ namespace Zaplog\Library {
                         SELECT channelid, 'links' AS action FROM links WHERE id=:id1
                         UNION SELECT channelid, 'reactions' AS action FROM reactions WHERE linkid=:id2
                         UNION SELECT channelid, 'votes' AS action FROM votes WHERE linkid=:id3
-                    ) AS i ON i.channelid=c.id
-                    GROUP BY c.id",
-                    [":id1" => $id, ":id2" => $id, ":id3" => $id]);
+                    ) AS i ON i.channelid=c.id GROUP BY c.id",
+                    [":id1" => $id, ":id2" => $id, ":id3" => $id], 60);
             };
 
             // update view counter and referers
