@@ -114,65 +114,56 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        /** @noinspection PhpUnusedPrivateMethodInspection */
-        static private function frontpage_all(int $count): array
+        /** @noinspection PhpUnusedLocalVariableInspection */
+        static public function getFrontpage(int $count): array
         {
-            return Db::fetchAll("SELECT " . self::$blurbfields . " FROM links WHERE published=TRUE 
-                ORDER BY createdatetime DESC LIMIT :count", [":count" => $count]);
-        }
+            $all = function (int $count): array {
+                return Db::fetchAll("SELECT " . self::$blurbfields . " FROM links WHERE published=TRUE 
+                    ORDER BY createdatetime DESC LIMIT :count", [":count" => $count]);
+            };
 
-        /** @noinspection PhpUnusedPrivateMethodInspection */
-        static private function frontpage_channel(int $count): array
-        {
-            return Db::fetchAll("SELECT " . self::$blurbfields . " FROM links WHERE channelid=1 AND published=TRUE 
-                ORDER BY createdatetime DESC LIMIT :count", [":count" => $count]);
-        }
+            $channel = function (int $count): array {
+                return Db::fetchAll("SELECT " . self::$blurbfields . " FROM links WHERE channelid=1 AND published=TRUE 
+                    ORDER BY createdatetime DESC LIMIT :count", [":count" => $count]);
+            };
 
-        /** @noinspection PhpUnusedPrivateMethodInspection */
-        static private function frontpage_popular(int $count): array
-        {
-            return Db::fetchAll("SELECT " . self::$blurbfields . " FROM frontpage LIMIT :count", [":count" => $count]);
-        }
+            $popular = function (int $count): array {
+                return Db::fetchAll("SELECT " . self::$blurbfields . " FROM frontpage LIMIT :count", [":count" => $count]);
+            };
 
-        /** @noinspection PhpUnusedPrivateMethodInspection */
-        static private function frontpage_voted(int $count): array
-        {
-            return Db::fetchAll("SELECT " . self::$blurbfields . " FROM links  
-                WHERE id IN (SELECT linkid FROM votes WHERE channelid=1)
-                AND published=TRUE ORDER BY createdatetime DESC LIMIT :count", [":count" => $count]);
-        }
+            $voted = function (int $count): array {
+                return Db::fetchAll("SELECT " . self::$blurbfields . " FROM links  
+                    WHERE id IN (SELECT linkid FROM votes WHERE channelid=1)
+                    AND published=TRUE ORDER BY createdatetime DESC LIMIT :count", [":count" => $count]);
+            };
 
-        /** @noinspection PhpUnusedPrivateMethodInspection */
-        static private function frontpage_mixed(int $count): array
-        {
-            return Db::fetchAll("SELECT " . self::$blurbfields . " FROM (
+            $mixed = function (int $count): array {
+                return Db::fetchAll("SELECT " . self::$blurbfields . " FROM (
                     SELECT links.* FROM frontpage JOIN links ON frontpage.id=links.id 
                     UNION DISTINCT 
                     SELECT links.* FROM links JOIN votes ON links.id=votes.linkid 
                     WHERE links.published=TRUE AND votes.channelid=1 
                 ) AS links ORDER BY createdatetime DESC LIMIT :count", [":count" => $count]);
-        }
+            };
 
-        // ----------------------------------------------------------
-        //
-        // ----------------------------------------------------------
-
-        static public function getFrontpage(int $count): array
-        {
             $trendingTopics = function (array $linkids): array {
                 return Db::fetchAll("SELECT tag FROM tags WHERE linkid IN ('" . implode("','", $linkids) . "') 
                     GROUP BY tag ORDER BY COUNT(tag) DESC LIMIT 25");
             };
+
             $trendingChannels = function (array $channelids): array {
                 return Db::fetchAll("SELECT channels.* FROM channels WHERE id IN ('" . implode("','", $channelids) . "') 
                     GROUP BY id ORDER BY SUM(score) DESC LIMIT 25");
             };
+
             $trendingReactions = function (): array {
                 return Db::fetchAll("SELECT * FROM topreactions");
             };
+
             // channel 1 is the master channel, determines site frontpage
-            $methodname = "frontpage_" . Db::fetch("SELECT algorithm FROM channels WHERE id=1")->algorithm;
-            $frontpage = static::{$methodname}($count);
+            $methodname = Db::fetchAll("SELECT algorithm FROM channels WHERE id=1",[],60)[0]->algorithm;
+            $frontpage = $$methodname($count);
+
             return [
                 "trendinglinks" => $frontpage,
                 "trendingtags" => $trendingTopics(array_column($frontpage, "id")),
