@@ -160,25 +160,23 @@ namespace Zaplog\Library {
 
         static public function getFrontpage(int $count): array
         {
-            $trendingTopics = function (string $linkids): array {
-                return Db::fetchAll("SELECT tag FROM tags WHERE linkid IN $linkids 
+            $trendingTopics = function (array $linkids): array {
+                return Db::fetchAll("SELECT tag FROM tags WHERE linkid IN ('" . implode("','", $linkids) . "') 
                     GROUP BY tag ORDER BY COUNT(tag) DESC LIMIT 25");
             };
-            $trendingChannels = function (string $channelids): array {
-                return Db::fetchAll("SELECT channels.* FROM channels WHERE id IN $channelids 
+            $trendingChannels = function (array $channelids): array {
+                return Db::fetchAll("SELECT channels.* FROM channels WHERE id IN ('" . implode("','", $channelids) . "') 
                     GROUP BY id ORDER BY SUM(score) DESC LIMIT 25");
             };
-            $trendingReactions = function(): array {
+            $trendingReactions = function (): array {
                 return Db::fetchAll("SELECT * FROM topreactions");
             };
             $frontpage = Db::fetchAll(self::frontpageQuery(), [":count" => $count]);
-            $linkids = "('" . implode("','", array_column($frontpage, "id")) . "')";
-            $channelids = "('" . implode("','", array_column($frontpage, "channelid")) . "')";
             return [
-                "trendingtags" => $trendingTopics($linkids),
-                "trendingchannels" => $trendingChannels($channelids),
-                "trendingreactions" => $trendingReactions(),
                 "trendinglinks" => $frontpage,
+                "trendingtags" => $trendingTopics(array_column($frontpage, "id")),
+                "trendingchannels" => $trendingChannels(array_column($frontpage, "channelid")),
+                "trendingreactions" => $trendingReactions(),
             ];
         }
 
@@ -198,12 +196,14 @@ namespace Zaplog\Library {
 
         static public function getArchivePage(int $offset, int $count, ?string $search): array
         {
-            $associatedTags = function (string $linkids): array {
-                return Db::fetchAll("SELECT tag FROM tags WHERE linkid IN $linkids 
+            $associatedTags = function (array $linkids): array {
+                return Db::fetchAll("SELECT tag FROM tags 
+                    WHERE linkid IN ('" . implode("','", $linkids) . "') 
                     GROUP BY tag ORDER BY COUNT(tag) DESC LIMIT 25");
             };
-            $associatedChannels = function (string $channelids): array {
-                return Db::fetchAll("SELECT id, name, avatar FROM channels WHERE id IN $channelids 
+            $associatedChannels = function (array $channelids): array {
+                return Db::fetchAll("SELECT id, name, avatar FROM channels 
+                    WHERE id IN ('" . implode("','", $channelids) . "') 
                     GROUP BY name ORDER BY COUNT(name) DESC, reputation DESC LIMIT 25");
             };
 
@@ -250,14 +250,10 @@ namespace Zaplog\Library {
             // run the query
             $links = Db::fetchAll($sql, $args);
 
-            // extract id's
-            $linkids = "('" . implode("','", array_column($links, 'id')) . "')";
-            $channelids = "('" . implode("','", array_column($links, 'channelid')) . "')";
-
             return [
                 "links" => $links,
-                "tags" => $associatedTags($linkids),
-                "channels" => $associatedChannels($channelids),
+                "tags" => $associatedTags(array_column($links, 'id')),
+                "channels" => $associatedChannels(array_column($links, 'channelid')),
                 "lastmodified" => $use_order_by ? $links[0]->createdatetime ?? null : null,
             ];
         }

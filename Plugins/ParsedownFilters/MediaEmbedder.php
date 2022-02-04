@@ -52,6 +52,10 @@ namespace Zaplog\Plugins\ParsedownFilters {
                 if (preg_match("/.*dailymotion.com\/video\/([a-zA-Z0-9_-]+)/", $url, $matches) === 1) {
                     return ["https://www.dailymotion.com/embed/video/$matches[1]", "scribd"];
                 }
+                // https://sendvid.com/3xye8nqw
+                if (preg_match("/.*sendvid\.com\/([a-zA-Z0-9_-]+)/", $url, $matches) === 1) {
+                    return ["https://sendvid.com/embed/$matches[1]/", "sendvid video"];
+                }
                 return null;
             };
 
