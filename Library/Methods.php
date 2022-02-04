@@ -71,14 +71,14 @@ namespace Zaplog\Library {
         static public function getChannelLinks(string $channelid, int $offset, int $count): array
         {
             // channel displays all posts made by this channel
-            $channel = $all = function (int $channelid, int $count, int $offset): array {
+            $channel = $all = function (int $channelid, int $offset, int $count): array {
                 return Db::fetchAll("SELECT " . self::$blurbfields . " FROM links WHERE published=TRUE 
                     AND channelid=:channelid ORDER BY createdatetime DESC LIMIT :offset, :count",
                     [":channelid" => $channelid, ":offset" => $offset, ":count" => $count]);
             };
 
             // channel displays posts voted upon by this channel
-            $popular = $voted = function (int $channelid, int $count, int $offset): array {
+            $popular = $voted = function (int $channelid, int $offset, int $count): array {
                 return Db::fetchAll("SELECT " . self::$blurbfields . " FROM links  
                     WHERE id IN (SELECT linkid FROM votes WHERE channelid=:channelid) 
                     AND links.published=TRUE ORDER BY links.id DESC LIMIT :offset, :count",
@@ -86,7 +86,7 @@ namespace Zaplog\Library {
             };
 
             // channel displays voted AND channel
-            $mixed = function (int $channelid, int $count, int $offset): array {
+            $mixed = function (int $channelid, int $offset, int $count): array {
                 return Db::fetchAll("SELECT " . self::$blurbfields . " FROM (
                         SELECT * FROM links WHERE channelid=:channelid1 AND published=TRUE  
                         UNION DISTINCT 
