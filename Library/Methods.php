@@ -114,44 +114,43 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function frontpageQuery(): string
+        /** @noinspection PhpUnusedPrivateMethodInspection */
+        static private function frontpage_all(int $count): array
         {
-            $fields = self::$blurbfields;
+            return Db::fetchAll("SELECT " . self::$blurbfields . " FROM links WHERE published=TRUE 
+                ORDER BY createdatetime DESC LIMIT :count", [":count" => $count]);
+        }
 
-            // channel 1 is the master channel, determines site frontpage
-            $algorithm = Db::fetch("SELECT algorithm FROM channels WHERE id=1")->algorithm;
-            switch ($algorithm) {
+        /** @noinspection PhpUnusedPrivateMethodInspection */
+        static private function frontpage_channel(int $count): array
+        {
+            return Db::fetchAll("SELECT " . self::$blurbfields . " FROM links WHERE channelid=1 AND published=TRUE 
+                ORDER BY createdatetime DESC LIMIT :count", [":count" => $count]);
+        }
 
-                case "all":
-                    // show all articles across all channels
-                    return "SELECT $fields FROM links WHERE published=TRUE ORDER BY createdatetime DESC LIMIT :count";
+        /** @noinspection PhpUnusedPrivateMethodInspection */
+        static private function frontpage_popular(int $count): array
+        {
+            return Db::fetchAll("SELECT " . self::$blurbfields . " FROM frontpage LIMIT :count", [":count" => $count]);
+        }
 
-                case "channel":
-                    // show all articles posted by channel 1
-                    return "SELECT $fields FROM links WHERE channelid=1 AND published=TRUE ORDER BY createdatetime DESC LIMIT :count";
+        /** @noinspection PhpUnusedPrivateMethodInspection */
+        static private function frontpage_voted(int $count): array
+        {
+            return Db::fetchAll("SELECT " . self::$blurbfields . " FROM links  
+                WHERE id IN (SELECT linkid FROM votes WHERE channelid=1)
+                AND published=TRUE ORDER BY createdatetime DESC LIMIT :count", [":count" => $count]);
+        }
 
-                case "popular":
-                    // show the most popular articles in the system
-                    return "SELECT $fields FROM frontpage LIMIT :count";
-
-                case "voted":
-                    // show only articles voted upon by channel 1
-                    return "SELECT $fields FROM links  
-                        WHERE id IN (SELECT linkid FROM votes WHERE channelid=1)
-                        AND links.published=TRUE ORDER BY links.id DESC LIMIT :count";
-
-                case "mixed":
-                    // show popular articles in the system AND articles voted upon by channel 1
-                    return "SELECT $fields FROM (
-                            SELECT links.* FROM frontpage JOIN links ON frontpage.id=links.id 
-                            UNION DISTINCT 
-                            SELECT links.* FROM links JOIN votes ON links.id=votes.linkid 
-                            WHERE links.published=TRUE AND votes.channelid=1 
-                        ) AS x ORDER BY createdatetime DESC LIMIT :count";
-
-                default:
-                    throw new Exception("Invalid algorithm: " . $algorithm);
-            }
+        /** @noinspection PhpUnusedPrivateMethodInspection */
+        static private function frontpage_mixed(int $count): array
+        {
+            return Db::fetchAll("SELECT " . self::$blurbfields . " FROM (
+                    SELECT links.* FROM frontpage JOIN links ON frontpage.id=links.id 
+                    UNION DISTINCT 
+                    SELECT links.* FROM links JOIN votes ON links.id=votes.linkid 
+                    WHERE links.published=TRUE AND votes.channelid=1 
+                ) AS links ORDER BY createdatetime DESC LIMIT :count", [":count" => $count]);
         }
 
         // ----------------------------------------------------------
@@ -171,7 +170,9 @@ namespace Zaplog\Library {
             $trendingReactions = function (): array {
                 return Db::fetchAll("SELECT * FROM topreactions");
             };
-            $frontpage = Db::fetchAll(self::frontpageQuery(), [":count" => $count]);
+            // channel 1 is the master channel, determines site frontpage
+            $methodname = "frontpage_" . Db::fetch("SELECT algorithm FROM channels WHERE id=1")->algorithm;
+            $frontpage = static::{$methodname}($count);
             return [
                 "trendinglinks" => $frontpage,
                 "trendingtags" => $trendingTopics(array_column($frontpage, "id")),
