@@ -70,6 +70,8 @@ namespace Zaplog\Library {
         /** @noinspection PhpUnusedLocalVariableInspection */
         static public function getChannelLinks(string $channelid, int $offset, int $count): array
         {
+            // these closures are called after the values in ENUM channels.algorithm
+
             // channel displays all posts made by this channel
             $channel = $all = function (int $channelid, int $offset, int $count): array {
                 return Db::fetchAll("SELECT " . self::$blurbfields . " FROM links WHERE published=TRUE 
@@ -110,6 +112,8 @@ namespace Zaplog\Library {
         /** @noinspection PhpUnusedLocalVariableInspection */
         static public function getFrontpage(int $count): array
         {
+            // these closures are called after the values in ENUM channels.algorithm
+
             // displays all articles in the system om frontpage
             $all = function (int $count): array {
                 return Db::fetchAll("SELECT " . self::$blurbfields . " FROM links WHERE published=TRUE 
@@ -310,33 +314,29 @@ namespace Zaplog\Library {
 
         static public function getSingleChannel(string $name): array
         {
-            $channel = (new ResourceNotFoundException("Channel $name not found"))(Db::fetch("SELECT * FROM channels WHERE name=:id", [":id" => $name]));
-            $id = $channel->id;
+            $related = function (int $id, array $tags): array {
+                return Db::fetchAll("SELECT * FROM channels
+                    JOIN links ON channels.id=links.channelid
+                    JOIN tags ON links.id=tags.linkid
+                    WHERE tag IN ('" . implode("','", $tags) . "') AND channels.id<>:channelid 
+                    GROUP BY channels.id ORDER BY COUNT(tag) DESC LIMIT 5",
+                    ["channelid" => $id], 60 * 60);
+            };
 
+            $tags = function (int $id): array {
+                return Db::fetchAll("SELECT tag FROM tags 
+                    JOIN links ON tags.linkid=links.id  
+                    WHERE links.channelid=:channelid AND links.published=TRUE AND createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 YEAR)
+                    GROUP BY tag ORDER BY COUNT(tag) DESC LIMIT 20",
+                    [":channelid" => $id], 60 * 60);
+            };
+
+            $channel = (new ResourceNotFoundException("Channel $name not found"))(Db::fetch("SELECT * FROM channels WHERE name=:id", [":id" => $name]));
+            $tags = $tags($channel->id);
             return [
                 "channel" => $channel,
-
-                "tags" => Db::fetchAll("SELECT tag, COUNT(tag) AS tagscount 
-                    FROM tags JOIN links ON tags.linkid=links.id  
-                    WHERE links.channelid=:channelid AND links.published=TRUE
-                    GROUP BY tag ORDER BY SUM((score / GREATEST(9, POW(TIMESTAMPDIFF(HOUR, CURRENT_TIMESTAMP, createdatetime),2)))) DESC LIMIT 10",
-                    [":channelid" => $id], 60 * 60),
-
-                "related" => Db::fetchAll("SELECT channels.*
-                    FROM (
-                        SELECT tag FROM tags
-                        JOIN links ON tags.linkid=links.id
-                        WHERE links.channelid=:channelid1 AND links.published=TRUE 
-                        GROUP BY tag
-                        ORDER BY COUNT(tag) DESC
-                        LIMIT 10
-                    ) AS ttags
-                    JOIN tags ON ttags.tag=tags.tag 
-                    JOIN links ON tags.linkid=links.id
-                    JOIN channels ON links.channelid=channels.id
-                    AND channels.id<>:channelid2
-                    GROUP BY channels.id ORDER BY COUNT(tags.tag) DESC LIMIT 5",
-                    ["channelid1" => $id, "channelid2" => $id], 60 * 60),
+                "tags" => $tags,
+                "related" => $related($channel->id, array_column($tags, "tag")),
             ];
         }
 
