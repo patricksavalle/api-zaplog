@@ -67,47 +67,40 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
+        /** @noinspection PhpUnusedLocalVariableInspection */
         static public function getChannelLinks(string $channelid, int $offset, int $count): array
         {
-            $channel = Db::fetch("SELECT algorithm, id FROM channels WHERE name=:id", [":id" => $channelid]);
+            // channel displays all posts made by this channel
+            $channel = $all = function (int $channelid, int $count, int $offset): array {
+                return Db::fetchAll("SELECT " . self::$blurbfields . " FROM links WHERE published=TRUE 
+                    AND channelid=:channelid ORDER BY createdatetime DESC LIMIT :offset, :count",
+                    [":channelid" => $channelid, ":offset" => $offset, ":count" => $count]);
+            };
 
-            if ($channel === false) {
-                throw new Exception("Channel $channelid not found", 404);
+            // channel displays posts voted upon by this channel
+            $popular = $voted = function (int $channelid, int $count, int $offset): array {
+                return Db::fetchAll("SELECT " . self::$blurbfields . " FROM links  
+                    WHERE id IN (SELECT linkid FROM votes WHERE channelid=:channelid) 
+                    AND links.published=TRUE ORDER BY links.id DESC LIMIT :offset, :count",
+                    [":channelid" => $channelid, ":offset" => $offset, ":count" => $count]);
+            };
+
+            // channel displays voted AND channel
+            $mixed = function (int $channelid, int $count, int $offset): array {
+                return Db::fetchAll("SELECT " . self::$blurbfields . " FROM (
+                        SELECT * FROM links WHERE channelid=:channelid1 AND published=TRUE  
+                        UNION DISTINCT 
+                        SELECT links.* FROM links JOIN votes ON links.id=votes.linkid 
+                        WHERE votes.channelid=:channelid2 AND links.published=TRUE 
+                    ) AS x ORDER BY createdatetime DESC LIMIT :offset, :count",
+                    [":channelid1" => $channelid, ":channelid2" => $channelid, ":offset" => $offset, ":count" => $count]);
+            };
+
+            $properties = Db::fetch("SELECT algorithm, id FROM channels WHERE name=:id", [":id" => $channelid]);
+            if ($properties === false) {
+                throw new UserException("Channel $channelid not found");
             }
-
-            $algorithm = $channel->algorithm;
-            $channelid = $channel->id;
-            $fields = self::$blurbfields;
-
-            switch ($algorithm) {
-
-                case "all":
-                case "channel":
-                    // channel displays all posts made by this channel
-                    return Db::fetchAll("SELECT $fields FROM links WHERE published=TRUE AND channelid=:channelid ORDER BY createdatetime DESC LIMIT :offset, :count",
-                        [":channelid" => $channelid, ":offset" => $offset, ":count" => $count]);
-
-                case "popular":
-                case "voted":
-                    // channel displays posts voted upon by this channel
-                    return Db::fetchAll("SELECT $fields FROM links  
-                        WHERE id IN (SELECT linkid FROM votes WHERE channelid=:channelid) 
-                        AND links.published=TRUE ORDER BY links.id DESC LIMIT :offset, :count",
-                        [":channelid" => $channelid, ":offset" => $offset, ":count" => $count]);
-
-                case "mixed":
-                    // channel displays voted AND channel
-                    return Db::fetchAll("SELECT $fields FROM (
-                                SELECT * FROM links WHERE channelid=:channelid1 AND published=TRUE  
-                                UNION DISTINCT 
-                                SELECT links.* FROM links JOIN votes ON links.id=votes.linkid 
-                                WHERE votes.channelid=:channelid2 AND links.published=TRUE 
-                            ) AS x ORDER BY createdatetime DESC LIMIT :offset, :count",
-                        [":channelid1" => $channelid, ":channelid2" => $channelid, ":offset" => $offset, ":count" => $count]);
-
-                default:
-                    throw new Exception("Invalid algorithm: " . $algorithm);
-            }
+            return ${$properties->algorithm}($properties->id, $offset, $count);
         }
 
         // ----------------------------------------------------------
@@ -117,26 +110,31 @@ namespace Zaplog\Library {
         /** @noinspection PhpUnusedLocalVariableInspection */
         static public function getFrontpage(int $count): array
         {
+            // displays all articles in the system om frontpage
             $all = function (int $count): array {
                 return Db::fetchAll("SELECT " . self::$blurbfields . " FROM links WHERE published=TRUE 
                     ORDER BY createdatetime DESC LIMIT :count", [":count" => $count]);
             };
 
+            // displays channel 1 articles on frontpage
             $channel = function (int $count): array {
                 return Db::fetchAll("SELECT " . self::$blurbfields . " FROM links WHERE channelid=1 AND published=TRUE 
                     ORDER BY createdatetime DESC LIMIT :count", [":count" => $count]);
             };
 
+            // displays currently popular articles on channel
             $popular = function (int $count): array {
                 return Db::fetchAll("SELECT " . self::$blurbfields . " FROM frontpage LIMIT :count", [":count" => $count]);
             };
 
+            // display articles voted upon by channel 1 on frontpage (redacted)
             $voted = function (int $count): array {
                 return Db::fetchAll("SELECT " . self::$blurbfields . " FROM links  
                     WHERE id IN (SELECT linkid FROM votes WHERE channelid=1)
                     AND published=TRUE ORDER BY createdatetime DESC LIMIT :count", [":count" => $count]);
             };
 
+            // displays popular + voted on frontpage
             $mixed = function (int $count): array {
                 return Db::fetchAll("SELECT " . self::$blurbfields . " FROM (
                     SELECT links.* FROM frontpage JOIN links ON frontpage.id=links.id 
@@ -161,8 +159,7 @@ namespace Zaplog\Library {
             };
 
             // channel 1 is the master channel, determines site frontpage
-            $methodname = Db::fetchAll("SELECT algorithm FROM channels WHERE id=1",[],60)[0]->algorithm;
-            $frontpage = $$methodname($count);
+            $frontpage = ${Db::fetch("SELECT algorithm FROM channels WHERE id=1")->algorithm}($count);
 
             return [
                 "trendinglinks" => $frontpage,
@@ -313,7 +310,7 @@ namespace Zaplog\Library {
 
         static public function getSingleChannel(string $name): array
         {
-            $channel = (new ResourceNotFoundException)(Db::fetch("SELECT * FROM channels WHERE name=:id", [":id" => $name]));
+            $channel = (new ResourceNotFoundException("Channel $name not found"))(Db::fetch("SELECT * FROM channels WHERE name=:id", [":id" => $name]));
             $id = $channel->id;
 
             return [
@@ -785,6 +782,33 @@ namespace Zaplog\Library {
 
         static public function getSingleLink(string $id): array
         {
+            $channel = function (int $id): stdClass {
+                return Db::fetch("SELECT * FROM channels WHERE id=:id", [":id" => $id]);
+            };
+
+            $tags = function (string $id): array {
+                return Db::fetchAll("SELECT * FROM tags WHERE linkid=:id GROUP BY tag", [":id" => $id]);
+            };
+
+            $related = function (string $id): array {
+                return Db::fetchAll("SELECT links.id, links.description, links.createdatetime, links.channelid, links.title, links.image
+                    FROM links JOIN tags ON tags.linkid=links.id AND links.id<>:id1
+                    WHERE tag IN (SELECT tags.tag FROM links JOIN tags on tags.linkid=links.id WHERE links.id=:id2) AND published=TRUE
+                    GROUP BY links.id ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT 5",
+                    [":id1" => $id, ":id2" => $id], 60 * 20);
+            };
+
+            $interactors = function (string $id): array {
+                return Db::fetchAll("SELECT c.id, c.name, c.avatar, GROUP_CONCAT(action) AS interactions FROM channels AS c JOIN
+                    (
+                        SELECT channelid, 'links' AS action FROM links WHERE id=:id1
+                        UNION SELECT channelid, 'reactions' AS action FROM reactions WHERE linkid=:id2
+                        UNION SELECT channelid, 'votes' AS action FROM votes WHERE linkid=:id3
+                    ) AS i ON i.channelid=c.id
+                    GROUP BY c.id",
+                    [":id1" => $id, ":id2" => $id, ":id3" => $id]);
+            };
+
             // update view counter and referers
             (new ResourceNotFoundException)(Db::execute("UPDATE links SET viewscount=viewscount+1 WHERE id=:id", [":id" => $id])->rowCount() > 0);
 
@@ -793,23 +817,10 @@ namespace Zaplog\Library {
 
             return [
                 "link" => $link,
-
-                "channel" => Db::fetch("SELECT * FROM channels WHERE id=:id", [":id" => $link->channelid]),
-
-                "tags" => Db::fetchAll("SELECT * FROM tags WHERE linkid=:id GROUP BY tag", [":id" => $id]),
-
-                "related" => Db::fetchAll("SELECT links.id, links.description, links.createdatetime, links.channelid, links.title, links.image
-                    FROM links JOIN tags ON tags.linkid=links.id AND links.id<>:id1
-                    WHERE tag IN (SELECT tags.tag FROM links JOIN tags on tags.linkid=links.id WHERE links.id=:id2) AND published=TRUE
-                    GROUP BY links.id ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT 5",
-                    [":id1" => $id, ":id2" => $id], 60 * 20),
-
-                "interactors" => Db::fetchAll("SELECT c.id, c.name, c.avatar, GROUP_CONCAT(action) AS interactions FROM channels AS c JOIN
-                    (SELECT channelid, 'links' AS action FROM links WHERE id=:id1
-                    UNION SELECT channelid, 'reactions' AS action FROM reactions WHERE linkid=:id2
-                    UNION SELECT channelid, 'votes' AS action FROM votes WHERE linkid=:id3) AS i ON i.channelid=c.id
-                    GROUP BY c.id",
-                    [":id1" => $id, ":id2" => $id, ":id3" => $id]),
+                "channel" => $channel($link->channelid),
+                "tags" => $tags($id),
+                "related" => $related($id),
+                "interactors" => $interactors($id),
             ];
         }
 

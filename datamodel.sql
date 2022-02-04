@@ -231,7 +231,6 @@ CREATE TABLE interactions
         'on_insert_reaction',
         'on_insert_vote',
         'on_delete_vote',
-        'on_insert_vote',
         'on_insert_tag',
         'on_receive_cash',
         'on_frontpage_calculated',
@@ -645,13 +644,6 @@ CREATE VIEW topreactions AS
     JOIN links ON x.linkid = links.id
     JOIN channels ON x.channelid = channels.id
     ORDER BY votecount DESC, id DESC;
-
--- optimal/profiled
-CREATE VIEW updatedchannels AS
-SELECT DISTINCT channels.* FROM channels
-                                    JOIN links ON links.channelid=channels.id
-GROUP BY channels.id
-ORDER BY MAX(links.id) DESC LIMIT 50;
 
 -- -----------------------------------------------------
 -- Returns a channel's most popular tags
