@@ -890,7 +890,7 @@ namespace Zaplog\Library {
                 JOIN channels ON channels.id=reactions.channelid
                 JOIN links ON links.id=reactions.linkid  
                 WHERE links.published=TRUE AND rownum <= :reactions
-                ORDER by reactions.threadid DESC, reactions.id DESC",
+                ORDER by reactions.threadid DESC, reactions.id",
                 [":reactions" => $numreactions]);
 
             if ($channelid === null and $offset === 0) {
