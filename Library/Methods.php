@@ -194,6 +194,7 @@ namespace Zaplog\Library {
                     WHERE linkid IN ('" . implode("','", $linkids) . "') 
                     GROUP BY tag ORDER BY COUNT(tag) DESC LIMIT 25");
             };
+
             $associatedChannels = function (array $channelids): array {
                 return Db::fetchAll("SELECT id, name, avatar FROM channels 
                     WHERE id IN ('" . implode("','", $channelids) . "') 
@@ -863,48 +864,34 @@ namespace Zaplog\Library {
                 return $result;
             }
 
-            $threadids = [0]; // prevent SQL syntax error in empty database
-
             // first fetch all threadid's
-            foreach (Db::fetchAll("SELECT DISTINCT threadid FROM reactions
-                JOIN links ON links.id=reactions.linkid
-                WHERE (:channelid1 IS NULL OR :channelid2=links.channelid) AND links.published=TRUE
-                ORDER BY threadid DESC 
-                LIMIT :offset, :count",
-                [":offset" => $offset, ":count" => $count, ":channelid1" => $channelid, ":channelid2" => $channelid]) as $row) {
-                $threadids[] = $row->threadid;
-            }
-            $threadids = implode(",", $threadids);
+            $sql = "SELECT DISTINCT threadid FROM reactions ORDER BY threadid DESC LIMIT :offset, :count";
+            $threadids = "('". implode("','", array_column(Db::fetchAll($sql, [":offset" => $offset, ":count" => $count]), "threadid")) . "')";
 
             // fetch first 3 reactions for selected threads
             $return = Db::fetchAll("SELECT
-                    r.threadid,
-                    r.rownum,   
-                    reactions.id,
-                    reactions.createdatetime,
-                    reactions.description,
-                    reactions.channelid,
-                    reactions.linkid,
+                    reactions.*,
                     channels.name,
                     channels.avatar,
-                    IF(r.rownum=1,links.title,NULL) as title,
-                    IF(r.rownum=1,links.image,NULL) as image,
-                    IF(r.rownum=1,links.createdatetime,NULL) AS linkdatetime
+                    IF(rownum=1,links.title,NULL) as title,
+                    IF(rownum=1,links.image,NULL) as image,
+                    IF(rownum=1,links.createdatetime,NULL) AS linkdatetime
                 FROM (
                     SELECT 
                         threadid, 
                         id, 
                         channelid, 
                         linkid,
+                        createdatetime,
+                        description,
                         (@num:=if(@threadid = threadid, @num +1, if(@threadid := threadid, 1, 1))) AS rownum
-                    FROM reactions WHERE threadid IN ($threadids) AND published=TRUE
-                    ORDER BY threadid DESC, id DESC
-                ) AS r 
-                JOIN reactions ON reactions.id=r.id
-                JOIN channels ON channels.id=r.channelid
-                JOIN links ON links.id=r.linkid  
-                WHERE r.rownum <= :reactions AND reactions.published=TRUE
-                ORDER by r.threadid DESC, r.id DESC", [":reactions" => $numreactions]);
+                    FROM reactions WHERE threadid IN $threadids AND published=TRUE
+                ) AS reactions
+                JOIN channels ON channels.id=reactions.channelid
+                JOIN links ON links.id=reactions.linkid  
+                WHERE links.published=TRUE AND rownum <= :reactions
+                ORDER by reactions.threadid DESC, reactions.id DESC",
+                [":reactions" => $numreactions]);
 
             if ($channelid === null and $offset === 0) {
                 apcu_add(self::$discussion_cache_key, $return, 60 * 20);
