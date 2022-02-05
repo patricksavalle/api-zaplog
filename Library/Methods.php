@@ -772,8 +772,6 @@ namespace Zaplog\Library {
 
             $reaction->id = (int)Db::lastInsertId();
 
-            apcu_delete(self::$discussion_cache_key);
-
             return $reaction;
         }
 
@@ -857,19 +855,15 @@ namespace Zaplog\Library {
         // Show latest X reactions of selected Y threads
         // ----------------------------------------------------------
 
+        /** @noinspection PhpUnusedParameterInspection */
         static public function getDiscussion(?string $channelid, int $offset, int $count, int $numreactions = 3): array
         {
-            // cache is invalidated by postReaction
-            if (($result = apcu_fetch(self::$discussion_cache_key)) !== false) {
-                return $result;
-            }
-
             // first fetch all threadid's
             $sql = "SELECT DISTINCT threadid FROM reactions ORDER BY threadid DESC LIMIT :offset, :count";
             $threadids = "('". implode("','", array_column(Db::fetchAll($sql, [":offset" => $offset, ":count" => $count]), "threadid")) . "')";
 
             // fetch first 3 reactions for selected threads
-            $return = Db::fetchAll("SELECT
+            return Db::fetchAll("SELECT
                     reactions.*,
                     channels.name,
                     channels.avatar,
@@ -892,12 +886,6 @@ namespace Zaplog\Library {
                 WHERE links.published=TRUE AND rownum <= :reactions
                 ORDER by reactions.threadid DESC, reactions.id",
                 [":reactions" => $numreactions]);
-
-            if ($channelid === null and $offset === 0) {
-                apcu_add(self::$discussion_cache_key, $return, 60 * 20);
-            }
-
-            return $return;
         }
 
         // ----------------------------------------------------------
