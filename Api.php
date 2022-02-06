@@ -223,7 +223,7 @@ class Api extends SlimRestApi
                 assert($args->count < 100);
                 return self::response($request, $response, $args, Methods::getArchivePage($args->offset, $args->count, $args->search));
             })
-                ->add(new Cacheable)
+                ->add(new Cacheable(60))
                 ->add(new QueryParameters([
                     '{offset:\int},0',
                     '{count:\int},20',
