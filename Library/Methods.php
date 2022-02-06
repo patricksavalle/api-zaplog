@@ -70,7 +70,8 @@ namespace Zaplog\Library {
         /** @noinspection PhpUnusedLocalVariableInspection */
         static public function getChannelLinks(string $channelid, int $offset, int $count): array
         {
-            // these closures are called after the values in ENUM channels.algorithm
+            // - this endpoint is cached
+            // - these closures are called after the values in ENUM channels.algorithm
 
             // channel displays all posts made by this channel
             $channel = $all = function (int $channelid, int $offset, int $count): array {
@@ -112,7 +113,8 @@ namespace Zaplog\Library {
         /** @noinspection PhpUnusedLocalVariableInspection */
         static public function getFrontpage(int $count): array
         {
-            // these closures are called after the values in ENUM channels.algorithm
+            // - this endpoint is cached
+            // - these closures are called after the values in ENUM channels.algorithm
 
             // displays all articles in the system om frontpage
             $all = function (int $count): array {
@@ -189,6 +191,8 @@ namespace Zaplog\Library {
 
         static public function getArchivePage(int $offset, int $count, ?string $search): array
         {
+            // - this endpoint is cached
+
             $associatedTags = function (array $linkids): array {
                 return Db::fetchAll("SELECT tag FROM tags 
                     WHERE linkid IN ('" . implode("','", $linkids) . "') 
@@ -237,7 +241,8 @@ namespace Zaplog\Library {
                 }
             }
 
-            $sql .= ($use_order_by ? " ORDER BY createdatetime DESC " : "") . "LIMIT :offset,:count";
+            $sql .= ($use_order_by ? " ORDER BY createdatetime DESC" : "");
+            $sql .= " LIMIT :offset,:count";
             $args[":count"] = $count;
             $args[":offset"] = $offset;
 
@@ -606,10 +611,22 @@ namespace Zaplog\Library {
         static public function postLink(stdClass $link, stdClass $channel): stdClass
         {
             $link->channelid = $channel->id;
-            self::translateMarkdown($link, $channel);
-            self::parseMarkdown($link);
+
+            // get old version for diff and optimization of this algorithm
+            if (empty($link->id)) {
+                $old_link = null;
+            } else {
+                $old_link = Db::fetch("SELECT * FROM links WHERE id=:id AND channelid=:channelid",
+                    [":id" => $link->id, ":channelid" => $link->channelid]);
+                if ($old_link === false) {
+                    throw new UserException("Article does not exist");
+                }
+            }
+
+            if (($old_link->markdown ?? null) !== $link->markdown) self::translateMarkdown($link, $channel);
+            if (($old_link->markdown ?? null) !== $link->markdown) self::parseMarkdown($link);
+            if (($old_link->link ?? null) !== $link->link) self::checkLink($link);
             self::checkTitle($link);
-            self::checkLink($link);
             self::checkImage($link);
             self::checkCopyright($link);
             self::checkTags($link);
@@ -639,9 +656,6 @@ namespace Zaplog\Library {
             } else {
 
                 $sqlparams[":id"] = $link->id;
-
-                // get old version for diff
-                $old_link = Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $link->id]);
 
                 (new UserException("Unchanged"))(Db::execute(
                         "UPDATE links SET
@@ -860,7 +874,7 @@ namespace Zaplog\Library {
         {
             // first fetch all threadid's
             $sql = "SELECT DISTINCT threadid FROM reactions ORDER BY threadid DESC LIMIT :offset, :count";
-            $threadids = "('". implode("','", array_column(Db::fetchAll($sql, [":offset" => $offset, ":count" => $count]), "threadid")) . "')";
+            $threadids = "('" . implode("','", array_column(Db::fetchAll($sql, [":offset" => $offset, ":count" => $count]), "threadid")) . "')";
 
             // fetch first 3 reactions for selected threads
             return Db::fetchAll("SELECT

@@ -407,6 +407,7 @@ CREATE TABLE reactions
     description    VARCHAR(256)       DEFAULT NULL,
     -- Purified xhtml from markdown input, no need to store original input because immutable
     xtext          TEXT               DEFAULT NULL,
+    votescount     INT                DEFAULT 0,
     PRIMARY KEY (id),
     INDEX (channelid),
     INDEX (linkid),
@@ -564,6 +565,7 @@ CREATE TABLE reactionvotes
 DELIMITER //
 CREATE TRIGGER on_insert_reactionvote AFTER INSERT ON reactionvotes FOR EACH ROW
 BEGIN
+    UPDATE reactions SET votescount = votescount + 1 WHERE id = NEW.reactionid;
     UPDATE channels SET score = score + 1 WHERE id = (SELECT channelid FROM reactions WHERE id=NEW.reactionid);
 END//
 DELIMITER ;
