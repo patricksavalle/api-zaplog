@@ -108,7 +108,7 @@ class Api extends SlimRestApi
             // Add the two factor handler to the server
             // -----------------------------------------
 
-            $this->get("/2factor/{utoken:[[:alnum:]]{32}}", new TwoFactorAction);
+            $this->get("/2factor/{utoken:[[:alnum:]]{32}}", new TwoFactorAction)->add(new QueryParameters([]));
 
             // -----------------------------------------
             // Distribute payments
@@ -119,7 +119,8 @@ class Api extends SlimRestApi
                 Response $response,
                 stdClass $args): Response {
                 return self::response($request, $response, $args, Methods::getPaymentShares());
-            });
+            })
+                ->add(new QueryParameters([]));
 
             // -----------------------------------------------------
             // Authenticated methods can only be used with a session
@@ -143,6 +144,7 @@ class Api extends SlimRestApi
                         ->sendToken($args->email, $args->subject, $args->template, $args);
                     return self::response($request, $response, $args, true);
                 })
+                    ->add(new QueryParameters([]))
                     ->add(new BodyParameters([
                         '{email:\email}',
                         '{subject:.{10,100}},Hier is jouw Zaplog login!',
@@ -165,6 +167,7 @@ class Api extends SlimRestApi
                     return self::response($request, $response, $args, true);
                 })
                     ->add(new NoStore)
+                    ->add(new QueryParameters([]))
                     ->add(new BodyParameters([
                         '{email:\email}',
                         '{subject:.{10,100}},Bevestig dit nieuwe email adres!',
@@ -182,6 +185,7 @@ class Api extends SlimRestApi
                     stdClass $args): Response {
                     return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM activeusers"));
                 })
+                    ->add(new QueryParameters([]))
                     ->add(new Cacheable(60/*sec*/));
 
                 // -----------------------------------------------------
@@ -195,6 +199,7 @@ class Api extends SlimRestApi
                     Authentication::deleteSession();
                     return self::response($request, $response, $args, null);
                 })
+                    ->add(new QueryParameters([]))
                     ->add(new Authentication);
 
             });
@@ -255,7 +260,6 @@ class Api extends SlimRestApi
                 ->add(new NoCache)
                 ->add(new QueryParameters(['{offset:\int},0', '{count:\int},8',]));
 
-
             // ------------------------------------------------
             // get the activity stream
             // ------------------------------------------------
@@ -284,6 +288,7 @@ class Api extends SlimRestApi
                 stdClass $args): Response {
                 return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM tagindex"));
             })
+                ->add(new QueryParameters([]))
                 ->add(new Cacheable(60 * 10/*sec*/));
 
             // ------------------------------------------------
@@ -294,8 +299,9 @@ class Api extends SlimRestApi
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                return self::response($request, $response, $args, Db::fetch("SELECT * FROM statistics"));
+                return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM statistics"));
             })
+                ->add(new QueryParameters([]))
                 ->add(new Cacheable(60 * 10/*sec*/));
 
             // ----------------------------------------------------------------
@@ -309,7 +315,7 @@ class Api extends SlimRestApi
                 return self::response($request, $response, $args, Methods::getMetadata($args->urlencoded));
             })
                 // authenticated AND cached (authentication is just to prevent abuse)
-                ->add(new Cacheable(60 * 10/*sec*/))
+                ->add(new Cacheable(60 * 60/*sec*/))
                 ->add(new QueryParameters(['{urlencoded:\urlencoded}']))
                 ->add(new Authentication);
 
@@ -344,6 +350,7 @@ class Api extends SlimRestApi
                     stdClass $args): Response {
                     return self::response($request, $response, $args, Methods::getSingleChannel($args->id));
                 })
+                    ->add(new QueryParameters([]))
                     ->add(new NoCache);
 
                 // ----------------------------------------------------------------
@@ -373,6 +380,7 @@ class Api extends SlimRestApi
                     return self::response($request, $response, $channel, Methods::patchChannel($channel));
                 })
                     ->add(new NoStore)
+                    ->add(new QueryParameters([]))
                     ->add(new BodyParameters([
                         '{name:[\w-]{3,55}}',
                         '{avatar:\url},null',
@@ -422,6 +430,7 @@ class Api extends SlimRestApi
                     return self::response($request, $response, $link, Methods::postLink($link, Authentication::getSession()));
                 })
                     ->add(new NoStore)
+                    ->add(new QueryParameters([]))
                     ->add(new BodyParameters([
                         '{id:\d+},null',    // empty will create new post (id is returned)
                         '{url:\url},null',
@@ -443,6 +452,7 @@ class Api extends SlimRestApi
                     return self::response($request, $response, $args, Methods::publishLink((int)$args->id, $channelid));
                 })
                     ->add(new NoStore)
+                    ->add(new QueryParameters([]))
                     ->add(new Authentication);
 
                 // ----------------------------------------------------------------
@@ -470,6 +480,7 @@ class Api extends SlimRestApi
                     return self::response($request, $response, $args, (new UserException)(Db::execute("DELETE FROM links WHERE id =:id and channelid=:channelid",
                             [":id" => $args->id, ":channelid" => $channelid])->rowCount() > 0));
                 })
+                    ->add(new QueryParameters([]))
                     ->add(new Authentication);
 
                 // -----------------------------------------------------
@@ -512,6 +523,7 @@ class Api extends SlimRestApi
                     return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM links
                         WHERE published=FALSE AND channelid=:channelid ORDER BY id DESC", [":channelid" => $channelid]));
                 })
+                    ->add(new QueryParameters([]))
                     ->add(new CacheablePrivate)
                     ->add(new Authentication);
 
@@ -574,7 +586,9 @@ class Api extends SlimRestApi
                     Response $response,
                     stdClass $args): Response {
                     return self::response($request, $response, $args, Methods::getReactionsForLink((int)$args->linkid));
-                })->add(new NoCache);
+                })
+                    ->add(new QueryParameters([]))
+                    ->add(new NoCache);
 
                 $this->get("/channel/{channel:[\w-]{3,55}}", function (
                     Request  $request,
@@ -597,6 +611,7 @@ class Api extends SlimRestApi
                     return self::response($request, $response, $args, (new UserException)(Db::execute("DELETE FROM reactions WHERE id=:id AND channelid=:channelid",
                             [":id" => $args->id, ":channelid" => $channelid]))->rowCount() > 0);
                 })
+                    ->add(new QueryParameters([]))
                     ->add(new Authentication);
 
             });
@@ -616,7 +631,8 @@ class Api extends SlimRestApi
                     return self::response($request, $response, $args, Db::lastInsertId());
                 })
                     ->add(new NoStore)
-                    ->add(new Authentication);
+                    ->add(new Authentication)
+                    ->add(new QueryParameters([]));
 
             });
 
@@ -635,7 +651,8 @@ class Api extends SlimRestApi
                     return self::response($request, $response, $args, Db::lastInsertId());
                 })
                     ->add(new NoStore)
-                    ->add(new Authentication);
+                    ->add(new Authentication)
+                    ->add(new QueryParameters([]));
 
             });
 
