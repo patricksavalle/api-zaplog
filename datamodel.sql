@@ -311,7 +311,7 @@ CREATE EVENT select_frontpage ON SCHEDULE EVERY 180 MINUTE DO
         RENAME TABLE frontpage_current TO frontpage_old, frontpage_new TO frontpage_current;
 
         -- notification
-        INSERT INTO interactions(type) VALUES('on_frontpage_calculated');
+        INSERT INTO interactions(channelid, type) VALUES(1, 'on_frontpage_calculated');
     END //
 DELIMITER ;
 
@@ -323,7 +323,7 @@ DELIMITER ;
 DELIMITER //
 CREATE EVENT calculate_channel_reputations ON SCHEDULE EVERY 24 HOUR DO
 BEGIN
-    INSERT INTO interactions(type) VALUES('on_reputation_calculated');
+    INSERT INTO interactions(channelid,type) VALUES(1, 'on_reputation_calculated');
     UPDATE channels SET reputation = GREATEST(1, reputation * 0.9981 + score - prevscore), prevscore = score;
 END //
 DELIMITER ;
