@@ -268,6 +268,7 @@ namespace Zaplog\Library {
                         channels.name AS channelname,
                         channels.avatar AS channelavatar,
                         links.title AS linktitle,
+                        links.published AS linkpublished,
                         links.image AS linkimage,
                         links.description AS linktext
                     FROM (SELECT * FROM interactions WHERE (:channelid1 IS NULL OR interactions.channelid=:channelid2)
@@ -611,22 +612,10 @@ namespace Zaplog\Library {
         static public function postLink(stdClass $link, stdClass $channel): stdClass
         {
             $link->channelid = $channel->id;
-
-            // get old version for diff and optimization of this algorithm
-            if (empty($link->id)) {
-                $old_link = null;
-            } else {
-                $old_link = Db::fetch("SELECT * FROM links WHERE id=:id AND channelid=:channelid",
-                    [":id" => $link->id, ":channelid" => $link->channelid]);
-                if ($old_link === false) {
-                    throw new UserException("Article does not exist");
-                }
-            }
-
-            if (($old_link->markdown ?? null) !== $link->markdown) self::translateMarkdown($link, $channel);
-            if (($old_link->markdown ?? null) !== $link->markdown) self::parseMarkdown($link);
-            if (($old_link->link ?? null) !== $link->link) self::checkLink($link);
+            self::translateMarkdown($link, $channel);
+            self::parseMarkdown($link);
             self::checkTitle($link);
+            self::checkLink($link);
             self::checkImage($link);
             self::checkCopyright($link);
             self::checkTags($link);
@@ -656,6 +645,9 @@ namespace Zaplog\Library {
             } else {
 
                 $sqlparams[":id"] = $link->id;
+
+                // get old version for diff
+                $old_link = Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $link->id]);
 
                 (new UserException("Unchanged"))(Db::execute(
                         "UPDATE links SET
@@ -913,9 +905,9 @@ namespace Zaplog\Library {
                     reactions.xtext, 
                     reactions.createdatetime, 
                     reactions.channelid, 
+                    reactions.votescount,
                     channels.name, 
-                    channels.avatar,
-                    (SELECT COUNT(*) FROM reactionvotes WHERE reactionid=reactions.id) AS votescount
+                    channels.avatar
                 FROM reactions 
                 JOIN links ON reactions.linkid=links.id 
                 JOIN channels ON channels.id=reactions.channelid
@@ -934,13 +926,13 @@ namespace Zaplog\Library {
                     reactions.linkid, 
                     reactions.channelid, 
                     reactions.description, 
-                    reactions.createdatetime, 
+                    reactions.createdatetime,
+                    reactions.votescount,
                     channels.name, 
                     channels.avatar,
                     links.title,
                     links.image,
-                    links.createdatetime AS linkdatetime,
-                    (SELECT COUNT(*) FROM reactionvotes WHERE reactionid=reactions.id) AS votescount
+                    links.createdatetime AS linkdatetime
 				FROM (
 					SELECT * FROM reactions 
                     WHERE published=TRUE 
@@ -953,8 +945,8 @@ namespace Zaplog\Library {
                     ) 
 					ORDER BY reactions.createdatetime DESC LIMIT :offset, :count
 				) AS reactions
-                LEFT JOIN channels ON channels.id=reactions.channelid
-                LEFT JOIN links ON links.id=reactions.linkid",
+                JOIN channels ON channels.id=reactions.channelid
+                JOIN links ON links.id=reactions.linkid",
                 [
                     ":offset" => $offset,
                     ":count" => $count,
