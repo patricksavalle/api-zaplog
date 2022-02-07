@@ -299,7 +299,7 @@ class Api extends SlimRestApi
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                return self::response($request, $response, $args, Db::fetchAll("SELECT * FROM statistics"));
+                return self::response($request, $response, $args, Db::fetch("SELECT * FROM statistics"));
             })
                 ->add(new QueryParameters([]))
                 ->add(new Cacheable(60 * 10/*sec*/));
