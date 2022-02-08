@@ -837,30 +837,35 @@ namespace Zaplog\Library {
             $threadids = "('" . implode("','", array_column(Db::fetchAll($sql, [":offset" => $offset, ":count" => $count]), "threadid")) . "')";
 
             // fetch first 3 reactions for selected threads
+            // fetch first 3 reactions for selected threads
             return Db::fetchAll("SELECT
-                    reactions.*,
+                    r.threadid,
+                    r.rownum,   
+                    reactions.id,
+                    reactions.createdatetime,
+                    reactions.description,
+                    reactions.channelid,
+                    reactions.linkid,
                     channels.name,
                     channels.avatar,
-                    IF(rownum=1,links.title,NULL) as title,
-                    IF(rownum=1,links.image,NULL) as image,
-                    IF(rownum=1,links.createdatetime,NULL) AS linkdatetime
+                    IF(r.rownum=1,links.title,NULL) as title,
+                    IF(r.rownum=1,links.image,NULL) as image,
+                    IF(r.rownum=1,links.createdatetime,NULL) AS linkdatetime
                 FROM (
                     SELECT 
                         threadid, 
                         id, 
                         channelid, 
                         linkid,
-                        createdatetime,
-                        description,
                         (@num:=if(@threadid = threadid, @num +1, if(@threadid := threadid, 1, 1))) AS rownum
                     FROM reactions WHERE threadid IN $threadids AND published=TRUE
-                    ORDER by threadid DESC, id DESC
-                ) AS reactions
-                JOIN channels ON channels.id=reactions.channelid
-                JOIN links ON links.id=reactions.linkid  
-                WHERE links.published=TRUE AND rownum <= :reactions
-                ORDER by reactions.threadid DESC, reactions.id",
-                [":reactions" => $numreactions]);
+                    ORDER BY threadid DESC, id DESC
+                ) AS r 
+                JOIN reactions ON reactions.id=r.id
+                JOIN channels ON channels.id=r.channelid
+                JOIN links ON links.id=r.linkid  
+                WHERE r.rownum <= :reactions AND reactions.published=TRUE
+                ORDER by r.threadid DESC, r.id DESC", [":reactions" => $numreactions]);
         }
 
         // ----------------------------------------------------------
