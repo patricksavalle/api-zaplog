@@ -274,7 +274,7 @@ namespace Zaplog\Library {
                     FROM interactions 
                     LEFT JOIN channels ON channels.id=interactions.channelid
                     LEFT JOIN links ON links.id=interactions.linkid  
-					WHERE (:channelid1 IS NULL OR links.channelid=:channelid2)
+					WHERE (:channelid1 IS NULL OR links.channelid=(SELECT id FROM channels WHERE name=:channelid2))
                     ORDER BY interactions.id DESC
                     LIMIT :offset, :count",
                 [

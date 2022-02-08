@@ -272,7 +272,7 @@ class Api extends SlimRestApi
                 return self::response($request, $response, $args, Methods::getActivityStream($args->offset, $args->count, $args->channel, $args->grouped));
             })
                 ->add(new QueryParameters([
-                    '{channel:\d{1,10}},null',
+                    '{channel:[\w-]{3,50}},null',
                     '{offset:\int},0',
                     '{count:\int},250',
                     '{grouped:\boolean},1',]))
