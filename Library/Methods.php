@@ -261,9 +261,9 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function getActivityStream(int $offset, int $count, ?string $channelid, bool $grouped = true): array
+        static public function getActivityStream(int $offset, int $count, ?string $channelid): array
         {
-            $stream = Db::fetchAll("SELECT
+            return Db::fetchAll("SELECT
                         interactions.*,
                         channels.name AS channelname,
                         channels.avatar AS channelavatar,
@@ -271,48 +271,19 @@ namespace Zaplog\Library {
                         links.published AS linkpublished,
                         links.image AS linkimage,
                         links.description AS linktext
-                    FROM (SELECT * FROM interactions WHERE (:channelid1 IS NULL OR interactions.channelid=:channelid2)
-                            ORDER BY id DESC
-                            LIMIT :offset, :count) AS interactions
+                    FROM interactions 
                     LEFT JOIN channels ON channels.id=interactions.channelid
                     LEFT JOIN links ON links.id=interactions.linkid  
-                    ORDER BY interactions.id DESC",
+					WHERE (:channelid1 IS NULL OR links.channelid=:channelid2)
+                    ORDER BY interactions.id DESC
+                    LIMIT :offset, :count",
                 [
                     ":channelid1" => $channelid,
                     ":channelid2" => $channelid,
                     ":count" => $count,
                     ":offset" => $offset,
-                ]);
-
-            if (!$grouped) {
-                return $stream;
-            }
-
-            // postprocessing: group same channel + type except when new link
-
-            $compare = function (stdClass $item1, stdClass $item2): bool {
-                // this function controls how interactions are grouped
-                return $item1->type !== 'on_insert_link'
-                    and $item1->channelid === $item2->channelid
-                    and $item1->type === $item2->type;
-            };
-
-            $find = function (stdClass $item, array $array, callable $compare): bool {
-                foreach ($array as $check) {
-                    if ($compare($check, $item)) {
-                        return true;
-                    }
-                }
-                return false;
-            };
-
-            $stream2 = [];
-            foreach ($stream as $value) {
-                if (!$find($value, $stream2, $compare)) {
-                    $stream2[] = $value;
-                }
-            }
-            return $stream2;
+                ]
+            );
         }
 
         // ----------------------------------------------------------
