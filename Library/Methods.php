@@ -778,7 +778,7 @@ namespace Zaplog\Library {
                         UNION SELECT channelid, 'reactions' AS action FROM reactions WHERE linkid=:id2
                         UNION SELECT channelid, 'votes' AS action FROM votes WHERE linkid=:id3
                     ) AS i ON i.channelid=c.id GROUP BY c.id",
-                    [":id1" => $id, ":id2" => $id, ":id3" => $id], 60);
+                    [":id1" => $id, ":id2" => $id, ":id3" => $id]);
             };
 
             // update view counter and referers
@@ -839,33 +839,29 @@ namespace Zaplog\Library {
             // fetch first 3 reactions for selected threads
             // fetch first 3 reactions for selected threads
             return Db::fetchAll("SELECT
-                    r.threadid,
-                    r.rownum,   
-                    reactions.id,
-                    reactions.createdatetime,
-                    reactions.description,
-                    reactions.channelid,
-                    reactions.linkid,
+                    reactions.*,
                     channels.name,
                     channels.avatar,
-                    IF(r.rownum=1,links.title,NULL) as title,
-                    IF(r.rownum=1,links.image,NULL) as image,
-                    IF(r.rownum=1,links.createdatetime,NULL) AS linkdatetime
+                    links.title as title,
+                    links.image as image,
+                    links.createdatetime AS linkdatetime
                 FROM (
                     SELECT 
                         threadid, 
                         id, 
                         channelid, 
                         linkid,
-                        (@num:=if(@threadid = threadid, @num +1, if(@threadid := threadid, 1, 1))) AS rownum
+                        published,
+                        (@num:=if(@threadid = threadid, @num +1, if(@threadid := threadid, 1, 1))) AS rownum,
+                        createdatetime,
+						description
                     FROM reactions WHERE threadid IN $threadids AND published=TRUE
                     ORDER BY threadid DESC, id DESC
-                ) AS r 
-                JOIN reactions ON reactions.id=r.id
-                JOIN channels ON channels.id=r.channelid
-                JOIN links ON links.id=r.linkid  
-                WHERE r.rownum <= :reactions AND reactions.published=TRUE
-                ORDER by r.threadid DESC, r.id DESC", [":reactions" => $numreactions]);
+                ) AS reactions
+                JOIN channels ON channels.id=reactions.channelid
+                JOIN links ON links.id=reactions.linkid  
+                WHERE reactions.rownum <= :reactions AND reactions.published=TRUE
+                ORDER by reactions.threadid DESC, reactions.id ", [":reactions" => $numreactions]);
         }
 
         // ----------------------------------------------------------
