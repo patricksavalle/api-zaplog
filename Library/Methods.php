@@ -854,6 +854,7 @@ namespace Zaplog\Library {
                         description,
                         (@num:=if(@threadid = threadid, @num +1, if(@threadid := threadid, 1, 1))) AS rownum
                     FROM reactions WHERE threadid IN $threadids AND published=TRUE
+                    ORDER by threadid DESC, id DESC
                 ) AS reactions
                 JOIN channels ON channels.id=reactions.channelid
                 JOIN links ON links.id=reactions.linkid  
