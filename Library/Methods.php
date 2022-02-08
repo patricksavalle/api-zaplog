@@ -570,10 +570,7 @@ namespace Zaplog\Library {
 
         static public function checkTags(stdClass $link)
         {
-            if (empty($link->tags)) {
-                $link->tags = TagHarvester::getTags();
-            }
-            $link->tags = self::sanitizeTags($link->tags);
+            $link->tags = self::sanitizeTags(array_merge(TagHarvester::getTags(), $link->tags ?? []));
         }
 
         // ----------------------------------------------------------

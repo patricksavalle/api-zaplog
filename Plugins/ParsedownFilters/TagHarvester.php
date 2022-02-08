@@ -14,7 +14,7 @@ namespace Zaplog\Plugins\ParsedownFilters {
 
         static public function getTags(): array
         {
-            return self::$tags;
+            return array_keys(self::$tags);
         }
 
         static public function getFirstImage(): ?string
@@ -32,10 +32,9 @@ namespace Zaplog\Plugins\ParsedownFilters {
             switch ($element["name"]) {
 
                 case "em":
-                case "b":
                 case "i":
-                case "strong":
-                    self::$tags[$element["text"]] = $element["text"];
+                    // associative array to avoid duplicates
+                    if (preg_match("/^[\w-]{4,20}$/", $element["text"]) === 1) self::$tags[$element["text"]] = null;
                     break;
 
                 case "img":

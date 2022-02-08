@@ -269,7 +269,7 @@ class Api extends SlimRestApi
                 Response $response,
                 stdClass $args): Response {
                 assert($args->count <= 250);
-                return self::response($request, $response, $args, Methods::getActivityStream($args->offset, $args->count, $args->channel, $args->grouped));
+                return self::response($request, $response, $args, Methods::getActivityStream($args->offset, $args->count, $args->channel));
             })
                 ->add(new QueryParameters([
                     '{channel:[\w-]{3,50}},null',
