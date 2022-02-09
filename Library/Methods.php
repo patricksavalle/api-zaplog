@@ -837,14 +837,14 @@ namespace Zaplog\Library {
             $threadids = "('" . implode("','", array_column(Db::fetchAll($sql, [":offset" => $offset, ":count" => $count]), "threadid")) . "')";
 
             // fetch first 3 reactions for selected threads
-            // fetch first 3 reactions for selected threads
             return Db::fetchAll("SELECT
                     reactions.*,
                     channels.name,
                     channels.avatar,
-                    links.title as title,
-                    links.image as image,
-                    links.createdatetime AS linkdatetime
+                    IF(rownum=1,links.title,NULL) as title,
+                    IF(rownum=1,links.image,NULL) as image,
+                    IF(rownum=1,links.published,NULL) AS linkpublished,
+                    IF(rownum=1,links.createdatetime,NULL) AS linkdatetime
                 FROM (
                     SELECT 
                         threadid, 
@@ -861,7 +861,7 @@ namespace Zaplog\Library {
                 JOIN channels ON channels.id=reactions.channelid
                 JOIN links ON links.id=reactions.linkid  
                 WHERE reactions.rownum <= :reactions AND reactions.published=TRUE
-                ORDER by reactions.threadid DESC, reactions.id ", [":reactions" => $numreactions]);
+                ORDER by reactions.threadid DESC, rownum", [":reactions" => $numreactions]);
         }
 
         // ----------------------------------------------------------
