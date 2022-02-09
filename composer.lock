@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "09b3a198108f96ade48cd062826b6a38",
+    "content-hash": "fd1e95eb216a34c9b51eea21ad66319e",
     "packages": [
         {
             "name": "atrox/haikunator",
@@ -654,12 +654,12 @@
             },
             "type": "library",
             "autoload": {
-                "psr-4": {
-                    "FastRoute\\": "src/"
-                },
                 "files": [
                     "src/functions.php"
-                ]
+                ],
+                "psr-4": {
+                    "FastRoute\\": "src/"
+                }
             },
             "notification-url": "https://packagist.org/downloads/",
             "license": [
@@ -739,12 +739,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/patricksavalle/php-content-syndication.git",
-                "reference": "9107a1ed71639f090b2c0f62c97ab0e13845f072"
+                "reference": "ceafce0d9c1eca4f77f899069aee7c2fe750cbe6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/patricksavalle/php-content-syndication/zipball/9107a1ed71639f090b2c0f62c97ab0e13845f072",
-                "reference": "9107a1ed71639f090b2c0f62c97ab0e13845f072",
+                "url": "https://api.github.com/repos/patricksavalle/php-content-syndication/zipball/ceafce0d9c1eca4f77f899069aee7c2fe750cbe6",
+                "reference": "ceafce0d9c1eca4f77f899069aee7c2fe750cbe6",
                 "shasum": ""
             },
             "require": {
@@ -790,7 +790,7 @@
                 "issues": "https://github.com/patricksavalle/php-content-syndication/issues",
                 "source": "https://github.com/patricksavalle/php-content-syndication/tree/master"
             },
-            "time": "2022-01-11T09:29:58+00:00"
+            "time": "2022-02-09T13:59:55+00:00"
         },
         {
             "name": "patricksavalle/slim-request-params",

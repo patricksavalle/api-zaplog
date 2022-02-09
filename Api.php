@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Zaplog;
 
-define("VERSION", "v1.4");
+define("VERSION", "v1.5");
 
 define("BASE_PATH", __DIR__);
 
@@ -103,6 +103,20 @@ class Api extends SlimRestApi
                     (new MemcachedFunction)(["\ContentSyndication\ArchiveOrg", "originalOrClosest"], [$args->urlencoded], 24 * 60 * 60));
             })
                 ->add(new QueryParameters(['{urlencoded:\urlencoded}']));
+
+            // -----------------------------------------------------
+            // Channel 1 serves as the configration / master channel
+            // -----------------------------------------------------
+
+            $this->get("/config", function (
+                Request  $request,
+                Response $response,
+                stdClass $args): Response {
+                $email = ini::get("email_admin");
+                return self::response($request, $response, $args,
+                    Db::fetch("SELECT name, language, algorithm, avatar AS logo, bio AS description, '$email' AS email FROM channels WHERE id=1"));
+            })
+                ->add(new QueryParameters([]));
 
             // -----------------------------------------
             // Add the two factor handler to the server

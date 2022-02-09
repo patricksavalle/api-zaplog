@@ -63,11 +63,15 @@ namespace Zaplog\Plugins\ParsedownFilters {
             if (strcmp($element['name'], "img") === 0 and isset($element['attributes']['src'])) {
 
                 try {
+                    // EMBEDS: for specific domains we will use Markdown image-syntax to embed media
 
                     $metadata = (new HtmlMetadata)($element['attributes']['src']);
-
-                    // EMBEDS: for specific domains we will use Markdown image-syntax to embed media
-                    [$embedurl, $class] = $getEmbedLink($metadata["url"]);
+                    $embedurl = $metadata['embedurl'];
+                    error_log(print_r($metadata, true));
+                    $class = "video";
+                    if (empty($embedurl)) {
+                        [$embedurl, $class] = $getEmbedLink($metadata["url"]);
+                    }
                     if (!empty($embedurl)) {
 
                         return [
@@ -96,6 +100,7 @@ namespace Zaplog\Plugins\ParsedownFilters {
                     }
 
                 } catch (Exception $e) {
+                    error_log(__METHOD__ . $e->getMessage());
                     // ignore
                 }
 
