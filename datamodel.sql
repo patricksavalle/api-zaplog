@@ -631,7 +631,7 @@ CREATE VIEW updatedchannels AS
 CREATE VIEW topreactions AS
     SELECT links.title, channels.name, channels.avatar, x.* FROM (
         SELECT
-            COUNT(reactionvotes.id) AS votecount,
+            reactions.votescount,
             reactions.id,
             reactions.linkid,
             reactions.channelid,
@@ -645,7 +645,7 @@ CREATE VIEW topreactions AS
     ) AS x
     JOIN links ON x.linkid = links.id
     JOIN channels ON x.channelid = channels.id
-    ORDER BY votecount DESC, id DESC;
+    ORDER BY votescount DESC, id DESC;
 
 -- -----------------------------------------------------
 -- Returns a channel's most popular tags
