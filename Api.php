@@ -661,7 +661,7 @@ class Api extends SlimRestApi
                     Response $response,
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
-                    Db::execute("INSERT IGNORE INTO reactionvotes(reactionid,channelid)VALUES(:reactionid,:channelid)", [":reactionid" => $args->id, ":channelid" => $channelid]);
+                    Db::execute("CALL toggle_reactionvote(:channelid,:reactionid)", [":reactionid" => $args->id, ":channelid" => $channelid]);
                     return self::response($request, $response, $args, Db::lastInsertId());
                 })
                     ->add(new NoStore)

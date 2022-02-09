@@ -570,6 +570,25 @@ BEGIN
 END//
 DELIMITER ;
 
+DELIMITER //
+CREATE TRIGGER on_delete_reactionvote AFTER DELETE ON reactionvotes FOR EACH ROW
+BEGIN
+    UPDATE reactions SET votescount = votescount - 1 WHERE id = NEW.reactionid;
+    UPDATE channels SET score = score - 1 WHERE id = (SELECT channelid FROM reactions WHERE id=NEW.reactionid);
+END //
+DELIMITER ;
+
+DELIMITER //
+CREATE PROCEDURE toggle_reactionvote(IN arg_channelid INT, IN arg_reactionid INT)
+BEGIN
+    IF (SELECT COUNT(*) FROM reactionvotes WHERE channelid=arg_channelid AND reactionid=arg_reactionid)>0 THEN
+        DELETE FROM reactionvotes WHERE channelid=arg_channelid AND reactionid=arg_reactionid;
+    ELSE
+        INSERT INTO reactionvotes(channelid,reactionid)VALUES(arg_channelid,arg_reactionid);
+    END IF;
+END //
+DELIMITER ;
+
 -- -----------------------------------------------------
 -- Users (channels) that reacted last hour
 -- -----------------------------------------------------
