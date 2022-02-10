@@ -36,7 +36,7 @@ smtp_host=${ZAPLOG_MAIL_HOST}
 smtp_login=${ZAPLOG_MAIL_LOGIN}
 smtp_password=${ZAPLOG_MAIL_PASSWORD}
 smtp_secure=TLS
-smtp_port=587
+smtp_port=${ZAPLOG_MAIL_PORT}
 
 [email]
 email_sender=${ZAPLOG_MAIL_SENDER_EMAIL}
