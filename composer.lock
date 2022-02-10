@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "fd1e95eb216a34c9b51eea21ad66319e",
+    "content-hash": "0a7b1cd3cae4368b94cc3448f5abbe1d",
     "packages": [
         {
             "name": "atrox/haikunator",
@@ -852,12 +852,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/patricksavalle/slim-rest-api.git",
-                "reference": "b8f079d380d428b4e6f00273bc1b5a86e0befa5d"
+                "reference": "05f6a3ac45feacd3d655a9dc3fe461d127fd6d26"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/patricksavalle/slim-rest-api/zipball/b8f079d380d428b4e6f00273bc1b5a86e0befa5d",
-                "reference": "b8f079d380d428b4e6f00273bc1b5a86e0befa5d",
+                "url": "https://api.github.com/repos/patricksavalle/slim-rest-api/zipball/05f6a3ac45feacd3d655a9dc3fe461d127fd6d26",
+                "reference": "05f6a3ac45feacd3d655a9dc3fe461d127fd6d26",
                 "shasum": ""
             },
             "require": {
@@ -905,7 +905,7 @@
                 "issues": "https://github.com/patricksavalle/slim-rest-api/issues",
                 "source": "https://github.com/patricksavalle/slim-rest-api/tree/master"
             },
-            "time": "2022-01-20T10:04:58+00:00"
+            "time": "2022-02-10T18:08:46+00:00"
         },
         {
             "name": "pavlakis/slim-cli",

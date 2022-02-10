@@ -760,18 +760,20 @@ namespace Zaplog\Library {
             };
 
             $tags = function (string $id): array {
-                return Db::fetchAll("SELECT * FROM tags WHERE linkid=:id GROUP BY tag", [":id" => $id]);
+                // never cache this query!
+                return Db::fetchAll("SELECT tag FROM tags WHERE linkid=:id GROUP BY tag", [":id" => $id]);
             };
 
-            $related = function (string $id): array {
+            $related = function (string $id, int $cachettl): array {
                 return Db::fetchAll("SELECT links.id, links.description, links.createdatetime, links.channelid, links.title, links.image
                     FROM links JOIN tags ON tags.linkid=links.id AND links.id<>:id1
                     WHERE tag IN (SELECT tag FROM tags WHERE linkid=:id2) AND published=TRUE
                     GROUP BY links.id ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT 5",
-                    [":id1" => $id, ":id2" => $id], 60 * 20);
+                    [":id1" => $id, ":id2" => $id], $cachettl);
             };
 
             $interactors = function (string $id): array {
+                // never cache this query!
                 return Db::fetchAll("SELECT c.id, c.name, c.avatar, GROUP_CONCAT(action) AS interactions FROM channels AS c JOIN
                     (
                         SELECT channelid, 'links' AS action FROM links WHERE id=:id1
@@ -782,16 +784,13 @@ namespace Zaplog\Library {
             };
 
             // update view counter and referers
-            (new ResourceNotFoundException)(Db::execute("UPDATE links SET viewscount=viewscount+1 WHERE id=:id", [":id" => $id])->rowCount() > 0);
-
-            // get post
-            $link = Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $id]);
+            $link = (new ResourceNotFoundException("Invalid id"))(Db::fetch("CALL select_link(:id)", [":id" => $id]));
 
             return [
                 "link" => $link,
-                "channel" => $channel($link->channelid),
                 "tags" => $tags($id),
-                "related" => $related($id),
+                "channel" => $channel($link->channelid),
+                "related" => $related($id, $link->published ? 60 * 20 : 0),
                 "interactors" => $interactors($id),
             ];
         }

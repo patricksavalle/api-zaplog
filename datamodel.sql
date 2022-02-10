@@ -210,6 +210,18 @@ BEGIN
 END//
 DELIMITER ;
 
+-- -----------------------------------------------------
+-- Update views and return link
+-- -----------------------------------------------------
+
+DELIMITER //
+CREATE PROCEDURE select_link(IN arg_id INT)
+BEGIN
+    UPDATE links SET viewscount=viewscount+1 WHERE id=arg_id;
+    SELECT * FROM links WHERE links.id=arg_id;
+END //
+DELIMITER ;
+
 -- --------------------------------------------------------------
 -- Stores last 24h of interactions, used for frontpage algorithm
 -- An event removes expired links (>24hr)
