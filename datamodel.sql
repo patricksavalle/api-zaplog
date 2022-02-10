@@ -96,7 +96,7 @@ DELIMITER ;
 -- - administrative / editorial notes show in sidebar
 -- ------------------------------------------------------------
 
-INSERT INTO channels(name,userid) VALUES ("admin", "");
+INSERT INTO channels(name,userid,language,algorithm,bio)VALUES("admin", "","nl","mixed","your description");
 
 -- -----------------------------------------------------
 -- The links that are being shared, rated, etc.
