@@ -67,7 +67,6 @@ namespace Zaplog\Plugins\ParsedownFilters {
 
                     $metadata = (new HtmlMetadata)($element['attributes']['src']);
                     $embedurl = $metadata['embedurl'];
-                    error_log(print_r($metadata, true));
                     $class = "video";
                     if (empty($embedurl)) {
                         [$embedurl, $class] = $getEmbedLink($metadata["url"]);
