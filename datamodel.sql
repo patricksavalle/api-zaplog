@@ -585,8 +585,8 @@ DELIMITER ;
 DELIMITER //
 CREATE TRIGGER on_delete_reactionvote AFTER DELETE ON reactionvotes FOR EACH ROW
 BEGIN
-    UPDATE reactions SET votescount = votescount - 1 WHERE id = NEW.reactionid;
-    UPDATE channels SET score = score - 1 WHERE id = (SELECT channelid FROM reactions WHERE id=NEW.reactionid);
+    UPDATE reactions SET votescount = votescount - 1 WHERE id = OLD.reactionid;
+    UPDATE channels SET score = score - 1 WHERE id = (SELECT channelid FROM reactions WHERE id=OLD.reactionid);
 END //
 DELIMITER ;
 
