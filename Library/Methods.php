@@ -759,10 +759,7 @@ namespace Zaplog\Library {
                 return Db::fetchAll("SELECT * FROM channels WHERE id=:id", [":id" => $id], 60)[0];
             };
 
-            $tags = function (string $id): array {
-                // never cache this query!
-                return Db::fetchAll("SELECT tag FROM tags WHERE linkid=:id GROUP BY tag", [":id" => $id]);
-            };
+            $tags = [];
 
             $related = function (string $id, int $cachettl): array {
                 return Db::fetchAll("SELECT links.id, links.description, links.createdatetime, links.channelid, links.title, links.image
@@ -783,12 +780,14 @@ namespace Zaplog\Library {
                     [":id1" => $id, ":id2" => $id, ":id3" => $id]);
             };
 
-            // update view counter and referers
+            // update view counter and get complete article in a single Db call
             $link = (new ResourceNotFoundException("Invalid id"))(Db::fetch("CALL select_link(:id)", [":id" => $id]));
+            foreach (explode(",", $link->tags) as $tag) $tags[] = ["tag" => $tag];
+            unset($link->tags);
 
             return [
                 "link" => $link,
-                "tags" => $tags($id),
+                "tags" => $tags,
                 "channel" => $channel($link->channelid),
                 "related" => $related($id, $link->published ? 60 * 20 : 0),
                 "interactors" => $interactors($id),
