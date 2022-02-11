@@ -574,7 +574,7 @@ class Api extends SlimRestApi
                     (new UserException("Empty markdown"))(!empty($reaction->markdown));
                     (new UserException("Markdown exceeds 50k chars"))(strlen($reaction->markdown) < 50000);
                     $reaction->channelid = Authentication::getSession()->id;
-                    (new DoublePostProtection)($reaction);
+                    if (!$reaction->preview) (new DoublePostProtection)($reaction);
                     return self::response($request, $response, $reaction, $reaction->preview ? Methods::previewReaction($reaction) : Methods::postReaction($reaction)->id);
                 })
                     ->add(new NoStore)

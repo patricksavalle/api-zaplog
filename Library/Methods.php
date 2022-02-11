@@ -293,7 +293,7 @@ namespace Zaplog\Library {
         static public function getSingleChannel(string $name): array
         {
             $related = function (int $id, array $tags): array {
-                return Db::fetchAll("SELECT * FROM channels
+                return Db::fetchAll("SELECT channels.* FROM channels
                     JOIN links ON channels.id=links.channelid
                     JOIN tags ON links.id=tags.linkid
                     WHERE tag IN ('" . implode("','", $tags) . "') AND channels.id<>:channelid 
@@ -302,10 +302,9 @@ namespace Zaplog\Library {
             };
 
             $tags = function (int $id): array {
-                return Db::fetchAll("SELECT tag FROM tags 
-                    JOIN links ON tags.linkid=links.id  
-                    WHERE links.channelid=:channelid AND links.published=TRUE AND createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 YEAR)
-                    GROUP BY tag ORDER BY COUNT(tag) DESC LIMIT 20",
+                return Db::fetchAll("SELECT tag FROM tags WHERE tags.linkid IN (
+                        SELECT id FROM links WHERE channelid=:channelid AND published=TRUE AND createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 1 YEAR)
+                    ) GROUP BY tag ORDER BY COUNT(tag) DESC LIMIT 20",
                     [":channelid" => $id], 60 * 60);
             };
 

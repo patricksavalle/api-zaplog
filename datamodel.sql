@@ -13,14 +13,12 @@
 
 -- we need the event scheduler!!!
 SET GLOBAL event_scheduler = ON;
-
-DROP SCHEMA IF EXISTS zaplog;
-CREATE SCHEMA zaplog
-    DEFAULT CHARACTER SET utf8
-    DEFAULT COLLATE utf8_general_ci;
-USE zaplog;
 -- data integrity is not critical, choose maxumum performance
 SET GLOBAL TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+
+DROP SCHEMA IF EXISTS zaplog;
+CREATE SCHEMA zaplog DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
+USE zaplog;
 
 -- -----------------------------------------------------
 -- Channels are collections of links
@@ -71,7 +69,7 @@ CREATE TABLE channels
 -- -----------------------------------------------------
 
 CREATE EVENT reset_deeplusage ON SCHEDULE EVERY 1 MONTH STARTS '2021-01-01 00:00:00' DO
-UPDATE channels SET deeplusage=0;
+    UPDATE channels SET deeplusage=0;
 
 -- -----------------------------------------------------
 -- Set the updatedatetime on changed channel content
@@ -487,12 +485,8 @@ CREATE TABLE tags
         ON UPDATE CASCADE
 );
 
-DELIMITER //
 CREATE TRIGGER on_insert_tag AFTER INSERT ON tags FOR EACH ROW
-BEGIN
     UPDATE links SET tagscount = tagscount + 1 WHERE id = NEW.linkid;
-END//
-DELIMITER ;
 
 CREATE TRIGGER on_delete_tag AFTER DELETE ON tags FOR EACH ROW
     UPDATE links SET tagscount = tagscount - 1 WHERE id = OLD.linkid;
@@ -620,7 +614,8 @@ SELECT (SELECT COUNT(*) FROM reactions)            AS numreactions,
        (SELECT COUNT(*) FROM channels)             AS numchannels,
        (SELECT COUNT(*) FROM links)                AS numposts,
        (SELECT COUNT(DISTINCT tag) FROM tags)      AS numtags,
-       (SELECT COUNT(*) FROM votes)                AS numvotes;
+       (SELECT COUNT(*) FROM votes)                AS numvotes,
+       (SELECT COUNT(*) FROM reactionvotes)        AS numreactionvotes;
 
 -- --------------------------------------------------------
 -- Most popular tags, this query should be cached by server
@@ -677,35 +672,4 @@ CREATE VIEW topreactions AS
     JOIN links ON x.linkid = links.id
     JOIN channels ON x.channelid = channels.id
     ORDER BY votescount DESC, id DESC;
-
--- -----------------------------------------------------
--- Returns a channel's most popular tags
--- -----------------------------------------------------
-
-DELIMITER //
-CREATE PROCEDURE select_channel_tags(IN arg_channelid INT)
-BEGIN
-    SELECT tag AS tagscount
-    FROM tags JOIN links ON tags.linkid=links.id
-    WHERE links.channelid=arg_channelid AND links.published-TRUE
-    GROUP BY tag ORDER BY SUM(score) DESC LIMIT 20;
-END //
-DELIMITER ;
-
--- -----------------------------------------------------
--- The channel mailinglists
--- -----------------------------------------------------
-
-CREATE TABLE emailaddresses
-(
-    id             INT       NOT NULL AUTO_INCREMENT,
-    channelid      INT       NOT NULL,
-    email          VARCHAR(60) NOT NULL,
-    createdatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (id),
-    UNIQUE INDEX (channelid, email),
-    FOREIGN KEY (channelid) REFERENCES channels (id)
-        ON DELETE CASCADE
-        ON UPDATE CASCADE
-);
 
