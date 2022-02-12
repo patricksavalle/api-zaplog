@@ -78,10 +78,10 @@ CREATE EVENT reset_deeplusage ON SCHEDULE EVERY 1 MONTH STARTS '2021-01-01 00:00
 DELIMITER //
 CREATE TRIGGER on_before_update_channel BEFORE UPDATE ON channels FOR EACH ROW
 BEGIN
-    IF NEW.bio<>OLD.bio
+    IF (NEW.bio<>OLD.bio
         OR NEW.name<>OLD.name
         OR NEW.bitcoinaddress<>OLD.bitcoinaddress
-        OR NEW.avatar<>OLD.avatar THEN
+        OR NEW.avatar<>OLD.avatar) THEN
         SET NEW.updatedatetime = CURRENT_TIMESTAMP;
     END IF;
 END//
@@ -130,6 +130,7 @@ CREATE TABLE links
     -- Clean text blurb, set on insert
     description    VARCHAR(256)           DEFAULT NULL,
     image          VARCHAR(256)           DEFAULT NULL,
+    reactionsallowed BOOL       NOT NULL  DEFAULT TRUE,
     -- because this system is very read intensive we will keep totals in this table
     -- instead of counting/joining the respective tables each time
     reactionscount INT                    DEFAULT 0,
