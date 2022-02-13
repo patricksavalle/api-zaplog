@@ -114,7 +114,7 @@ class Api extends SlimRestApi
                 stdClass $args): Response {
                 $email = ini::get("email_admin");
                 return self::response($request, $response, $args,
-                    Db::fetch("SELECT name, language, algorithm, avatar AS logo, bio AS description, '$email' AS email FROM channels WHERE id=1"));
+                    Db::fetch("SELECT name, language, algorithm, avatar AS logo, bio AS description, '$email' AS email, header FROM channels WHERE id=1"));
             })
                 ->add(new QueryParameters([]));
 

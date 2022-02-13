@@ -658,6 +658,7 @@ CREATE VIEW updatedchannels AS
 CREATE VIEW topreactions AS
     SELECT links.title, channels.name, channels.avatar, x.* FROM (
         SELECT
+            COUNT(reactionvotes.id) AS count,
             reactions.votescount,
             reactions.id,
             reactions.linkid,
@@ -672,5 +673,5 @@ CREATE VIEW topreactions AS
     ) AS x
     JOIN links ON x.linkid = links.id
     JOIN channels ON x.channelid = channels.id
-    ORDER BY votescount DESC, id DESC;
+    ORDER BY count DESC, id DESC;
 
