@@ -1,22 +1,15 @@
 USE zaplog;
-DROP VIEW topreactions;
-CREATE VIEW topreactions AS
-SELECT links.title, channels.name, channels.avatar, x.* FROM (
-     SELECT
-         COUNT(reactionvotes.id) AS votecount,
-         reactions.id,
-         reactions.linkid,
-         reactions.channelid,
-         reactions.description,
-         reactions.createdatetime
-     FROM reactions
-              LEFT JOIN reactionvotes ON reactions.id = reactionid AND reactions.createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 12 HOUR)
-     WHERE reactions.channelid<>1
-     GROUP BY reactions.id
-     ORDER BY reactions.id DESC LIMIT 50
- ) AS x
-     JOIN links ON x.linkid = links.id
-     JOIN channels ON x.channelid = channels.id
-ORDER BY votecount DESC, id DESC;
-
+ALTER TABLE interactions ADD COLUMN reactionid INT NULL DEFAULT NULL AFTER linkid;
+ALTER TABLE zaplog.interactions ADD INDEX (reactionid);
+DROP TRIGGER on_insert_reaction;
+DELIMITER //
+CREATE TRIGGER on_insert_reaction AFTER INSERT ON reactions FOR EACH ROW
+BEGIN
+    UPDATE links SET
+                     reactionscount = reactionscount + 1,
+                     uniquereactors = (SELECT COUNT(DISTINCT channelid) FROM reactions WHERE linkid = NEW.linkid)
+    WHERE id = NEW.linkid;
+    INSERT INTO interactions(linkid,channelid,reactionid,type) VALUES(NEW.linkid, NEW.channelid,NEW.id,'on_insert_reaction');
+END//
+DELIMITER ;
 

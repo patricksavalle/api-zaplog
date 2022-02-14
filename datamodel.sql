@@ -233,6 +233,7 @@ CREATE TABLE interactions
     id             INT         NOT NULL AUTO_INCREMENT,
     linkid         INT                  DEFAULT NULL,
     channelid      INT                  DEFAULT NULL,
+    reactionid     INT                  DEFAULT NULL,
     datetime       TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
     type           ENUM (
         'on_insert_channel',
@@ -251,12 +252,7 @@ CREATE TABLE interactions
     INDEX (datetime DESC),
     INDEX (linkid),
     INDEX (channelid),
-    FOREIGN KEY (linkid) REFERENCES links (id)
-        ON DELETE CASCADE
-        ON UPDATE CASCADE,
-    FOREIGN KEY (channelid) REFERENCES channels (id)
-        ON DELETE CASCADE
-        ON UPDATE CASCADE
+    INDEX (reactionid)
 );
 
 -- -----------------------------------------------------
@@ -439,7 +435,7 @@ BEGIN
         reactionscount = reactionscount + 1,
         uniquereactors = (SELECT COUNT(DISTINCT channelid) FROM reactions WHERE linkid = NEW.linkid)
         WHERE id = NEW.linkid;
-    INSERT INTO interactions(linkid,channelid,type) VALUES(NEW.linkid, NEW.channelid,'on_insert_reaction');
+    INSERT INTO interactions(linkid,channelid,reactionid,type) VALUES(NEW.linkid, NEW.channelid,NEW.id,'on_insert_reaction');
 END//
 DELIMITER ;
 

@@ -270,10 +270,12 @@ namespace Zaplog\Library {
                         links.title AS linktitle,
                         links.published AS linkpublished,
                         links.image AS linkimage,
-                        links.description AS linktext
+                        links.description AS linktext,
+                        reactions.description AS reactiontext
                     FROM interactions 
                     LEFT JOIN channels ON channels.id=interactions.channelid
                     LEFT JOIN links ON links.id=interactions.linkid  
+                    LEFT JOIN reactions ON reactions.id=interactions.reactionid
 					WHERE (:channelid1 IS NULL OR links.channelid=(SELECT id FROM channels WHERE name=:channelid2))
                     ORDER BY interactions.id DESC
                     LIMIT :offset, :count",
