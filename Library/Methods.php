@@ -384,15 +384,24 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
+        static public function checkMarkdown(stdClass $link)
+        {
+            (new UserException("Empty markdown"))(!empty($link->markdown));
+            (new UserException("Markdown exceeds 100k chars"))(strlen($link->markdown) < 100000);
+            $link->markdown = (string)(new Text($link->markdown))->reEncode();
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
         static public function checkTitle(stdClass $link)
         {
             if (empty($link->title)) {
                 $link->title = TagHarvester::getTitle();
             }
-            if (strlen($link->title) < 3) {
-                throw new UserException("Title too short");
-            }
-            $link->title = str_replace('"', "'", substr(strip_tags($link->title), 0, 256));
+            $link->title = (string)(new Text(str_replace('"', "'", substr($link->title, 0, 256))))->stripTags()->reEncode();
+            (new UserException("Title too short"))(strlen($link->title) > 3);
         }
 
         // ----------------------------------------------------------
@@ -581,6 +590,7 @@ namespace Zaplog\Library {
         static public function postLink(stdClass $link, stdClass $channel): stdClass
         {
             $link->channelid = $channel->id;
+            self::checkMarkdown($link);
             self::translateMarkdown($link, $channel);
             self::parseMarkdown($link);
             self::checkTitle($link);
@@ -723,8 +733,8 @@ namespace Zaplog\Library {
 
         static public function previewReaction(stdClass $reaction): stdClass
         {
-            $reaction->xtext = (string)(new Text($reaction->markdown))->stripTags()->parseDown(new ParsedownFilter);
-            $reaction->description = (string)(new Text($reaction->xtext))->blurbify();
+            $reaction->xtext = (string)(new Text($reaction->markdown))->stripTags()->parseDown(new ParsedownFilter)->reEncode();
+            $reaction->description = (string)(new Text($reaction->xtext))->blurbify()->reEncode();
             return $reaction;
         }
 

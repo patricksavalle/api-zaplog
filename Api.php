@@ -438,8 +438,6 @@ class Api extends SlimRestApi
                     Request  $request,
                     Response $response,
                     stdClass $link): Response {
-                    (new UserException("Empty markdown"))(!empty($link->markdown));
-                    (new UserException("Markdown exceeds 100k chars"))(strlen($link->markdown) < 100000);
                     (new DoublePostProtection)($link);
                     return self::response($request, $response, $link, Methods::postLink($link, Authentication::getSession()));
                 })
