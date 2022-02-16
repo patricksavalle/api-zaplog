@@ -249,7 +249,6 @@ CREATE TABLE interactions
         'on_reputation_calculated'
     )                      NOT NULL,
     PRIMARY KEY (id),
-    INDEX (datetime DESC),
     INDEX (linkid),
     INDEX (channelid),
     INDEX (reactionid)
@@ -260,7 +259,8 @@ CREATE TABLE interactions
 -- -----------------------------------------------------
 
 CREATE EVENT purge_interactions ON SCHEDULE EVERY 1 HOUR DO
-    DELETE FROM interactions WHERE datetime < SUBDATE(CURRENT_TIMESTAMP, INTERVAL 24 HOUR);
+    DELETE interactions.* FROM interactions
+    INNER JOIN ( SELECT id FROM interactions ORDER BY id DESC LIMIT 1000, 1000000 ) AS x ON x.id=interactions.id
 
 -- -----------------------------------------------------------
 -- Select frontpage links from all links that had interactions

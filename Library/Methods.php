@@ -30,8 +30,6 @@ namespace Zaplog\Library {
         // fields to select when returning a list of links
         static $blurbfields = "id,channelid,createdatetime,updatedatetime,published,url,language,title,copyright,description,image";
 
-        static $discussion_cache_key = "8de4e0df2488775c3c3f30377cd2645a";
-
         // ----------------------------------------------------------
         //
         // ----------------------------------------------------------
@@ -506,15 +504,6 @@ namespace Zaplog\Library {
             $link->xtext = (string)(new Text($link->markdown))->parseDown(new ParsedownFilter);
             assert(mb_check_encoding($link->xtext, 'UTF-8'));
             $link->description = (string)(new Text($link->xtext))->blurbify();
-        }
-
-        // ----------------------------------------------------------
-        //
-        // ----------------------------------------------------------
-
-        static public function getMetadata(string $url): array
-        {
-            return (new HtmlMetadata)($url);
         }
 
         // ----------------------------------------------------------
