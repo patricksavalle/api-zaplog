@@ -398,8 +398,9 @@ namespace Zaplog\Library {
             if (empty($link->title)) {
                 $link->title = TagHarvester::getTitle();
             }
-            $link->title = (string)(new Text(str_replace('"', "'", substr($link->title, 0, 256))))->stripTags()->reEncode();
+            $link->title = (string)(new Text(str_replace('"', "'", $link->title)))->stripTags()->reEncode();
             (new UserException("Title too short"))(strlen($link->title) > 3);
+            (new UserException("Title too long"))(strlen($link->title) < 256);
         }
 
         // ----------------------------------------------------------
