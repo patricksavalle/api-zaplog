@@ -30,8 +30,6 @@ namespace Zaplog\Library {
         // fields to select when returning a list of links
         static $blurbfields = "id,channelid,createdatetime,updatedatetime,published,url,language,title,copyright,description,image";
 
-        static $discussion_cache_key = "8de4e0df2488775c3c3f30377cd2645a";
-
         // ----------------------------------------------------------
         //
         // ----------------------------------------------------------
@@ -384,15 +382,25 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
+        static public function checkMarkdown(stdClass $link)
+        {
+            (new UserException("Empty markdown"))(!empty($link->markdown));
+            (new UserException("Markdown exceeds 100k chars"))(strlen($link->markdown) < 100000);
+            $link->markdown = (string)(new Text($link->markdown))->reEncode();
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
         static public function checkTitle(stdClass $link)
         {
             if (empty($link->title)) {
                 $link->title = TagHarvester::getTitle();
             }
-            if (strlen($link->title) < 3) {
-                throw new UserException("Title too short");
-            }
-            $link->title = str_replace('"', "'", substr(strip_tags($link->title), 0, 256));
+            $link->title = (string)(new Text(str_replace('"', "'", $link->title)))->stripTags()->reEncode();
+            (new UserException("Title too short"))(strlen($link->title) > 3);
+            (new UserException("Title too long"))(strlen($link->title) < 256);
         }
 
         // ----------------------------------------------------------
@@ -503,15 +511,6 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function getMetadata(string $url): array
-        {
-            return (new HtmlMetadata)($url);
-        }
-
-        // ----------------------------------------------------------
-        //
-        // ----------------------------------------------------------
-
         static public function generateDiff(stdClass $old, stdClass $new)
         {
             // see: https://github.com/jfcherng/php-diff/blob/v6/example/demo_web.php
@@ -581,6 +580,7 @@ namespace Zaplog\Library {
         static public function postLink(stdClass $link, stdClass $channel): stdClass
         {
             $link->channelid = $channel->id;
+            self::checkMarkdown($link);
             self::translateMarkdown($link, $channel);
             self::parseMarkdown($link);
             self::checkTitle($link);
@@ -723,8 +723,8 @@ namespace Zaplog\Library {
 
         static public function previewReaction(stdClass $reaction): stdClass
         {
-            $reaction->xtext = (string)(new Text($reaction->markdown))->stripTags()->parseDown(new ParsedownFilter);
-            $reaction->description = (string)(new Text($reaction->xtext))->blurbify();
+            $reaction->xtext = (string)(new Text($reaction->markdown))->stripTags()->parseDown(new ParsedownFilter)->reEncode();
+            $reaction->description = (string)(new Text($reaction->xtext))->blurbify()->reEncode();
             return $reaction;
         }
 

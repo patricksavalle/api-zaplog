@@ -14,6 +14,7 @@ define("BASE_PATH", __DIR__);
 
 require_once BASE_PATH . '/vendor/autoload.php';
 
+use ContentSyndication\HtmlMetadata;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use SlimRequestParams\BodyParameters;
@@ -326,7 +327,7 @@ class Api extends SlimRestApi
                 Request  $request,
                 Response $response,
                 stdClass $args): Response {
-                return self::response($request, $response, $args, Methods::getMetadata($args->urlencoded));
+                return self::response($request, $response, $args, (new HtmlMetadata)($args->urlencoded));
             })
                 // authenticated AND cached (authentication is just to prevent abuse)
                 ->add(new Cacheable(60 * 60/*sec*/))
@@ -438,8 +439,6 @@ class Api extends SlimRestApi
                     Request  $request,
                     Response $response,
                     stdClass $link): Response {
-                    (new UserException("Empty markdown"))(!empty($link->markdown));
-                    (new UserException("Markdown exceeds 100k chars"))(strlen($link->markdown) < 100000);
                     (new DoublePostProtection)($link);
                     return self::response($request, $response, $link, Methods::postLink($link, Authentication::getSession()));
                 })
