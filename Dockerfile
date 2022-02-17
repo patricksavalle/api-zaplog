@@ -1,8 +1,8 @@
 FROM php:8.0.13-apache
 
-RUN apt-get update
-RUN apt-get install -y libz-dev libmemcached-dev apt-utils git unzip libzip-dev && \
-    docker-php-ext-install zip pdo pdo_mysql 
+RUN apt-get update && apt-get install -y libz-dev libmemcached-dev apt-utils git unzip libzip-dev && \
+    docker-php-ext-install zip pdo pdo_mysql\
+    && apt-get clean; rm -rf /var/lib/apt/lists/*
 
 ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
 
