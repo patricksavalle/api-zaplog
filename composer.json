@@ -1,7 +1,7 @@
 {
   "name": "patricksavalle/zaplogv2",
   "description": "Social bookmarking and blogging",
-  "version": "v1.5",
+  "version": "v1.6",
   "type": "library",
   "keywords": [
     "REST-API",
@@ -47,7 +47,8 @@
     "multiavatar/multiavatar-php": "^1.0",
     "landrok/language-detector":  "*",
     "gumlet/php-image-resize": "1.9.*",
-    "jfcherng/php-diff": "*"
+    "jfcherng/php-diff": "*",
+    "ext-xmlreader": "*"
   },
   "autoload": {
     "psr-4": {

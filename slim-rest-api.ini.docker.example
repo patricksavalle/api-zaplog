@@ -6,6 +6,7 @@ email_admin=${email_admin}
 [content]
 broken_link_redirector=${ZAPLOG_GOTO_URL}
 max_markdown_length=100000
+generate_diffs=1
 
 [translation]
 auto_translate=${auto_translate}

@@ -19,6 +19,7 @@ namespace Zaplog\Library {
     use SlimRestApi\Infra\Db;
     use SlimRestApi\Infra\Ini;
     use stdClass;
+    use XMLReader;
     use Zaplog\Exception\ResourceNotFoundException;
     use Zaplog\Exception\ServerException;
     use Zaplog\Exception\UserException;
@@ -321,39 +322,22 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function sanitizeTags(array $keywords): array
+        static private function postTags(int $linkid, array $tags)
         {
-            $tags = [];
-            foreach ($keywords as $tag) {
-                // sanitize tags
-                $tag = (string)(new Text($tag))->convertToAscii()->hyphenize();
-                // only accept reasonable tags
-                if (strlen($tag) > 2 and strlen($tag) < 41 and substr_count($tag, "-") < 5) {
-                    // remove duplicates this way
-                    $tags[$tag] = $tag;
-                }
-            }
-            return array_values($tags);
-        }
+            // remove the existing tags
+            Db::execute("DELETE FROM tags WHERE linkid=:id", [":id" => $linkid]);
 
-        // ----------------------------------------------------------
-        //
-        // ----------------------------------------------------------
-
-        static public function postTags(int $linkid, array $tags)
-        {
             // insert keywords into database;
             foreach ($tags as $tag)
                 Db::execute("INSERT IGNORE INTO tags(linkid, tag) VALUES (:linkid, :tag)",
                     [":linkid" => $linkid, ":tag" => $tag]);
-            return Db::lastInsertid();
         }
 
         // ----------------------------------------------------------
         //
         // ----------------------------------------------------------
 
-        static public function checkImage(stdClass $link)
+        static private function checkImage(stdClass $link)
         {
             if (empty($link->image)) {
                 $link->image = TagHarvester::getFirstImage();
@@ -382,7 +366,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function checkMarkdown(stdClass $link)
+        static private function checkMarkdown(stdClass $link)
         {
             (new UserException("Empty markdown"))(!empty($link->markdown));
             (new UserException("Markdown exceeds 100k chars"))(strlen($link->markdown) < 100000);
@@ -393,7 +377,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function checkTitle(stdClass $link)
+        static private function checkTitle(stdClass $link)
         {
             if (empty($link->title)) {
                 $link->title = TagHarvester::getTitle();
@@ -407,7 +391,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function checkLink(stdClass $link)
+        static private function checkLink(stdClass $link)
         {
             if (empty($link->url)) {
                 $link->url = null;
@@ -430,7 +414,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function checkCopyright(stdClass $link)
+        static private function checkCopyright(stdClass $link)
         {
             if (strlen($link->markdown) < 500) {
                 $link->copyright = "No Rights Apply";
@@ -443,7 +427,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function translateMarkdown(stdClass $link, stdClass $channel)
+        static private function translateMarkdown(stdClass $link, stdClass $channel)
         {
             // if this is an anonymous post
             if (empty($link->channelid)) {
@@ -499,7 +483,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function parseMarkdown(stdClass $link)
+        static private function parseMarkdown(stdClass $link)
         {
             // render article text
             $link->xtext = (string)(new Text($link->markdown))->parseDown(new ParsedownFilter);
@@ -511,8 +495,16 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function generateDiff(stdClass $old, stdClass $new)
+        static private function generateDiff(stdClass $new)
         {
+            // do we need to generate diffs?
+            if (!Ini::get("generate_diffs")) {
+                return;
+            }
+
+            // get old version from database
+            $old = Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $new->id]);
+
             // see: https://github.com/jfcherng/php-diff/blob/v6/example/demo_web.php
 
             // options for Diff class
@@ -568,9 +560,19 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function checkTags(stdClass $link)
+        static private function checkTags(stdClass $link)
         {
-            $link->tags = self::sanitizeTags(array_merge(TagHarvester::getTags(), $link->tags ?? []));
+            $tags = [];
+            foreach (array_merge(TagHarvester::getTags(), $link->tags ?? []) as $tag) {
+                // sanitize tags
+                $tag = (string)(new Text($tag))->convertToAscii()->hyphenize();
+                // only accept reasonable tags
+                if (strlen($tag) > 2 and strlen($tag) < 41 and substr_count($tag, "-") < 5) {
+                    // remove duplicates this way
+                    $tags[$tag] = $tag;
+                }
+            }
+            $link->tags = array_values($tags);
         }
 
         // ----------------------------------------------------------
@@ -615,9 +617,10 @@ namespace Zaplog\Library {
 
                 $sqlparams[":id"] = $link->id;
 
-                // get old version for diff
-                $old_link = Db::fetch("SELECT * FROM links WHERE id=:id", [":id" => $link->id]);
+                // create diff as reaction
+                self::generateDiff($link);
 
+                // save new version
                 (new UserException("Unchanged"))(Db::execute(
                         "UPDATE links SET
                             url=:url, 
@@ -631,12 +634,6 @@ namespace Zaplog\Library {
                             orig_language=IFNULL(orig_language,:orig_language), 
                             copyright=:copyright
                         WHERE id=:id AND channelid=:channelid", $sqlparams)->rowCount() >= 0);
-
-                // remove the tags that this user / channel added
-                Db::execute("DELETE FROM tags WHERE linkid=:id", [":id" => $link->id]);
-
-                // create diff as reaction
-                self::generateDiff($old_link, $link);
             }
 
             // insert tags
@@ -688,8 +685,16 @@ namespace Zaplog\Library {
             $channel->name = (string)(new Text($channel->name))->convertToAscii()->hyphenize();
             try {
                 if (!is_null($channel->avatar)) {
-                    $resized_avatar = (string)(ImageResize::createFromString(file_get_contents($channel->avatar)))->crop(64, 64);
-                    $channel->avatar = 'data://application/octet-stream;base64,' . base64_encode($resized_avatar);
+                    $content = file_get_contents($channel->avatar);
+                    if (strpos($content, "<svg") === 0) {
+                        $xml = XMLReader::XML($content);
+                        $xml->setParserProperty(XMLReader::VALIDATE, true);
+                        if (!$xml->isValid()) throw new Exception;
+                        $channel->avatar = 'data:image/svg+xml;base64,' . base64_encode($content);
+                    } else {
+                        $avatar = (string)(ImageResize::createFromString($content))->crop(64, 64);
+                        $channel->avatar = 'data://application/octet-stream;base64,' . base64_encode($avatar);
+                    }
                 }
             } catch (Exception $e) {
                 throw new UserException("Invalid file or filetype for avatar (use PNG, GIF, JPG)");
