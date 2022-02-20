@@ -1,4 +1,5 @@
 USE zaplog;
-DROP PROCEDURE insert_reaction;
-ALTER TABLE reactions DROP COLUMN threadid, DROP INDEX threadid;
-
+ALTER TABLE interactions
+    ADD FOREIGN KEY (linkid) REFERENCES links (id) ON DELETE CASCADE ON UPDATE CASCADE,
+    ADD FOREIGN KEY (channelid) REFERENCES channels (id) ON DELETE CASCADE ON UPDATE CASCADE,
+    ADD FOREIGN KEY (reactionid) REFERENCES reactions (id) ON DELETE CASCADE ON UPDATE CASCADE;

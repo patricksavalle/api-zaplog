@@ -182,6 +182,36 @@ CREATE TABLE links
         ON UPDATE CASCADE
 );
 
+-- --------------------------------------------------
+-- reactions
+-- --------------------------------------------------
+
+CREATE TABLE reactions
+(
+    id             INT       NOT NULL AUTO_INCREMENT,
+    createdatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    linkid         INT       NOT NULL,
+    channelid      INT       NOT NULL,
+    published      BOOL      NOT NULL DEFAULT TRUE,
+    -- Original raw markdown input, currently not used
+    markdown       TEXT               DEFAULT NULL,
+    -- Clean text blurb, set on insert
+    description    VARCHAR(256)       DEFAULT NULL,
+    -- Purified xhtml from markdown input, no need to store original input because immutable
+    xtext          TEXT               DEFAULT NULL,
+    votescount     INT                DEFAULT 0,
+    PRIMARY KEY (id),
+    INDEX (channelid),
+    INDEX (linkid),
+    INDEX (createdatetime),
+    FOREIGN KEY (linkid) REFERENCES links (id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    FOREIGN KEY (channelid) REFERENCES channels (id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
 -- -----------------------------------------------------
 -- Set the updatedatetime on changed link content only
 -- -----------------------------------------------------
@@ -251,7 +281,16 @@ CREATE TABLE interactions
     PRIMARY KEY (id),
     INDEX (linkid),
     INDEX (channelid),
-    INDEX (reactionid)
+    INDEX (reactionid),
+    FOREIGN KEY (linkid) REFERENCES links (id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    FOREIGN KEY (channelid) REFERENCES channels (id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    FOREIGN KEY (reactionid) REFERENCES reactions (id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 );
 
 -- -----------------------------------------------------
@@ -309,9 +348,6 @@ CREATE EVENT select_frontpage ON SCHEDULE EVERY 180 MINUTE DO
             FROM frontpage_new WHERE NOT id IN (SELECT id FROM frontpage);
         INSERT INTO reactions(linkid,channelid,xtext,description)
             SELECT linkid,channelid,xtext,description FROM reactions_temp;
-        UPDATE reactions AS r
-            JOIN reactions_temp AS t ON r.linkid=t.linkid
-            SET threadid=(SELECT MAX(id) FROM reactions WHERE linkid=r.linkid);
 
         -- atomic swap
         DROP TABLE IF EXISTS frontpage_old;
@@ -393,37 +429,6 @@ DELIMITER ;
 
 CREATE TRIGGER on_delete_link AFTER DELETE ON links FOR EACH ROW
     UPDATE channels SET score = score - OLD.score WHERE id = OLD.channelid;
-
--- --------------------------------------------------
--- reactions
--- --------------------------------------------------
-
-CREATE TABLE reactions
-(
-    id             INT       NOT NULL AUTO_INCREMENT,
-    createdatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    linkid         INT       NOT NULL,
-    channelid      INT       NOT NULL,
-    published      BOOL      NOT NULL DEFAULT TRUE,
-    -- Original raw markdown input, currently not used
-    markdown       TEXT               DEFAULT NULL,
-    -- Clean text blurb, set on insert
-    description    VARCHAR(256)       DEFAULT NULL,
-    -- Purified xhtml from markdown input, no need to store original input because immutable
-    xtext          TEXT               DEFAULT NULL,
-    votescount     INT                DEFAULT 0,
-    PRIMARY KEY (id),
-    INDEX (channelid),
-    INDEX (linkid),
-    INDEX (threadid),
-    INDEX (createdatetime),
-    FOREIGN KEY (linkid) REFERENCES links (id)
-        ON DELETE CASCADE
-        ON UPDATE CASCADE,
-    FOREIGN KEY (channelid) REFERENCES channels (id)
-        ON DELETE CASCADE
-        ON UPDATE CASCADE
-);
 
 DELIMITER //
 CREATE TRIGGER on_insert_reaction AFTER INSERT ON reactions FOR EACH ROW
