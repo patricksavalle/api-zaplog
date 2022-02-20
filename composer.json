@@ -1,7 +1,7 @@
 {
   "name": "patricksavalle/zaplogv2",
   "description": "Social bookmarking and blogging",
-  "version": "v1.6",
+  "version": "v1.7",
   "type": "library",
   "keywords": [
     "REST-API",

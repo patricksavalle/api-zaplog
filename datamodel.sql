@@ -401,9 +401,6 @@ CREATE TRIGGER on_delete_link AFTER DELETE ON links FOR EACH ROW
 CREATE TABLE reactions
 (
     id             INT       NOT NULL AUTO_INCREMENT,
-    -- optimization for forum-style display, all reactions on the same link
-    -- have the id of the latest comment as threadid
-    threadid       INT       NULL DEFAULT NULL,
     createdatetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     linkid         INT       NOT NULL,
     channelid      INT       NOT NULL,
@@ -444,24 +441,6 @@ CREATE TRIGGER on_delete_reaction AFTER DELETE ON reactions FOR EACH ROW
         reactionscount = reactionscount - 1,
         uniquereactors = (SELECT COUNT(DISTINCT channelid) FROM reactions WHERE linkid = OLD.linkid)
         WHERE id = OLD.linkid;
-
-DELIMITER //
-CREATE PROCEDURE insert_reaction(IN arg_channelid INT, IN arg_linkid INT, IN arg_markdown TEXT, IN arg_xtext TEXT, IN arg_description VARCHAR(256))
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-    SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;
-    START TRANSACTION;
-        INSERT INTO reactions (channelid,linkid,markdown,xtext,description)
-            VALUES(arg_channelid,arg_linkid,arg_markdown,arg_xtext,arg_description);
-        -- threadid is a denormalisation / optimisation needed to be able to show forumstyle reactions pages
-        UPDATE reactions SET threadid=LAST_INSERT_ID() WHERE linkid=arg_linkid;
-    COMMIT;
-END //
-DELIMITER ;
 
 -- --------------------------------------------------
 -- Link tags

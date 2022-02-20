@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Zaplog;
 
-define("VERSION", "v1.6");
+define("VERSION", "v1.7");
 
 define("BASE_PATH", __DIR__);
 
@@ -250,32 +250,7 @@ class Api extends SlimRestApi
                     '{search:.+},null',
                 ]));
 
-            // ----------------------------------------------------------------
-            // Get reactions, forum style, returns the latest reactions
-            // grouped with the 2 previous in the same thread / link
-            // ----------------------------------------------------------------
-
-            $this->get("/discussion", function (
-                Request  $request,
-                Response $response,
-                stdClass $args): Response {
-                assert($args->count < 100);
-                return self::response($request, $response, $args, Methods::getDiscussion(null, $args->offset, $args->count));
-            })
-                ->add(new NoCache)
-                ->add(new QueryParameters(['{offset:\int},0', '{count:\int},8',]));
-
-            $this->get("/discussion/channel/{id:[\d]{1,10}}", function (
-                Request  $request,
-                Response $response,
-                stdClass $args): Response {
-                assert($args->count < 100);
-                return self::response($request, $response, $args, Methods::getDiscussion($args->id, $args->offset, $args->count));
-            })
-                ->add(new NoCache)
-                ->add(new QueryParameters(['{offset:\int},0', '{count:\int},8',]));
-
-            // ------------------------------------------------
+           // ------------------------------------------------
             // get the activity stream
             // ------------------------------------------------
 

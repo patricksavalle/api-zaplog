@@ -551,7 +551,7 @@ namespace Zaplog\Library {
                 $description = (string)(new Text($xtext))->blurbify();
 
                 // insert diff as comment
-                Db::execute("CALL insert_reaction(1, :linkid, null, :xtext, :description)",
+                Db::execute("INSERT INTO reactions (channelid,linkid,xtext,description) VALUES(1,linkid,xtext,description)",
                     [":linkid" => $new->id, ":xtext" => $xtext, ":description" => $description]);
             }
         }
@@ -743,12 +743,14 @@ namespace Zaplog\Library {
             self::previewReaction($reaction);
 
             (new UserException("Comment invalid or empty"))(strlen($reaction->xtext) > 0);
-            Db::execute("CALL insert_reaction(:channelid,:linkid,:markdown,:xtext,:description)", [
+            Db::execute("INSERT INTO reactions (channelid,linkid,markdown,xtext,description)
+            VALUES(:channelid,:linkid,:markdown,:xtext,:description)", [
                 ":linkid" => $reaction->linkid,
                 ":channelid" => $reaction->channelid,
                 ":markdown" => $reaction->markdown,
                 ":xtext" => $reaction->xtext,
-                ":description" => $reaction->description]);
+                ":description" => $reaction->description
+            ]);
 
             $reaction->id = (int)Db::lastInsertId();
 
@@ -827,45 +829,6 @@ namespace Zaplog\Library {
                 WHERE tag=:tag1) AND links.published=TRUE AND tag<>:tag2
                 GROUP BY tag ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT :count",
                 [":tag1" => $tag, ":tag2" => $tag, ":count" => $count], 60 * 60);
-        }
-
-        // ----------------------------------------------------------
-        // Show latest X reactions of selected Y threads
-        // ----------------------------------------------------------
-
-        /** @noinspection PhpUnusedParameterInspection */
-        static public function getDiscussion(?string $channelid, int $offset, int $count, int $numreactions = 3): array
-        {
-            // first fetch all threadid's
-            $sql = "SELECT DISTINCT threadid FROM reactions ORDER BY threadid DESC LIMIT :offset, :count";
-            $threadids = "('" . implode("','", array_column(Db::fetchAll($sql, [":offset" => $offset, ":count" => $count]), "threadid")) . "')";
-
-            // fetch first 3 reactions for selected threads
-            return Db::fetchAll("SELECT
-                    reactions.*,
-                    channels.name,
-                    channels.avatar,
-                    IF(rownum=1,links.title,NULL) as title,
-                    IF(rownum=1,links.image,NULL) as image,
-                    IF(rownum=1,links.published,NULL) AS linkpublished,
-                    IF(rownum=1,links.createdatetime,NULL) AS linkdatetime
-                FROM (
-                    SELECT 
-                        threadid, 
-                        id, 
-                        channelid, 
-                        linkid,
-                        published,
-                        (@num:=if(@threadid = threadid, @num +1, if(@threadid := threadid, 1, 1))) AS rownum,
-                        createdatetime,
-						description
-                    FROM reactions WHERE threadid IN $threadids AND published=TRUE
-                    ORDER BY threadid DESC, id DESC
-                ) AS reactions
-                JOIN channels ON channels.id=reactions.channelid
-                JOIN links ON links.id=reactions.linkid  
-                WHERE reactions.rownum <= :reactions AND reactions.published=TRUE
-                ORDER by reactions.threadid DESC, rownum", [":reactions" => $numreactions]);
         }
 
         // ----------------------------------------------------------
