@@ -1,15 +1,10 @@
 # ZAPLOG REST-API
 
-See: https://zaplog.pro for a working version of this website.
+Zaplog is a next-generation social-news / group-blogging platform. It includes:
 
-Zaplog is a next-generation social-news platform. It includes:
-
-- collaborative linkdumping, bookmarking, blogging, voting, tagging etc.
-- wisdom-of-the-crowd mechanisms for frontpage generation
-- Monero and Bitcoin crowd payments distributed based on user reputation
-- Content-syndication-and-translation between different Zaplog's
-
-Manual: https://gitlab.com/zaplog/api-zaplog/-/wikis/Zaplog-manual
+- [Project homepage](https://zaplog.gitlab.io/infra-zaplog)
+- [Live example]() https://zaplog.pro)
+- [Manual](https://gitlab.com/zaplog/api-zaplog/-/wikis/Zaplog-manual)
 
 ## Contributing
 
@@ -36,7 +31,7 @@ Knowledge of the SLIM3 framework (a port to SLIM4 is planned) is useful but not 
 
 ## Local deployment of the REST-server
 
-- Install a LAMP or XAMPP stack using MariaDb. Make sure MariaDb is running. PHP versions above 8.0 generate errors. PHP needs the following extensions:
+- Install a LAMP or XAMPP stack with MariaDb. Make sure MariaDb is running. PHP versions above 8.0 generate errors. PHP needs the following extensions:
 
       ext-json
       ext-libxml
@@ -48,11 +43,22 @@ Knowledge of the SLIM3 framework (a port to SLIM4 is planned) is useful but not 
       ext-fileinfo
       php-mbstring
       ext-gd
+      ext-xmlreader
       ext-apcu
 
+  APCu configuration (php.ini)
+
+      [apcu]
+      extension=apcu
+      apc.enabled=1
+      apc.shm_size=16M
+      apc.ttl=7200
+      apc.enable_cli=1
+      apc.serializer=php
+  
 - Clone the project from this Gitlab to your local computer
 
-      https://gitlab.com/zaplog/api-zaplog
+      git clone https://gitlab.com/zaplog/api-zaplog.git
 
 - Run composer to fetch and update external libraries:
 
@@ -67,7 +73,7 @@ Knowledge of the SLIM3 framework (a port to SLIM4 is planned) is useful but not 
 
       /datamodel.sql
 
-- Enable the MariaDb event scheduler and disable locking (on production this is critical)
+- Enable the MariaDb event scheduler and disable locking (no need for locking, huge performance increase)
 
       SET GLOBAL event_scheduler = ON;
       SET GLOBAL TRANSACTION ISOLATION LEVEL READ UNCOMMITTED; 
@@ -80,17 +86,7 @@ Knowledge of the SLIM3 framework (a port to SLIM4 is planned) is useful but not 
 
       http://localhost:8080/Api.php/v1
 
-- Optionally install the cronjobs (not needed for development), the command lines (from the root of the server) are:
+## Production deploying of the entire system
 
-      php Api.php /v1/cronjobs/minute GET
-      php Api.php /v1/cronjobs/hour GET
-      php Api.php /v1/cronjobs/day GET
-      php Api.php /v1/cronjobs/month GET
-
-- This server does not do response caching, rate-limiting, DDOS-mitigation or anything else that should be done by a reverse proxy
-  (e.g. NGINX https://www.nginx.com/blog/rate-limiting-nginx/ and https://www.nginx.com/blog/mitigating-ddos-attacks-with-nginx-and-nginx-plus/)
-
-## Production deploying of the REST-server (Docker)
-
-See: https://gitlab.com/zaplog/api-zaplog/container_registry 
+See: https://gitlab.com/zaplog/infra-zaplog/-/blob/main/README.md 
 
