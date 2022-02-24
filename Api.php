@@ -250,7 +250,7 @@ class Api extends SlimRestApi
                     '{search:.+},null',
                 ]));
 
-           // ------------------------------------------------
+            // ------------------------------------------------
             // get the activity stream
             // ------------------------------------------------
 
@@ -421,8 +421,6 @@ class Api extends SlimRestApi
                     ->add(new QueryParameters([]))
                     ->add(new BodyParameters([
                         '{id:\d+},null',    // empty will create new post (id is returned)
-                        '{url:\url},null',
-                        '{title:.{3,256}},null',
                         '{markdown:\raw}',
                         '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))},Some Rights Reserved \(CC BY-SA 4\.0\)',
                         '{tags[]:.{0,40}},null']))

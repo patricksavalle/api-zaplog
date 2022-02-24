@@ -1,5 +1,10 @@
 USE zaplog;
-ALTER TABLE interactions
-    ADD FOREIGN KEY (linkid) REFERENCES links (id) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD FOREIGN KEY (channelid) REFERENCES channels (id) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD FOREIGN KEY (reactionid) REFERENCES reactions (id) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE links
+    DROP COLUMN mimetype,
+    DROP COLUMN urlhash,
+    DROP COLUMN url,
+    DROP COLUMN location,
+    DROP COLUMN longitude,
+    DROP COLUMN latitude,
+    DROP INDEX urlhash;
+UPDATE links SET markdown = CONCAT(title, "\r\n", markdown, "\r\n", IF(url IS NULL,"", CONCAT("[", REGEXP_SUBSTR(url, '\\w+\\.\\w+(?=/|$)'), "](", url, ")")));

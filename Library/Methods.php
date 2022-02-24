@@ -8,8 +8,6 @@ namespace Zaplog\Library {
 
     require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
 
-    use ContentSyndication\ArchiveOrg;
-    use ContentSyndication\HtmlMetadata;
     use ContentSyndication\Mimetype;
     use ContentSyndication\Text;
     use Exception;
@@ -379,35 +377,9 @@ namespace Zaplog\Library {
 
         static private function checkTitle(stdClass $link)
         {
-            if (empty($link->title)) {
-                $link->title = TagHarvester::getTitle();
-            }
-            $link->title = (string)(new Text(str_replace('"', "'", $link->title)))->stripTags()->reEncode();
+            $link->title = (string)(new Text(str_replace('"', "'", TagHarvester::getTitle())))->stripTags()->reEncode();
             (new UserException("Title too short"))(strlen($link->title) > 3);
             (new UserException("Title too long"))(strlen($link->title) < 256);
-        }
-
-        // ----------------------------------------------------------
-        //
-        // ----------------------------------------------------------
-
-        static private function checkLink(stdClass $link)
-        {
-            if (empty($link->url)) {
-                $link->url = null;
-                $link->mimetype = null;
-                $link->image = null;
-            } else {
-                try {
-                    $metadata = (new HtmlMetadata)($link->url);
-                    $link->mimetype = (new Mimetype)($link->url);
-                    // get original URL if an archive,org URL was submitted (conflicting with our GOTO mechanism)
-                    $link->url = ArchiveOrg::originalUrl($metadata['url']);
-                    $link->image = $metadata['image'];
-                } catch (Exception $e) {
-                    throw new UserException($e->getMessage() . ": " . $link->url);
-                }
-            }
         }
 
         // ----------------------------------------------------------
@@ -462,15 +434,11 @@ namespace Zaplog\Library {
             }
 
             // translate
-            [$translation, $source_language] = (new Translation)($link->markdown, $system_language);
-            $link->markdown = $translation;
-            $link->orig_language = $source_language;
-            [$translation, $source_language] = (new Translation)($link->title, $system_language, $source_language);
-            $link->title = $translation;
+            [$link->markdown, $link->orig_language] = (new Translation)($link->markdown, $system_language);
             $link->language = $system_language;
 
             // clear tags )
-            if ($source_language !== $system_language) {
+            if ($link->orig_language !== $link->language) {
                 $link->tags = [];
             }
 
@@ -586,20 +554,17 @@ namespace Zaplog\Library {
             self::translateMarkdown($link, $channel);
             self::parseMarkdown($link);
             self::checkTitle($link);
-            self::checkLink($link);
             self::checkImage($link);
             self::checkCopyright($link);
             self::checkTags($link);
 
             $sqlparams = [
                 ":channelid" => $link->channelid,
-                ":url" => $link->url,
                 ":title" => $link->title,
                 ":markdown" => $link->markdown,
                 ":xtext" => $link->xtext,
                 ":description" => $link->description,
                 ":image" => $link->image,
-                ":mimetype" => $link->mimetype,
                 ":language" => $link->language,
                 ":orig_language" => $link->orig_language,
                 ":copyright" => $link->copyright,
@@ -608,8 +573,8 @@ namespace Zaplog\Library {
             if (empty($link->id)) {
 
                 (new ServerException)(Db::execute(
-                        "INSERT INTO links(url, channelid, title, markdown, xtext, description, image, mimetype, language, orig_language, copyright, published)
-                        VALUES (:url, :channelid, :title, :markdown, :xtext, :description, :image, :mimetype, :language, :orig_language, :copyright, FALSE)",
+                        "INSERT INTO links(channelid, title, markdown, xtext, description, image, language, orig_language, copyright, published)
+                        VALUES (:channelid, :title, :markdown, :xtext, :description, :image, :language, :orig_language, :copyright, FALSE)",
                         $sqlparams)->rowCount() > 0);
                 $link->id = (int)Db::lastInsertId();
 
@@ -623,13 +588,11 @@ namespace Zaplog\Library {
                 // save new version
                 (new UserException("Unchanged"))(Db::execute(
                         "UPDATE links SET
-                            url=:url, 
                             title=:title,
                             markdown=:markdown, 
                             xtext=:xtext,
                             description=:description,
                             image=:image, 
-                            mimetype=:mimetype, 
                             language=:language, 
                             orig_language=IFNULL(orig_language,:orig_language), 
                             copyright=:copyright
@@ -773,7 +736,7 @@ namespace Zaplog\Library {
                 return Db::fetchAll("SELECT links.id, links.description, links.createdatetime, links.channelid, links.title, links.image
                     FROM links JOIN tags ON tags.linkid=links.id AND links.id<>:id1
                     WHERE tag IN (SELECT tag FROM tags WHERE linkid=:id2) AND published=TRUE
-                    GROUP BY links.id ORDER BY COUNT(tag) DESC, SUM(links.score) DESC LIMIT 5",
+                    GROUP BY links.id ORDER BY COUNT(tag) DESC, links.createdatetime DESC LIMIT 5",
                     [":id1" => $id, ":id2" => $id], $cachettl);
             };
 

@@ -109,12 +109,6 @@ CREATE TABLE links
     -- datetime of the original publication
     origdatetime   DATETIME               DEFAULT NULL,
     published      BOOL          NOT NULL DEFAULT TRUE,
-    url            VARCHAR(1024)          DEFAULT NULL,
-    urlhash        CHAR(32) GENERATED ALWAYS AS (MD5(url)),
-    mimetype       VARCHAR(128)           DEFAULT NULL,
-    location       VARCHAR(256)           DEFAULT NULL,
-    latitude       FLOAT                  DEFAULT NULL,
-    longitude      FLOAT                  DEFAULT NULL,
     language       CHAR(2)                DEFAULT NULL,
     orig_language  CHAR(2)                DEFAULT NULL,
     title          VARCHAR(256)  NOT NULL,
@@ -174,7 +168,6 @@ CREATE TABLE links
     INDEX (channelid),
     INDEX (published),
     INDEX (createdatetime),
-    INDEX (urlhash),
     INDEX (score),
     FULLTEXT (markdown),
     FOREIGN KEY (channelid) REFERENCES channels (id)
