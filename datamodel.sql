@@ -212,23 +212,19 @@ CREATE TABLE reactions
 DELIMITER //
 CREATE TRIGGER on_before_update_link BEFORE UPDATE ON links FOR EACH ROW
 BEGIN
-    IF (NEW.title<>OLD.title
-        OR NEW.markdown<>OLD.markdown
+    IF (NEW.markdown<>OLD.markdown
         OR NEW.copyright<>OLD.copyright
-        OR NEW.language<>OLD.language
-        OR NEW.url<>OLD.url
-        OR NEW.image<>OLD.image
         OR NEW.published<>OLD.published) THEN
-        BEGIN
+    BEGIN
             SET NEW.updatedatetime = CURRENT_TIMESTAMP;
             IF (OLD.published=FALSE) THEN
                 SET NEW.createdatetime = CURRENT_TIMESTAMP;
-            END IF;
-        END;
-    END IF;
+END IF;
+END;
+END IF;
     IF (NEW.published=FALSE AND OLD.published=TRUE) THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Cannot unpublish only delete';
-    END IF;
+END IF;
 END//
 DELIMITER ;
 
@@ -402,17 +398,14 @@ DELIMITER //
 CREATE TRIGGER on_update_link AFTER UPDATE ON links FOR EACH ROW
 BEGIN
     IF (NEW.markdown<>OLD.markdown
-        OR NEW.image<>OLD.image
         OR NEW.copyright<>OLD.copyright
-        OR NEW.language<>OLD.language
-        OR NEW.title<>OLD.title
-        OR NEW.url<>OLD.url) THEN
+        OR NEW.published<>OLD.published) THEN
         INSERT INTO interactions(channelid, linkid, type) VALUES (NEW.channelid, NEW.id, 'on_update_link');
-    END IF;
-    -- accumulate link scores into parent channel
-    IF (NEW.score<>OLD.score) THEN
-        UPDATE channels SET score=score+(NEW.score-OLD.score) WHERE id=NEW.channelid;
-    END IF;
+END IF;
+-- accumulate link scores into parent channel
+IF (NEW.score<>OLD.score) THEN
+UPDATE channels SET score=score+(NEW.score-OLD.score) WHERE id=NEW.channelid;
+END IF;
 END//
 DELIMITER ;
 

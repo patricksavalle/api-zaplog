@@ -516,7 +516,7 @@ namespace Zaplog\Library {
                 $description = (string)(new Text($xtext))->blurbify();
 
                 // insert diff as comment
-                Db::execute("INSERT INTO reactions (channelid,linkid,xtext,description) VALUES(1,linkid,xtext,description)",
+                Db::execute("INSERT INTO reactions (channelid,linkid,xtext,description) VALUES(1,:linkid,:xtext,:description)",
                     [":linkid" => $new->id, ":xtext" => $xtext, ":description" => $description]);
             }
         }
