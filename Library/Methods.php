@@ -337,27 +337,8 @@ namespace Zaplog\Library {
 
         static private function checkImage(stdClass $link)
         {
-            if (empty($link->image)) {
-                $link->image = TagHarvester::getFirstImage();
-            }
-            if (!empty($link->image)) {
-                if (strlen($link->image) > 256) {
-                    $link->image = null;
-                } else {
-                    $image_mimetype = "";
-                    try {
-                        $image_mimetype = (new Mimetype)($link->image);
-                    } catch (Exception $e) {
-                        // nothing
-                    }
-                    if (strpos($image_mimetype, "image/") !== 0) {
-                        $link->image = null;
-                    }
-                }
-            } else {
-                // explicitely null
-                $link->image = null;
-            }
+            $link->image = TagHarvester::getFirstImage();
+            (new UserException("Unusable image"))(strlen($link->image) < 256);
         }
 
         // ----------------------------------------------------------
@@ -580,7 +561,7 @@ namespace Zaplog\Library {
                 $sqlparams[":id"] = $link->id;
 
                 // create diff as reaction
-                self::generateDiff($link);
+                // self::generateDiff($link);
 
                 // save new version
                 (new UserException("Unchanged"))(Db::execute(
@@ -745,6 +726,13 @@ namespace Zaplog\Library {
             $link = (new ResourceNotFoundException("Invalid id"))(Db::fetch("CALL select_link(:id)", [":id" => $id]));
             foreach (explode(",", $link->tags ?? "") as $tag) $tags[] = ["tag" => $tag];
             unset($link->tags);
+
+            // JIT parsing this allows us to set all xtext to null (in case of new plugins for instance)
+            if (empty($link->xtext)) {
+                self::parseMarkdown($link);
+                Db::execute("UPDATE links SET xtext=:xtext, description=:description WHERE id=:id",
+                    [":xtext" => $link->xtext, ":description" => $link->description, ":id" => $link->id]);
+            }
 
             return [
                 "link" => $link,
