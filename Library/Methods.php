@@ -595,8 +595,12 @@ namespace Zaplog\Library {
             // check quota
             $check = Db::fetch("SELECT 
             	(SELECT COUNT(*) FROM links WHERE channelid=:channelid1 AND createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 6 HOUR)) AS article_count, 
-	            (SELECT reputation FROM channels WHERE id=:channelid2) AS channel_reputation",
-                [":channelid1" => $channelid, ":channelid2" => $channelid]);
+	            (SELECT reputation FROM channels WHERE id=:channelid2) AS channel_reputation,
+	            (SELECT COUNT(*) FROM tags WHERE linkid=:linkid) AS tag_count",
+                [":channelid1" => $channelid, ":channelid2" => $channelid, ":linkid" => $id]);
+            if ($check->tag_count === 0) {
+                throw new UserException("Article must have tags");
+            }
             if ($check->channel_reputation < 500.0 and $check->article_count > 4) {
                 throw new UserException("Max 4 articles can be published per 6h");
             }
