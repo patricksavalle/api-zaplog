@@ -548,24 +548,26 @@ namespace Zaplog\Library {
                 ":copyright" => $link->copyright,
             ];
 
-            if (empty($link->id)) {
+            try {
 
-                (new ServerException)(Db::execute(
-                        "INSERT INTO links(channelid, title, markdown, xtext, description, image, language, orig_language, copyright, published)
+                if (empty($link->id)) {
+
+                    (new ServerException)(Db::execute(
+                            "INSERT INTO links(channelid, title, markdown, xtext, description, image, language, orig_language, copyright, published)
                         VALUES (:channelid, :title, :markdown, :xtext, :description, :image, :language, :orig_language, :copyright, FALSE)",
-                        $sqlparams)->rowCount() > 0);
-                $link->id = (int)Db::lastInsertId();
+                            $sqlparams)->rowCount() > 0);
+                    $link->id = (int)Db::lastInsertId();
 
-            } else {
+                } else {
 
-                $sqlparams[":id"] = $link->id;
+                    $sqlparams[":id"] = $link->id;
 
-                // create diff as reaction
-                // self::generateDiff($link);
+                    // create diff as reaction
+                    // self::generateDiff($link);
 
-                // save new version
-                (new UserException("Unchanged"))(Db::execute(
-                        "UPDATE links SET
+                    // save new version
+                    (new UserException("Unchanged"))(Db::execute(
+                            "UPDATE links SET
                             title=:title,
                             markdown=:markdown, 
                             xtext=:xtext,
@@ -575,6 +577,12 @@ namespace Zaplog\Library {
                             orig_language=IFNULL(orig_language,:orig_language), 
                             copyright=:copyright
                         WHERE id=:id AND channelid=:channelid", $sqlparams)->rowCount() >= 0);
+                }
+
+            } catch (Exception $e) {
+
+                error_log(print_r($link, true));
+                throw $e;
             }
 
             // insert tags
