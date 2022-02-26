@@ -338,7 +338,7 @@ namespace Zaplog\Library {
         static private function checkImage(stdClass $link)
         {
             $link->image = TagHarvester::getFirstImage();
-            (new UserException("Unusable image"))(strlen($link->image) < 256);
+            (new UserException("Unusable image"))(empty($link->image) or (strlen($link->image) < 256));
         }
 
         // ----------------------------------------------------------
@@ -683,7 +683,7 @@ namespace Zaplog\Library {
                 ":channelid" => $reaction->channelid,
                 ":markdown" => $reaction->markdown,
                 ":xtext" => $reaction->xtext,
-                ":description" => $reaction->description
+                ":description" => $reaction->description,
             ]);
 
             $reaction->id = (int)Db::lastInsertId();
