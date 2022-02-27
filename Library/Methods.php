@@ -349,7 +349,7 @@ namespace Zaplog\Library {
         {
             (new UserException("Empty markdown"))(!empty($link->markdown));
             (new UserException("Markdown exceeds 100k chars"))(strlen($link->markdown) < 100000);
-            $link->markdown = (string)(new Text($link->markdown))->reEncode();
+            // todo $link->markdown = (string)(new Text($link->markdown))->reEncode();
         }
 
         // ----------------------------------------------------------
@@ -382,15 +382,11 @@ namespace Zaplog\Library {
 
         static private function translateMarkdown(stdClass $link, stdClass $channel)
         {
-            // if this is an anonymous post
-            if (empty($link->channelid)) {
-                return;
-            }
-
             $link->orig_language = null;
             $link->language = (string)(new LanguageDetector)->evaluate($link->markdown);
             if (strlen($link->language ?? "") !== 2) {
-                throw new ServerException("Error detecting language");
+                // sorry, we don't know
+                $link->language = null;
             }
 
             // do we need to translate anything?
