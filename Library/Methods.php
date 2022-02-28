@@ -358,7 +358,9 @@ namespace Zaplog\Library {
 
         static private function checkTitle(stdClass $link)
         {
-            $link->title = (string)(new Text(str_replace('"', "'", TagHarvester::getTitle())))->stripTags()->reEncode();
+            $title = TagHarvester::getTitle();
+            (new UserException("No Markdown #header element found (needed as title)"))(!empty($title));
+            $link->title = (string)(new Text(str_replace('"', "'", $title)))->stripTags()->reEncode();
             (new UserException("Title too short"))(strlen($link->title) > 3);
             (new UserException("Title too long"))(strlen($link->title) < 256);
         }
