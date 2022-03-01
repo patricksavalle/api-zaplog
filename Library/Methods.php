@@ -724,7 +724,9 @@ namespace Zaplog\Library {
             };
 
             // update view counter and get complete article in a single Db call
-            $link = (new ResourceNotFoundException("Invalid id"))(Db::fetch("CALL select_link(:id)", [":id" => $id]));
+            $link = Db::fetch("CALL select_link(:id)", [":id" => $id]);
+            (new ResourceNotFoundException("Invalid id"))(!empty($link->id));
+
             foreach (explode(",", $link->tags ?? "") as $tag) $tags[] = ["tag" => $tag];
             unset($link->tags);
 
