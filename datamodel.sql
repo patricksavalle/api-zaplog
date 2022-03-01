@@ -240,8 +240,8 @@ DELIMITER //
 CREATE PROCEDURE select_link(IN arg_id INT)
 BEGIN
     UPDATE links SET viewscount=viewscount+1 WHERE id=arg_id;
-    SELECT * FROM links WHERE links.id=arg_id;
-END //
+    SELECT links.*, GROUP_CONCAT(DISTINCT tag) AS tags FROM links JOIN tags ON tags.linkid=links.id WHERE links.id=arg_id;
+END//
 DELIMITER ;
 
 -- --------------------------------------------------------------
@@ -259,18 +259,13 @@ CREATE TABLE interactions
     reactionid     INT                  DEFAULT NULL,
     datetime       TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
     type           ENUM (
-        'on_insert_channel',
-        'on_update_channel',
         'on_insert_link',
         'on_update_link',
         'on_insert_reaction',
         'on_insert_vote',
         'on_delete_vote',
-        'on_insert_tag',
-        'on_receive_cash',
-        'on_frontpage_calculated',
-        'on_reputation_calculated'
-    )                      NOT NULL,
+        'on_insert_tag'
+    )                          NOT NULL,
     PRIMARY KEY (id),
     INDEX (linkid),
     INDEX (channelid),
@@ -346,8 +341,6 @@ CREATE EVENT select_frontpage ON SCHEDULE EVERY 180 MINUTE DO
         DROP TABLE IF EXISTS frontpage_old;
         RENAME TABLE frontpage_current TO frontpage_old, frontpage_new TO frontpage_current;
 
-        -- notification
-        INSERT INTO interactions(channelid, type) VALUES(1, 'on_frontpage_calculated');
     END //
 DELIMITER ;
 
@@ -356,36 +349,8 @@ DELIMITER ;
 -- 0.9981 every day halfs the reputation in a year (0.9981^365=0.5)
 -- -------------------------------------------------------------------------
 
-DELIMITER //
 CREATE EVENT calculate_channel_reputations ON SCHEDULE EVERY 24 HOUR DO
-BEGIN
-    INSERT INTO interactions(channelid,type) VALUES(1, 'on_reputation_calculated');
     UPDATE channels SET reputation = GREATEST(1, reputation * 0.9981 + score - prevscore), prevscore = score;
-END //
-DELIMITER ;
-
--- ------------------------------------------------
---
--- ------------------------------------------------
-
-CREATE TRIGGER on_insert_channel AFTER INSERT ON channels FOR EACH ROW
-    INSERT INTO interactions(channelid,type) VALUES (NEW.id,'on_insert_channel');
-
--- ------------------------------------------------
---
--- ------------------------------------------------
-
-DELIMITER //
-CREATE TRIGGER on_update_channel AFTER UPDATE ON channels FOR EACH ROW
-BEGIN
-    IF (NEW.bio<>OLD.bio
-        OR NEW.name<>OLD.name
-        OR NEW.bitcoinaddress<>OLD.bitcoinaddress
-        OR NEW.avatar<>OLD.avatar) THEN
-        INSERT INTO interactions(channelid,type) VALUES (NEW.id,'on_update_channel');
-    END IF;
-END//
-DELIMITER ;
 
 -- ------------------------------------------------
 --

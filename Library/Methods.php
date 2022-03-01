@@ -8,7 +8,6 @@ namespace Zaplog\Library {
 
     require_once BASE_PATH . '/Exception/ResourceNotFoundException.php';
 
-    use ContentSyndication\Mimetype;
     use ContentSyndication\Text;
     use Exception;
     use Gumlet\ImageResize;
