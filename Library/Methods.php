@@ -727,6 +727,7 @@ namespace Zaplog\Library {
             $link = Db::fetch("CALL select_link(:id)", [":id" => $id]);
             (new ResourceNotFoundException("Invalid id"))(!empty($link->id));
 
+            // parse tags from result
             foreach (explode(",", $link->tags ?? "") as $tag) $tags[] = ["tag" => $tag];
             unset($link->tags);
 

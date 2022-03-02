@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Zaplog\Plugins\ParsedownFilters {
 
     use ContentSyndication\HtmlMetadata;
-    use ContentSyndication\Mimetype;
     use Exception;
     use Zaplog\Plugins\AbstractParsedownFilter;
 
@@ -100,27 +99,6 @@ namespace Zaplog\Plugins\ParsedownFilters {
 
                 } catch (Exception $e) {
                     error_log(__METHOD__ . $e->getMessage());
-                    // ignore
-                }
-
-                try {
-
-                    $mimetype = (new Mimetype)($element['attributes']['src']);
-
-                    // PDF
-                    if ($mimetype === "application/pdf") {
-
-                        return [
-                            "name" => "iframe",
-                            "text" => "", // forces Parsedown parser to insert a closing tag
-                            "attributes" => [
-                                "src" => $element['attributes']['src'],
-                                "class" => "pdf",
-                            ],
-                        ];
-                    }
-
-                } catch (Exception $e) {
                     // ignore
                 }
 
