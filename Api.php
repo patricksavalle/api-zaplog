@@ -154,7 +154,7 @@ class Api extends SlimRestApi
                     stdClass $args): Response {
                     (new DoublePostProtection)($args, 20);
                     (new TwoFactorAction)
-                        ->addAction('Library/Methods.php', ['\Zaplog\Library\Methods', 'createSession'], [$args->email])
+                        ->addAction('Library/Methods.php', ['\Zaplog\Library\Methods', 'createSession'], [$args->email, $args->article_markdown])
                         ->createToken()
                         ->sendToken($args->email, $args->subject, $args->template, $args);
                     return self::response($request, $response, $args, true);

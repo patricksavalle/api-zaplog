@@ -34,7 +34,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function createSession(string $userid, string $markdown = null): array
+        static public function createSession(string $userid, string $markdown): array
         {
             $session = Authentication::createSession($userid);
             if (!empty(($markdown))) {
@@ -609,13 +609,18 @@ namespace Zaplog\Library {
 
         static public function publishLink(int $id, int $channelid): bool
         {
-            // check quota
+            // check conditions
             $check = Db::fetch("SELECT 
             	(SELECT COUNT(*) FROM links WHERE channelid=:channelid1 AND createdatetime > SUBDATE(CURRENT_TIMESTAMP, INTERVAL 6 HOUR)) AS article_count, 
 	            (SELECT reputation FROM channels WHERE id=:channelid2) AS channel_reputation,
 	            (SELECT COUNT(*) FROM tags WHERE linkid=:linkid1) AS tag_count,
 	            (SELECT title FROM links WHERE id=:linkid2) AS article_title",
-                [":channelid1" => $channelid, ":channelid2" => $channelid, ":linkid1" => $id, ":linkid2" => $id]);
+                [
+                    ":channelid1" => $channelid,
+                    ":channelid2" => $channelid,
+                    ":linkid1" => $id,
+                    ":linkid2" => $id
+                ]);
             if (empty($check->article_title) or $check->article_title === self::$empty_title) {
                 throw new UserException("Article must have Markdown #title element");
             }
