@@ -28,6 +28,7 @@ namespace Zaplog\Library {
     {
         // fields to select when returning a list of links
         static $blurbfields = "id,channelid,createdatetime,updatedatetime,published,language,title,copyright,description,image";
+        static $empty_title = "**Markdown needs a #title element**";
 
         // ----------------------------------------------------------
         //
@@ -375,7 +376,7 @@ namespace Zaplog\Library {
         {
             $title = TagHarvester::getTitle();
             if (empty($title)) {
-                $link->title = "**Markdown needs a #title element**";
+                $link->title = self::$empty_title;
             } else {
                 $link->title = (string)(new Text(str_replace('"', "'", $title)))->stripTags()->reEncode();
                 (new UserException("Title too short"))(strlen($link->title) > 3);
@@ -615,7 +616,7 @@ namespace Zaplog\Library {
 	            (SELECT COUNT(*) FROM tags WHERE linkid=:linkid1) AS tag_count,
 	            (SELECT title FROM links WHERE id=:linkid2) AS article_title",
                 [":channelid1" => $channelid, ":channelid2" => $channelid, ":linkid1" => $id, ":linkid2" => $id]);
-            if (empty($check->article_title)) {
+            if (empty($check->article_title) or $check->article_title === self::$empty_title) {
                 throw new UserException("Article must have Markdown #title element");
             }
             if ($check->tag_count === 0) {
