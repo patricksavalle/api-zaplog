@@ -154,7 +154,7 @@ class Api extends SlimRestApi
                     stdClass $args): Response {
                     (new DoublePostProtection)($args, 20);
                     (new TwoFactorAction)
-                        ->addAction('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'createSession'], [$args->email])
+                        ->addAction('Library/Methods.php', ['\Zaplog\Library\Methods', 'createSession'], [$args->email])
                         ->createToken()
                         ->sendToken($args->email, $args->subject, $args->template, $args);
                     return self::response($request, $response, $args, true);
@@ -164,6 +164,7 @@ class Api extends SlimRestApi
                         '{email:\email}',
                         '{subject:.{10,100}},Hier is jouw Zaplog login!',
                         '{template:\url},Content/nl.login.html',
+                        '{article_markdown:\raw},null',
                         '{*}' /* all {{variables}} used in template */,
                     ]))->add(new NoStore);
 

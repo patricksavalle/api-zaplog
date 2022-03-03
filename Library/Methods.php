@@ -20,6 +20,7 @@ namespace Zaplog\Library {
     use Zaplog\Exception\ResourceNotFoundException;
     use Zaplog\Exception\ServerException;
     use Zaplog\Exception\UserException;
+    use Zaplog\Middleware\Authentication;
     use Zaplog\Plugins\ParsedownFilter;
     use Zaplog\Plugins\ParsedownFilters\TagHarvester;
 
@@ -27,6 +28,21 @@ namespace Zaplog\Library {
     {
         // fields to select when returning a list of links
         static $blurbfields = "id,channelid,createdatetime,updatedatetime,published,language,title,copyright,description,image";
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function createSession(string $userid, string $markdown = null): array
+        {
+            $session = Authentication::createSession($userid);
+            if (!empty(($markdown))) {
+                $link = new stdClass();
+                $link->markdown = $markdown;
+                self::postLink($link, $session['channel']);
+            }
+            return $session;
+        }
 
         // ----------------------------------------------------------
         //
@@ -358,7 +374,6 @@ namespace Zaplog\Library {
         static private function checkTitle(stdClass $link)
         {
             $title = TagHarvester::getTitle();
-            (new UserException("No Markdown #header element found (needed as title)"))(!empty($title));
             $link->title = (string)(new Text(str_replace('"', "'", $title)))->stripTags()->reEncode();
             (new UserException("Title too short"))(strlen($link->title) > 3);
             (new UserException("Title too long"))(strlen($link->title) < 256);

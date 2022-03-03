@@ -62,11 +62,11 @@ namespace Zaplog\Plugins\ParsedownFilters {
             if (strcmp($element['name'], "img") === 0 and isset($element['attributes']['src'])) {
 
                 try {
-                    // EMBEDS: for specific domains we will use Markdown image-syntax to embed media
-
                     $metadata = (new HtmlMetadata)($element['attributes']['src']);
                     $embedurl = $metadata['embedurl'];
                     $class = "video";
+
+                    // EMBEDS: for specific domains we will use Markdown image-syntax to embed media
                     if (empty($embedurl)) {
                         [$embedurl, $class] = $getEmbedLink($metadata["url"]);
                     }
@@ -91,7 +91,6 @@ namespace Zaplog\Plugins\ParsedownFilters {
                             "attributes" => [
                                 "class" => "image",
                                 "title" => html_entity_decode($metadata['title'] ?? ""),
-//                                "width" => "100%",
                                 "src" => $metadata['image'],
                             ],
                         ];
@@ -105,7 +104,7 @@ namespace Zaplog\Plugins\ParsedownFilters {
                 // block normal <img> elements to avoid copyright claims, translate into links
                 return [
                     "name" => "a",
-                    "text" => "<< error >> (our Markdown requires webpage links, not image links, see manual)",
+                    "text" => "<< error >> (our Markdown requires valid webpage links, not image links, see manual)",
                     "attributes" => [
                         "class" => "blocked-image-link",
                         "href" => $element['attributes']['src'],
