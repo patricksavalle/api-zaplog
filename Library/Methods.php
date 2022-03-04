@@ -34,7 +34,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function createSession(string $userid, string $markdown): array
+        static public function createSession(string $userid, ?string $markdown): array
         {
             $session = Authentication::createSession($userid);
             if (!empty(($markdown))) {
