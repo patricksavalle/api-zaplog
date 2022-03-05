@@ -323,12 +323,17 @@ namespace Zaplog\Library {
                     [":channelid" => $id], 60 * 60);
             };
 
+            $views = function (int $id): int {
+                return (int)Db::fetchAll("SELECT SUM(viewscount) AS count FROM links WHERE channelid=:channelid", [":channelid" => $id], 60 * 60)[0]->count;
+            };
+
             $channel = (new ResourceNotFoundException("Channel $name not found"))(Db::fetch("SELECT * FROM channels WHERE name=:id", [":id" => $name]));
             $tags = $tags($channel->id);
             return [
                 "channel" => $channel,
                 "tags" => $tags,
                 "related" => $related($channel->id, array_column($tags, "tag")),
+                "views" => $views($channel->id),
             ];
         }
 
@@ -365,7 +370,6 @@ namespace Zaplog\Library {
         {
             (new UserException("Empty markdown"))(!empty($link->markdown));
             (new UserException("Markdown exceeds 100k chars"))(strlen($link->markdown) < 100000);
-            // todo $link->markdown = (string)(new Text($link->markdown))->reEncode();
         }
 
         // ----------------------------------------------------------
@@ -569,7 +573,7 @@ namespace Zaplog\Library {
 
                 (new ServerException)(Db::execute(
                         "INSERT INTO links(channelid, title, markdown, xtext, description, image, language, orig_language, copyright, published)
-                    VALUES (:channelid, :title, :markdown, :xtext, :description, :image, :language, :orig_language, :copyright, FALSE)",
+                        VALUES (:channelid, :title, :markdown, :xtext, :description, :image, :language, :orig_language, :copyright, FALSE)",
                         $sqlparams)->rowCount() > 0);
                 $link->id = (int)Db::lastInsertId();
 
@@ -619,7 +623,7 @@ namespace Zaplog\Library {
                     ":channelid1" => $channelid,
                     ":channelid2" => $channelid,
                     ":linkid1" => $id,
-                    ":linkid2" => $id
+                    ":linkid2" => $id,
                 ]);
             if (empty($check->article_title) or $check->article_title === self::$empty_title) {
                 throw new UserException("Article must have Markdown #title element");
@@ -661,7 +665,7 @@ namespace Zaplog\Library {
                     }
                 }
             } catch (Exception $e) {
-                throw new UserException("Invalid file or filetype for avatar (use PNG, GIF, JPG)");
+                throw new UserException("Invalid file or filetype for avatar (use PNG, GIF, JPG, SVG)");
             }
             (new UserException("Name already in use"))(Db::fetch("SELECT * FROM channels WHERE name=:name AND id<>:id",
                     [":name" => $channel->name, ":id" => $channel->channelid]) === false);
@@ -692,8 +696,8 @@ namespace Zaplog\Library {
 
         static public function previewReaction(stdClass $reaction): stdClass
         {
-            $reaction->xtext = (string)(new Text($reaction->markdown))->stripTags()->parseDown(new ParsedownFilter)->reEncode();
-            $reaction->description = (string)(new Text($reaction->xtext))->blurbify()->reEncode();
+            $reaction->xtext = (string)(new Text($reaction->markdown))->stripTags()->parseDown(new ParsedownFilter);
+            $reaction->description = (string)(new Text($reaction->xtext))->blurbify();
             return $reaction;
         }
 

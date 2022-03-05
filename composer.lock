@@ -498,16 +498,16 @@
         },
         {
             "name": "league/html-to-markdown",
-            "version": "5.0.2",
+            "version": "5.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/thephpleague/html-to-markdown.git",
-                "reference": "4d0394e120dc14b0d5c52fd1755fd48656da2ec9"
+                "reference": "e0fc8cf07bdabbcd3765341ecb50c34c271d64e1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/thephpleague/html-to-markdown/zipball/4d0394e120dc14b0d5c52fd1755fd48656da2ec9",
-                "reference": "4d0394e120dc14b0d5c52fd1755fd48656da2ec9",
+                "url": "https://api.github.com/repos/thephpleague/html-to-markdown/zipball/e0fc8cf07bdabbcd3765341ecb50c34c271d64e1",
+                "reference": "e0fc8cf07bdabbcd3765341ecb50c34c271d64e1",
                 "shasum": ""
             },
             "require": {
@@ -517,11 +517,11 @@
             },
             "require-dev": {
                 "mikehaertl/php-shellcommand": "^1.1.0",
-                "phpstan/phpstan": "^0.12.82",
+                "phpstan/phpstan": "^0.12.99",
                 "phpunit/phpunit": "^8.5 || ^9.2",
                 "scrutinizer/ocular": "^1.6",
                 "unleashedtech/php-coding-standard": "^2.7",
-                "vimeo/psalm": "^4.6"
+                "vimeo/psalm": "^4.22"
             },
             "bin": [
                 "bin/html-to-markdown"
@@ -529,7 +529,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "5.1-dev"
+                    "dev-master": "5.2-dev"
                 }
             },
             "autoload": {
@@ -563,7 +563,7 @@
             ],
             "support": {
                 "issues": "https://github.com/thephpleague/html-to-markdown/issues",
-                "source": "https://github.com/thephpleague/html-to-markdown/tree/5.0.2"
+                "source": "https://github.com/thephpleague/html-to-markdown/tree/5.1.0"
             },
             "funding": [
                 {
@@ -583,7 +583,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2021-11-06T05:38:26+00:00"
+            "time": "2022-03-02T17:24:08+00:00"
         },
         {
             "name": "multiavatar/multiavatar-php",
@@ -739,12 +739,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/patricksavalle/php-content-syndication.git",
-                "reference": "d254b4048730de847f850834fe1733c2c7c966d1"
+                "reference": "ac79ff3a7b1b1dd1a7d69ed104221706245c6cc8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/patricksavalle/php-content-syndication/zipball/d254b4048730de847f850834fe1733c2c7c966d1",
-                "reference": "d254b4048730de847f850834fe1733c2c7c966d1",
+                "url": "https://api.github.com/repos/patricksavalle/php-content-syndication/zipball/ac79ff3a7b1b1dd1a7d69ed104221706245c6cc8",
+                "reference": "ac79ff3a7b1b1dd1a7d69ed104221706245c6cc8",
                 "shasum": ""
             },
             "require": {
@@ -790,7 +790,7 @@
                 "issues": "https://github.com/patricksavalle/php-content-syndication/issues",
                 "source": "https://github.com/patricksavalle/php-content-syndication/tree/master"
             },
-            "time": "2022-03-02T13:09:14+00:00"
+            "time": "2022-03-05T11:02:35+00:00"
         },
         {
             "name": "patricksavalle/slim-request-params",
@@ -1271,7 +1271,7 @@
         },
         {
             "name": "symfony/polyfill-ctype",
-            "version": "v1.24.0",
+            "version": "v1.25.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/polyfill-ctype.git",
@@ -1333,7 +1333,7 @@
                 "portable"
             ],
             "support": {
-                "source": "https://github.com/symfony/polyfill-ctype/tree/v1.24.0"
+                "source": "https://github.com/symfony/polyfill-ctype/tree/v1.25.0"
             },
             "funding": [
                 {
