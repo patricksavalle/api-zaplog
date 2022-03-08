@@ -27,6 +27,9 @@ build-docker:
     - echo "$CI_PROJECT_PATH" | awk -F"/" '{print $2}'
     - docker build -t $CONTAINER_TEST_IMAGE . --build-arg CI_PROJECT_NAME=$CI_PROJECT_PATH
     - docker push $CONTAINER_TEST_IMAGE
+    - docker login -u $DOCKER_HUB_LOGIN -p $DOCKER_HUB_PASSWORD
+    - docker tag $CONTAINER_TEST_IMAGE $DOCKER_HUB_LOGIN/$CONTAINER_TEST_IMAGE:latest
+    - docker push $CONTAINER_TEST_IMAGE $DOCKER_HUB_LOGIN/$CONTAINER_TEST_IMAGE:latest
   only:
     - master
 
