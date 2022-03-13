@@ -37,7 +37,7 @@ namespace Zaplog\Library {
         static public function createSession(string $userid, ?string $markdown): array
         {
             $session = Authentication::createSession($userid);
-            if (!(empty($markdown) or strlen(trim($markdown))===0)) {
+            if (!empty($markdown) and strlen(trim($markdown))>0) {
                 $link = new stdClass;
                 $link->markdown = $markdown;
                 self::postLink($link, $session['channel']);
