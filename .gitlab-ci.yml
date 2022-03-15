@@ -16,7 +16,7 @@ variables:
   CONTAINER_TEST_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
   CONTAINER_RELEASE_IMAGE: $CI_REGISTRY_IMAGE:latest
   DOCKER_TLS_CERTDIR: ""
-  PROD_SERVER_IP: zaplog.pro
+  PROD_SERVER_IP: mindmeld.pro
   PROD_SERVER_USER: owner
   PROD_IMAGE_APP_TAG: registry.gitlab.com/zaplog/api-zaplog:master
 
