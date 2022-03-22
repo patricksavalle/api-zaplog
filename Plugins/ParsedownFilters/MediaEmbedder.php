@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Zaplog\Plugins\ParsedownFilters {
 
     use ContentSyndication\HtmlMetadata;
+    use ContentSyndication\Text;
     use Exception;
     use Zaplog\Plugins\AbstractParsedownFilter;
 
@@ -64,7 +65,6 @@ namespace Zaplog\Plugins\ParsedownFilters {
                 try {
                     $metadata = (new HtmlMetadata)($element['attributes']['src']);
                     $embedurl = $metadata['embedurl'];
-                    $class = "video";
 
                     // EMBEDS: for specific domains we will use Markdown image-syntax to embed media
                     if (empty($embedurl)) {
@@ -78,7 +78,7 @@ namespace Zaplog\Plugins\ParsedownFilters {
                             "text" => html_entity_decode($metadata['title'] ?? ""), // forces Parsedown parser to insert a closing tag
                             "attributes" => [
                                 "src" => $embedurl,
-                                "class" => "$class",
+                                "class" => in_array($element['text'], ["video", "video large", "video wide"]) ? $element['text'] : "video"
                             ],
                         ];
                     }
@@ -89,7 +89,7 @@ namespace Zaplog\Plugins\ParsedownFilters {
                         return [
                             "name" => "img",
                             "attributes" => [
-                                "class" => "image",
+                                "class" => in_array($element['text'], ["image small", "image", "image large", "image wide"]) ? $element['text'] : "image",
                                 "title" => html_entity_decode($metadata['title'] ?? ""),
                                 "src" => $metadata['image'],
                             ],
