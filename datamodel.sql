@@ -216,7 +216,6 @@ BEGIN
         OR NEW.markdown<>OLD.markdown
         OR NEW.copyright<>OLD.copyright
         OR NEW.language<>OLD.language
-        OR NEW.url<>OLD.url
         OR NEW.image<>OLD.image
         OR NEW.published<>OLD.published) THEN
         BEGIN
