@@ -11,14 +11,14 @@
     (and vice versa)
  */
 
+-- DROP SCHEMA IF EXISTS zaplog;
+-- CREATE SCHEMA zaplog DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
+-- USE zaplog;
+
 -- we need the event scheduler!!!
 SET GLOBAL event_scheduler = ON;
 -- data integrity is not critical, choose maxumum performance
 SET GLOBAL TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
-
-DROP SCHEMA IF EXISTS zaplog;
-CREATE SCHEMA zaplog DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
-USE zaplog;
 
 -- -----------------------------------------------------
 -- Channels are collections of links
