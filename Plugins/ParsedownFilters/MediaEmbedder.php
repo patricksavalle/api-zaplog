@@ -74,11 +74,12 @@ namespace Zaplog\Plugins\ParsedownFilters {
 
                         return [
                             "name" => "iframe",
-                            "title" => html_entity_decode($metadata['title'] ?? ""),
                             "text" => html_entity_decode($metadata['title'] ?? ""), // forces Parsedown parser to insert a closing tag
                             "attributes" => [
+                                "title" => html_entity_decode($metadata['title'] ?? ""),
                                 "src" => $embedurl,
-                                "class" => in_array($element['text'], ["video", "video large", "video wide"]) ? $element['text'] : "video"
+                                // "class" => in_array($element['text'] ?? "", ["video", "video large", "video wide"]) ? $element['text'] : "video"
+                                "class" => "video"
                             ],
                         ];
                     }
@@ -89,9 +90,10 @@ namespace Zaplog\Plugins\ParsedownFilters {
                         return [
                             "name" => "img",
                             "attributes" => [
-                                "class" => in_array($element['text'], ["image small", "image", "image large", "image wide"]) ? $element['text'] : "image",
                                 "title" => html_entity_decode($metadata['title'] ?? ""),
                                 "src" => $metadata['image'],
+                                // "class" => in_array($element['text'] ?? "", ["image small", "image", "image large", "image wide"]) ? $element['text'] : "image",
+                                "class" => "image"
                             ],
                         ];
                     }
