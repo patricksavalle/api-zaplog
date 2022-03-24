@@ -1,0 +1,44 @@
+; php-ini, needs to be placed in webroot, environment variables need to be set
+
+[general]
+email_admin=                ${API_EMAIL_ADMIN}
+
+[content]
+broken_link_redirector=     ${API_GOTO_URL}
+max_markdown_length=        100000
+generate_diffs=             1
+
+[translation]
+auto_translate=             ${API_AUTO_TRANSLATE}
+deepl_auth_key=             ${API_DEEPL_AUTH_KEY}
+deepl_api_url=              ${API_DEEPL_API_URL}
+translate_user_quotum=      10000
+translate_super_reputation= 500
+
+[cors]
+cors_origin[]=              [*]
+cors_expose_headers=
+cors_max_age=               1728000
+cors_allow_credentials=     1
+cors_allow_methods=         POST,GET,PUT,DELETE,PATCH
+cors_allow_headers=         Authorization,Content-Type
+
+[database]
+database_host=              ${API_DB_HOST}
+database_name=              ${API_DB_NAME}
+database_user=              ${API_DB_USER}
+database_password=          ${API_DB_PASSWORD}
+database_charset=           utf8
+database_query_logging=     0
+
+[smtp]
+smtp_host=                  ${API_MAIL_HOST}
+smtp_login=                 ${API_MAIL_LOGIN}
+smtp_password=              ${API_MAIL_PASSWORD}
+smtp_secure=                TLS
+smtp_port=                  ${API_MAIL_PORT}
+
+[email]
+email_sender=               ${API_MAIL_SENDER_EMAIL}
+email_sendername=           ${API_MAIL_SENDER_NAME}
+

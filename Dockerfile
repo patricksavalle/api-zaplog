@@ -19,7 +19,7 @@ RUN mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini" && \
     echo "apc.shm_size=64M" >> "$PHP_INI_DIR/php.ini"
 
 COPY . /var/www/html/
-COPY slim-rest-api.ini.docker.example /var/www/html/slim-rest-api.ini
+COPY slim-rest-api.ini.docker /var/www/html/slim-rest-api.ini
 
 RUN chmod +x /var/www/html/composer.phar && \
     /var/www/html/composer.phar selfupdate && \
