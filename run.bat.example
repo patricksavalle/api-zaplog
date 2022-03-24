@@ -1,0 +1,23 @@
+REM On windows: fill in values, rename to run.bat and run from project root as '.\run.bat' including path
+
+SETLOCAL
+
+SET API_EMAIL_ADMIN=
+SET API_GOTO_URL="http://localhost:8080/Api.php/v1/goto?urlencoded="
+SET API_AUTO_TRANSLATE=1
+SET API_DEEPL_AUTH_KEY=
+SET API_DEEPL_API_URL=https://api.deepl.com/v2/translate
+SET API_DB_HOST=localhost
+SET API_DB_NAME=zaplog
+SET API_DB_USER=root
+SET API_DB_PASSWORD=
+SET API_MAIL_HOST=in-v3.mailjet.com
+SET API_MAIL_LOGIN=
+SET API_MAIL_PASSWORD=
+SET API_MAIL_PORT=587
+SET API_MAIL_SENDER_EMAIL=
+SET API_MAIL_SENDER_NAME=Zaplog
+
+PHP -S localhost:8080
+
+ENDLOCAL
