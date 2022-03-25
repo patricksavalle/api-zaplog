@@ -1,7 +1,7 @@
 FROM php:8.0.13-apache
 
 RUN apt-get update && \
-    apt-get install -y libz-dev libmemcached-dev apt-utils git unzip libzip-dev && \
+    apt-get install -y libz-dev apt-utils git unzip libzip-dev && \
     docker-php-ext-install zip pdo pdo_mysql && \
     apt-get clean && \ 
     rm -rf /var/lib/apt/lists/*
@@ -15,8 +15,8 @@ RUN chmod +x /usr/local/bin/install-php-extensions && \
 WORKDIR /var/www/html/
 
 COPY php.ini /usr/local/etc/php/php.ini
-RUN mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini" && \
-    echo "apc.shm_size=64M" >> "$PHP_INI_DIR/php.ini"
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" && \
+    echo "apc.shm_size=24M" >> "$PHP_INI_DIR/php.ini"
 
 COPY . /var/www/html/
 COPY slim-rest-api.ini.docker /var/www/html/slim-rest-api.ini
