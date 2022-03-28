@@ -1,24 +1,21 @@
-image: docker:18-git
+image: docker
 
 services:
-  - docker:18.09-dind
+  - docker:dind
 
 stages:
-  - compliance
   - build
   - deploy
-  - update
- # - release
- # - deploy
+
+before_script:
+  - 'which ssh-agent || ( apt-get install -qq openssh-client )'
+  - eval $(ssh-agent -s)
+  - ssh-add <(echo "$SSH_PRIVATE_KEY")
+  - mkdir -p ~/.ssh
+  - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
 
 variables:
-  DOCKER_DRIVER: overlay2
   CONTAINER_TEST_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-  CONTAINER_RELEASE_IMAGE: $CI_REGISTRY_IMAGE:latest
-  DOCKER_TLS_CERTDIR: ""
-  PROD_SERVER_IP: zaplog.pro
-  PROD_SERVER_USER: owner
-  PROD_IMAGE_APP_TAG: registry.gitlab.com/zaplog/api-zaplog:master
 
 build-docker:
   stage: build
@@ -33,32 +30,25 @@ build-docker:
   only:
     - master
 
-deploy-to-prod-api:
+deploy-to-zaplog-dev:
+  environment:
+    name: '$ENVIRONMENT_NAME_ZAPLOG_DEV'
+    url: '$ENVIRONMENT_URL_ZAPLOG_DEV'
   stage: deploy
   image: alpine
-  before_script:
-    - apk add openssh-client
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PROD_ZAPLOG" | tr -d '\r' | ssh-add - > /dev/null
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
   script:
-    - ssh -o StrictHostKeyChecking=no $SSH_USER@$PROD_SERVER_IP "cd $DOCKER_PATH && docker-compose pull && docker-compose down && docker-compose up -d"
-    - echo All DONE
+    - ssh $SSH_USER@$SSH_HOST "cd $APP_FOLDER && docker-compose pull && docker-compose up -d"
   only:
     - master
 
-
-execute_sql:
-  stage: update
-  only:
-    changes:
-      - datamodel_change.sql
-  before_script:
-    - apk add openssh-client
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PROD_ZAPLOG" | tr -d '\r' | ssh-add - > /dev/null
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
+deploy-to-zaplog-prod:
+  environment:
+    name: '$ENVIRONMENT_NAME_ZAPLOG_PROD'
+    url: '$ENVIRONMENT_URL_ZAPLOG_PROD'
+  stage: deploy
+  image: alpine
   script:
-    - ssh -o StrictHostKeyChecking=no $SSH_USER@$PROD_SERVER_IP "cd $DOCKER_PATH && ./execute.sh"
+    - ssh $SSH_USER@$SSH_HOST "cd $APP_FOLDER && docker-compose pull && docker-compose up -d"
+  only:
+    - master
+  when: manual
