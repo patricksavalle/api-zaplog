@@ -7,13 +7,6 @@ stages:
   - build
   - deploy
 
-before_script:
-  - 'which ssh-agent || ( apt-get install -qq openssh-client )'
-  - eval $(ssh-agent -s)
-  - ssh-add <(echo "$SSH_PRIVATE_KEY")
-  - mkdir -p ~/.ssh
-  - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
-
 variables:
   CONTAINER_TEST_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
 
@@ -36,6 +29,12 @@ deploy-to-zaplog-dev:
     url: '$ENVIRONMENT_URL_ZAPLOG_DEV'
   stage: deploy
   image: alpine
+  before_script:
+    - 'which ssh-agent || ( apt-get install -qq openssh-client )'
+    - eval $(ssh-agent -s)
+    - ssh-add <(echo "$SSH_PRIVATE_KEY")
+    - mkdir -p ~/.ssh
+    - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
   script:
     - ssh $SSH_USER@$SSH_HOST "cd $APP_FOLDER && docker-compose pull && docker-compose up -d"
   only:
@@ -47,6 +46,12 @@ deploy-to-zaplog-prod:
     url: '$ENVIRONMENT_URL_ZAPLOG_PROD'
   stage: deploy
   image: alpine
+  before_script:
+    - 'which ssh-agent || ( apt-get install -qq openssh-client )'
+    - eval $(ssh-agent -s)
+    - ssh-add <(echo "$SSH_PRIVATE_KEY")
+    - mkdir -p ~/.ssh
+    - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
   script:
     - ssh $SSH_USER@$SSH_HOST "cd $APP_FOLDER && docker-compose pull && docker-compose up -d"
   only:
