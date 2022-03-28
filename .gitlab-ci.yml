@@ -28,7 +28,6 @@ deploy-to-zaplog-dev:
     name: '$ENVIRONMENT_NAME_ZAPLOG_DEV'
     url: '$ENVIRONMENT_URL_ZAPLOG_DEV'
   stage: deploy
-  image: alpine
   before_script:
     - 'which ssh-agent || ( apt-get install -qq openssh-client )'
     - eval $(ssh-agent -s)
@@ -45,7 +44,6 @@ deploy-to-zaplog-prod:
     name: '$ENVIRONMENT_NAME_ZAPLOG_PROD'
     url: '$ENVIRONMENT_URL_ZAPLOG_PROD'
   stage: deploy
-  image: alpine
   before_script:
     - 'which ssh-agent || ( apt-get install -qq openssh-client )'
     - eval $(ssh-agent -s)
