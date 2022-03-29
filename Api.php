@@ -68,10 +68,6 @@ class Api extends SlimRestApi
                 Authentication::createSession("dummy@dummy.dummy");
                 // Reset admin email from ini
                 Db::execute("UPDATE channels SET userid=IF(LENGTH(userid)=0,MD5(:email),userid) WHERE id=1", [":email" => Ini::get("email_admin")]);
-                // Make sure scheduler is running
-                Db::execute("SET GLOBAL event_scheduler = ON");
-                // No locking
-                Db::execute("SET GLOBAL TRANSACTION ISOLATION LEVEL READ UNCOMMITTED");
 
                 echo "<p>Repository: https://gitlab.com/zaplog/api-zaplog</p>";
                 echo "<p>Manual: https://gitlab.com/zaplog/api-zaplog/-/wikis/Zaplog-manual</p>";
