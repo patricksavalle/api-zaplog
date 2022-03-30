@@ -278,16 +278,16 @@
         },
         {
             "name": "jfcherng/php-diff",
-            "version": "6.11.3",
+            "version": "6.11.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jfcherng/php-diff.git",
-                "reference": "cac1690253050f101f3710a07d744b36695973dd"
+                "reference": "4ce13e9ad2acc02a75753ba6fa50fce33e03dd97"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jfcherng/php-diff/zipball/cac1690253050f101f3710a07d744b36695973dd",
-                "reference": "cac1690253050f101f3710a07d744b36695973dd",
+                "url": "https://api.github.com/repos/jfcherng/php-diff/zipball/4ce13e9ad2acc02a75753ba6fa50fce33e03dd97",
+                "reference": "4ce13e9ad2acc02a75753ba6fa50fce33e03dd97",
                 "shasum": ""
             },
             "require": {
@@ -332,7 +332,7 @@
             ],
             "support": {
                 "issues": "https://github.com/jfcherng/php-diff/issues",
-                "source": "https://github.com/jfcherng/php-diff/tree/6.11.3"
+                "source": "https://github.com/jfcherng/php-diff/tree/6.11.4"
             },
             "funding": [
                 {
@@ -340,7 +340,7 @@
                     "type": "custom"
                 }
             ],
-            "time": "2022-02-28T16:23:03+00:00"
+            "time": "2022-03-07T11:24:32+00:00"
         },
         {
             "name": "jfcherng/php-mb-string",
@@ -852,12 +852,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/patricksavalle/slim-rest-api.git",
-                "reference": "05f6a3ac45feacd3d655a9dc3fe461d127fd6d26"
+                "reference": "d2bd75a99e74ee8c93cd65045647c43013040067"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/patricksavalle/slim-rest-api/zipball/05f6a3ac45feacd3d655a9dc3fe461d127fd6d26",
-                "reference": "05f6a3ac45feacd3d655a9dc3fe461d127fd6d26",
+                "url": "https://api.github.com/repos/patricksavalle/slim-rest-api/zipball/d2bd75a99e74ee8c93cd65045647c43013040067",
+                "reference": "d2bd75a99e74ee8c93cd65045647c43013040067",
                 "shasum": ""
             },
             "require": {
@@ -905,7 +905,7 @@
                 "issues": "https://github.com/patricksavalle/slim-rest-api/issues",
                 "source": "https://github.com/patricksavalle/slim-rest-api/tree/master"
             },
-            "time": "2022-02-10T18:08:46+00:00"
+            "time": "2022-03-30T09:33:07+00:00"
         },
         {
             "name": "pavlakis/slim-cli",
