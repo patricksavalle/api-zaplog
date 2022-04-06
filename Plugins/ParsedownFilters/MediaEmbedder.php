@@ -56,6 +56,10 @@ namespace Zaplog\Plugins\ParsedownFilters {
                 if (preg_match("/.*sendvid\.com\/([a-zA-Z0-9_-]+)/", $url, $matches) === 1) {
                     return ["https://sendvid.com/embed/$matches[1]/", "sendvid video"];
                 }
+                // https://disk.yandex.ru/i/rONqsTtOe1aTaQ
+                if (preg_match("/.*yandex\.ru\/i\/([a-zA-Z0-9_-]+)/", $url, $matches) === 1) {
+                    return ["https://frontend.vh.yandex.ru/player/$matches[1]/", "yandex video"];
+                }
                 return null;
             };
 
