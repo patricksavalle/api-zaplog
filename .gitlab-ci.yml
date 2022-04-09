@@ -39,6 +39,22 @@ deploy-to-zaplog-dev:
   only:
     - master
 
+deploy-to-mindmeld-prod:
+  environment:
+    name: '$ENVIRONMENT_NAME_MINDMELD_PROD'
+    url: '$ENVIRONMENT_URL_MINDMELD_PROD'
+  stage: deploy
+  before_script:
+    - 'which ssh-agent || ( apt-get install -qq openssh-client )'
+    - eval $(ssh-agent -s)
+    - ssh-add <(echo "$SSH_PRIVATE_KEY")
+    - mkdir -p ~/.ssh
+    - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+  script:
+    - ssh $SSH_USER@$SSH_HOST "cd $APP_FOLDER && docker-compose pull && docker-compose up -d"
+  only:
+    - master
+
 deploy-to-zaplog-prod:
   environment:
     name: '$ENVIRONMENT_NAME_ZAPLOG_PROD'
