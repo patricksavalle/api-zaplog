@@ -88,6 +88,22 @@ class Api extends SlimRestApi
                 return $rp;
             });
 
+            $this->get("/update", function ($rq, $rp, $args): Response {
+
+                $links = Db::fetchAll("SELECT title,id FROM links");
+                $i = 0;
+                foreach ($links as $link) {
+                    print_r( $i++);
+                    $old_title = $link->title;
+                    $new_title = html_entity_decode($old_title, ENT_QUOTES | ENT_XML1, 'UTF-8');
+                    if ($old_title !== $new_title) {
+                        Db::execute("UPDATE links SET title=:title WHERE id=ïd", [":title" => $new_title, ":id" => $link->id ]);
+                    }
+                }
+
+                return $rp;
+            });
+
             // ------------------------------------------
             // redirect to original or else archived page
             // ------------------------------------------
