@@ -370,6 +370,7 @@ namespace Zaplog\Library {
         {
             (new UserException("Empty markdown"))(!empty($link->markdown));
             (new UserException("Markdown exceeds 100k chars"))(strlen($link->markdown) < 100000);
+            assert(mb_check_encoding($link->markdown, 'UTF-8'));
         }
 
         // ----------------------------------------------------------
@@ -382,7 +383,7 @@ namespace Zaplog\Library {
             if (empty($title)) {
                 $link->title = self::$empty_title;
             } else {
-                $link->title = (string)(new Text(str_replace('"', "'", $title)))->stripTags()->reEncode();
+                $link->title = (string)(new Text(str_replace('"', "'", $title)))->stripTags();
                 (new UserException("Title too short"))(strlen($link->title) > 3);
                 (new UserException("Title too long"))(strlen($link->title) < 256);
             }
@@ -457,7 +458,6 @@ namespace Zaplog\Library {
         {
             // render article text
             $link->xtext = (string)(new Text($link->markdown))->parseDown(new ParsedownFilter);
-            assert(mb_check_encoding($link->xtext, 'UTF-8'));
             $link->description = (string)(new Text($link->xtext))->blurbify();
         }
 
