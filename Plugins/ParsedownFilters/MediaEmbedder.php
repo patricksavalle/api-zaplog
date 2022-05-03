@@ -7,6 +7,7 @@ namespace Zaplog\Plugins\ParsedownFilters {
     use ContentSyndication\HtmlMetadata;
     use ContentSyndication\Text;
     use Exception;
+    use Zaplog\Exception\UserException;
     use Zaplog\Plugins\AbstractParsedownFilter;
 
     // To avoid copyright claims we must:
@@ -83,7 +84,7 @@ namespace Zaplog\Plugins\ParsedownFilters {
                                 "title" => html_entity_decode($metadata['title'] ?? ""),
                                 "src" => $embedurl,
                                 // "class" => in_array($element['text'] ?? "", ["video", "video large", "video wide"]) ? $element['text'] : "video"
-                                "class" => "video"
+                                "class" => "video",
                             ],
                         ];
                     }
@@ -97,25 +98,15 @@ namespace Zaplog\Plugins\ParsedownFilters {
                                 "title" => html_entity_decode($metadata['title'] ?? ""),
                                 "src" => $metadata['image'],
                                 // "class" => in_array($element['text'] ?? "", ["image small", "image", "image large", "image wide"]) ? $element['text'] : "image",
-                                "class" => "image"
+                                "class" => "image",
                             ],
                         ];
                     }
 
                 } catch (Exception $e) {
-                    error_log(__METHOD__ . $e->getMessage());
-                    // ignore
+                    throw new UserException("Invalid media source: " . $element['attributes']['src']);
                 }
 
-                // block normal <img> elements to avoid copyright claims, translate into links
-                return [
-                    "name" => "a",
-                    "text" => "<< error >> (our Markdown requires valid webpage links, not image links, see manual)",
-                    "attributes" => [
-                        "class" => "blocked-image-link",
-                        "href" => $element['attributes']['src'],
-                    ],
-                ];
             }
             return $element;
         }

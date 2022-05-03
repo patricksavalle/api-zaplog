@@ -458,7 +458,7 @@ namespace Zaplog\Library {
         {
             // render article text
             $link->xtext = (string)(new Text($link->markdown))->parseDown(new ParsedownFilter);
-            $link->description = (string)(new Text($link->xtext))->blurbify();
+            $link->description = (string)(new Text($link->xtext))->stripTags()->blurbify();
         }
 
         // ----------------------------------------------------------
@@ -696,8 +696,8 @@ namespace Zaplog\Library {
 
         static public function previewReaction(stdClass $reaction): stdClass
         {
-            $reaction->xtext = (string)(new Text($reaction->markdown))->stripTags()->parseDown(new ParsedownFilter);
-            $reaction->description = (string)(new Text($reaction->xtext))->blurbify();
+            $reaction->xtext = (string)(new Text($reaction->markdown))->parseDown(new ParsedownFilter);
+            $reaction->description = (string)(new Text($reaction->xtext))->stripTags()->blurbify();
             return $reaction;
         }
 
@@ -763,13 +763,6 @@ namespace Zaplog\Library {
             // parse tags from result
             foreach (explode(",", $link->tags ?? "") as $tag) $tags[] = ["tag" => $tag];
             unset($link->tags);
-
-            // JIT parsing this allows us to set all xtext to null (in case of new plugins for instance)
-            if (empty($link->xtext)) {
-                self::parseMarkdown($link);
-                Db::execute("UPDATE links SET xtext=:xtext, description=:description WHERE id=:id",
-                    [":xtext" => $link->xtext, ":description" => $link->description, ":id" => $link->id]);
-            }
 
             return [
                 "link" => $link,
