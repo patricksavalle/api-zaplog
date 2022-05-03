@@ -582,7 +582,7 @@ namespace Zaplog\Library {
                 $sqlparams[":id"] = $link->id;
 
                 // create diff as reaction
-                // self::generateDiff($link);
+                self::generateDiff($link);
 
                 // save new version
                 (new UserException("Unchanged"))(Db::execute(

@@ -20,8 +20,8 @@
       <excludeFolder url="file://$MODULE_DIR$/vendor/jfcherng/php-color-output" />
       <excludeFolder url="file://$MODULE_DIR$/vendor/jfcherng/php-sequence-matcher" />
       <excludeFolder url="file://$MODULE_DIR$/vendor/jfcherng/php-mb-string" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/jfcherng/php-diff" />
       <excludeFolder url="file://$MODULE_DIR$/vendor/landrok/language-detector" />
+      <excludeFolder url="file://$MODULE_DIR$/vendor/jfcherng/php-diff" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

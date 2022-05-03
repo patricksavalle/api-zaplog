@@ -278,26 +278,26 @@
         },
         {
             "name": "jfcherng/php-diff",
-            "version": "6.11.4",
+            "version": "6.11.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jfcherng/php-diff.git",
-                "reference": "4ce13e9ad2acc02a75753ba6fa50fce33e03dd97"
+                "reference": "35cb452d74f00247e4440b0824b100242edd99c1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jfcherng/php-diff/zipball/4ce13e9ad2acc02a75753ba6fa50fce33e03dd97",
-                "reference": "4ce13e9ad2acc02a75753ba6fa50fce33e03dd97",
+                "url": "https://api.github.com/repos/jfcherng/php-diff/zipball/35cb452d74f00247e4440b0824b100242edd99c1",
+                "reference": "35cb452d74f00247e4440b0824b100242edd99c1",
                 "shasum": ""
             },
             "require": {
                 "jfcherng/php-color-output": "^3",
-                "jfcherng/php-mb-string": "^1.4.5",
+                "jfcherng/php-mb-string": "^1.4.6",
                 "jfcherng/php-sequence-matcher": "^3.2.8",
                 "php": ">=7.4"
             },
             "require-dev": {
-                "friendsofphp/php-cs-fixer": "^3",
+                "friendsofphp/php-cs-fixer": "^3.8",
                 "liip/rmt": "^1.6",
                 "phan/phan": "^5",
                 "phpunit/phpunit": "^9",
@@ -332,7 +332,7 @@
             ],
             "support": {
                 "issues": "https://github.com/jfcherng/php-diff/issues",
-                "source": "https://github.com/jfcherng/php-diff/tree/6.11.4"
+                "source": "https://github.com/jfcherng/php-diff/tree/6.11.5"
             },
             "funding": [
                 {
@@ -340,20 +340,20 @@
                     "type": "custom"
                 }
             ],
-            "time": "2022-03-07T11:24:32+00:00"
+            "time": "2022-04-02T16:35:25+00:00"
         },
         {
             "name": "jfcherng/php-mb-string",
-            "version": "1.4.5",
+            "version": "1.4.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jfcherng/php-mb-string.git",
-                "reference": "2f11315c2deda1f064667f653adde155bc45db5c"
+                "reference": "f5b438d348e030961e0b86a04ef2319c31ae8146"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jfcherng/php-mb-string/zipball/2f11315c2deda1f064667f653adde155bc45db5c",
-                "reference": "2f11315c2deda1f064667f653adde155bc45db5c",
+                "url": "https://api.github.com/repos/jfcherng/php-mb-string/zipball/f5b438d348e030961e0b86a04ef2319c31ae8146",
+                "reference": "f5b438d348e030961e0b86a04ef2319c31ae8146",
                 "shasum": ""
             },
             "require": {
@@ -384,7 +384,7 @@
             "description": "A high performance multibytes sting implementation for frequently reading/writing operations.",
             "support": {
                 "issues": "https://github.com/jfcherng/php-mb-string/issues",
-                "source": "https://github.com/jfcherng/php-mb-string/tree/1.4.5"
+                "source": "https://github.com/jfcherng/php-mb-string/tree/1.4.6"
             },
             "funding": [
                 {
@@ -392,7 +392,7 @@
                     "type": "custom"
                 }
             ],
-            "time": "2022-02-21T05:41:49+00:00"
+            "time": "2022-04-02T16:32:41+00:00"
         },
         {
             "name": "jfcherng/php-sequence-matcher",
@@ -739,12 +739,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/patricksavalle/php-content-syndication.git",
-                "reference": "ac79ff3a7b1b1dd1a7d69ed104221706245c6cc8"
+                "reference": "a66e5c31ae02b19a3ca92231eb913564c57c7d66"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/patricksavalle/php-content-syndication/zipball/ac79ff3a7b1b1dd1a7d69ed104221706245c6cc8",
-                "reference": "ac79ff3a7b1b1dd1a7d69ed104221706245c6cc8",
+                "url": "https://api.github.com/repos/patricksavalle/php-content-syndication/zipball/a66e5c31ae02b19a3ca92231eb913564c57c7d66",
+                "reference": "a66e5c31ae02b19a3ca92231eb913564c57c7d66",
                 "shasum": ""
             },
             "require": {
@@ -790,7 +790,7 @@
                 "issues": "https://github.com/patricksavalle/php-content-syndication/issues",
                 "source": "https://github.com/patricksavalle/php-content-syndication/tree/master"
             },
-            "time": "2022-03-05T11:02:35+00:00"
+            "time": "2022-05-03T17:47:05+00:00"
         },
         {
             "name": "patricksavalle/slim-request-params",
