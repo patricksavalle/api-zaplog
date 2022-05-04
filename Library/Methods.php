@@ -502,11 +502,6 @@ namespace Zaplog\Library {
             if (strcmp($old->copyright, $new->copyright) !== 0) {
                 $xtext .= "<p><em>copyright changed: </em><del>$old->copyright</del><ins>$new->copyright</ins></p>";
             }
-            if (($changes = $diff($old->title, $new->title)) !== "") {
-                if (strlen(strip_tags($changes)) > 0) {
-                    $xtext .= "<p><em>title changed: </em>" . $changes . "</p>";
-                }
-            }
             if (($changes = $diff(strip_tags($old->xtext), strip_tags($new->xtext))) !== "") {
                 if (strlen(strip_tags($changes)) > 0) {
                     $xtext .= "<p><em>text changed: </em>" . $changes . "</p>";
