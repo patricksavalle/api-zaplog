@@ -34,14 +34,26 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function createSession(string $userid, ?string $markdown): array
+        static public function createSession(string $email, ?string $markdown = null): array
         {
-            $session = Authentication::createSession($userid);
-            if (!empty($markdown) and strlen(trim($markdown))>0) {
+            $session = Authentication::createSession($email);
+            if (!empty($markdown) and strlen(trim($markdown)) > 0) {
                 $link = new stdClass;
                 $link->markdown = $markdown;
                 self::postLink($link, $session['channel']);
             }
+            return $session;
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function createMemberSession(string $email, int $channelid): array
+        {
+            $session = self::createSession($email);
+            Db::execute("INSERT INTO members(channelid,memberid) VALUES (:channelid,:memberid)",
+                [":channelid" => $channelid, ":memberid" => $session['channel']->id]);
             return $session;
         }
 
@@ -327,12 +339,17 @@ namespace Zaplog\Library {
                 return (int)Db::fetchAll("SELECT SUM(viewscount) AS count FROM links WHERE channelid=:channelid", [":channelid" => $id], 60 * 60)[0]->count;
             };
 
+            $memberships = function (int $id): array {
+                return Db::fetchAll("SELECT name FROM channels JOIN channelmembers ON channelmembers.memberid=channels.id WHERE memberid=:id", [":id" => $id]);
+            };
+
             $channel = (new ResourceNotFoundException("Channel $name not found"))(Db::fetch("SELECT * FROM channels WHERE name=:id", [":id" => $name]));
             $tags = $tags($channel->id);
             return [
                 "channel" => $channel,
                 "tags" => $tags,
                 "related" => $related($channel->id, array_column($tags, "tag")),
+                "memberships" => $memberships($channel->id),
                 "views" => $views($channel->id),
             ];
         }
@@ -562,13 +579,14 @@ namespace Zaplog\Library {
                 ":language" => $link->language,
                 ":orig_language" => $link->orig_language,
                 ":copyright" => $link->copyright,
+                ":membersonly" => $link->membersonly,
             ];
 
             if (empty($link->id)) {
 
                 (new ServerException)(Db::execute(
-                        "INSERT INTO links(channelid, title, markdown, xtext, description, image, language, orig_language, copyright, published)
-                        VALUES (:channelid, :title, :markdown, :xtext, :description, :image, :language, :orig_language, :copyright, FALSE)",
+                        "INSERT INTO links(channelid, title, markdown, xtext, description, image, language, orig_language, copyright, published, membersonly)
+                        VALUES (:channelid, :title, :markdown, :xtext, :description, :image, :language, :orig_language, :copyright, FALSE, :membersonly)",
                         $sqlparams)->rowCount() > 0);
                 $link->id = (int)Db::lastInsertId();
 
@@ -589,7 +607,8 @@ namespace Zaplog\Library {
                         image=:image, 
                         language=:language, 
                         orig_language=IFNULL(orig_language,:orig_language), 
-                        copyright=:copyright
+                        copyright=:copyright,
+                        membersonly=:membersonly
                     WHERE id=:id AND channelid=:channelid", $sqlparams)->rowCount() >= 0);
             }
 
@@ -724,7 +743,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function getSingleLink(string $id): array
+        static public function getSingleLink(int $id, ?int $userid = null, ?int $userchannelid = null): array
         {
             $channel = function (int $id): stdClass {
                 return Db::fetchAll("SELECT * FROM channels WHERE id=:id", [":id" => $id], 60)[0];
@@ -732,7 +751,7 @@ namespace Zaplog\Library {
 
             $tags = [];
 
-            $related = function (string $id, int $cachettl): array {
+            $related = function (int $id, int $cachettl): array {
                 return Db::fetchAll("SELECT links.id, links.description, links.createdatetime, links.channelid, links.title, links.image
                     FROM links JOIN tags ON tags.linkid=links.id AND links.id<>:id1
                     WHERE tag IN (SELECT tag FROM tags WHERE linkid=:id2) AND published=TRUE
@@ -740,7 +759,7 @@ namespace Zaplog\Library {
                     [":id1" => $id, ":id2" => $id], $cachettl);
             };
 
-            $interactors = function (string $id): array {
+            $interactors = function (int $id): array {
                 // never cache this query!
                 return Db::fetchAll("SELECT c.id, c.name, c.avatar, GROUP_CONCAT(action) AS interactions FROM channels AS c JOIN
                     (
@@ -752,7 +771,7 @@ namespace Zaplog\Library {
             };
 
             // update view counter and get complete article in a single Db call
-            $link = Db::fetch("CALL select_link(:id)", [":id" => $id]);
+            $link = Db::fetch("CALL select_link(:id,:userid,:userchannelid)", [":id" => $id, ":userid" => $userid, ":userchannelid" => $userchannelid]);
             (new ResourceNotFoundException("Invalid id"))(!empty($link->id));
 
             // parse tags from result

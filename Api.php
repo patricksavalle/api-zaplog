@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Zaplog;
 
-define("VERSION", "v1.7");
+define("VERSION", "v1.8");
 
 define("BASE_PATH", __DIR__);
 
@@ -91,11 +91,10 @@ class Api extends SlimRestApi
             $this->get("/convert", function ($rq, $rp, $args): Response {
 
                 $links = Db::fetchAll("SELECT title,id FROM links");
-                $i = 0;
                 foreach ($links as $link) {
                     $new_title = html_entity_decode($link->title, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML401, 'UTF-8');
                     if ($link->title !== $new_title) {
-                        Db::execute("UPDATE links SET title=:title WHERE id=:id", [":title" => $new_title, ":id" => $link->id ]);
+                        Db::execute("UPDATE links SET title=:title WHERE id=:id", [":title" => $new_title, ":id" => $link->id]);
                     }
                 }
 
@@ -412,6 +411,78 @@ class Api extends SlimRestApi
                     ->add(new QueryParameters(['{count:\int},10']))
                     ->add(new Cacheable(60/*sec*/));
 
+                // ----------------------------------------------------------------
+                // Return channel members
+                // ----------------------------------------------------------------
+
+                $this->get("/members", function (
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
+                    assert($args->count < 100);
+                    return self::response($request, $response, $args,
+                        Db::fetchAll("SELECT name FROM channels JOIN channelmembers ON channelmembers.channelid=channels.id WHERE channelid=:id",
+                            [":id" => Authentication::getSession()->channelid]));
+                })
+                    ->add(new NoStore)
+                    ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20',]))
+                    ->add(new Authentication);
+
+                // ----------------------------------------------------------------
+                // Attach a member to a channel, through email 2FA
+                // ----------------------------------------------------------------
+
+                $this->post("/members", function (
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
+                    (new DoublePostProtection)($args, 20);
+                    (new TwoFactorAction)
+                        ->addAction('Library/Methods.php', ['\Zaplog\Library\Methods', 'createMemberSession'], [$args->email, Authentication::getSession()->id])
+                        ->createToken()
+                        ->sendToken($args->email, $args->subject, $args->template, $args);
+                    return self::response($request, $response, $args, true);
+                })
+                    ->add(new NoStore)
+                    ->add(new QueryParameters([]))
+                    ->add(new BodyParameters([
+                        '{email:\email}',
+                        '{subject:.{10,100}},Bevestig jouw channel lidmaatschap!',
+                        '{template:\url},Content/nl.login.html',
+                        '{*}' /* all {{variables}} used in template */]))
+                    ->add(new Authentication);
+
+                // ----------------------------------------------------------------
+                // Revokes authenticated-channels' membership from a channel
+                // ----------------------------------------------------------------
+
+                $this->delete("/memberships/{channelid:[\w-]{3,55}}", function (
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
+                    return self::response($request, $response, $args, (new UserException("Membership not found: " . $args->channelid))(
+                            Db::execute("DELETE FROM members WHERE channelid=(SELECT id FROM channels WHERE name=:channelid) AND memberid=:memberid",
+                                [":memberid" => Authentication::getSession()->id, ":channelid" => $args->channelid]))->rowCount() > 0);
+                })
+                    ->add(new NoStore)
+                    ->add(new QueryParameters([]))
+                    ->add(new Authentication);
+
+                // ----------------------------------------------------------------
+                // Revokes authenticated-channels' membership from a channel
+                // ----------------------------------------------------------------
+
+                $this->delete("/members/{memberid:[\w-]{3,55}}", function (
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
+                    return self::response($request, $response, $args, (new UserException("Membership not found: " . $args->channelid))(
+                            Db::execute("DELETE FROM members WHERE channelid=:channelid AND memberid=(SELECT id FROM channels WHERE name=:memberid1 OR userid=MD5(:memberid2))",
+                                [":channelid" => Authentication::getSession()->channelid, ":memberid1" => $args->memberid, ":memberid2" => $args->memberid]))->rowCount() > 0);
+                })
+                    ->add(new NoStore)
+                    ->add(new QueryParameters([]))
+                    ->add(new Authentication);
             });
 
             $this->group('/links', function () {
@@ -434,6 +505,7 @@ class Api extends SlimRestApi
                         '{id:\d+},null',    // empty will create new post (id is returned)
                         '{markdown:\raw}',
                         '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))},Some Rights Reserved (CC BY-SA 4.0)',
+                        '{membersonly:\boolean},false',
                         '{tags[]:.{0,40}},null']))
                     ->add(new Authentication);
 
@@ -446,7 +518,7 @@ class Api extends SlimRestApi
                     Response $response,
                     stdClass $link): Response {
                     $channelid = Authentication::getSession()->id;
-                    return self::response($request, $response, $link, Methods::publishLink((int)$link->id, $channelid,(bool)$link->reactionsallowed));
+                    return self::response($request, $response, $link, Methods::publishLink((int)$link->id, $channelid, (bool)$link->reactionsallowed));
                 })
                     ->add(new NoStore)
                     ->add(new QueryParameters(['{reactionsallowed:\boolean},1']))
@@ -460,7 +532,7 @@ class Api extends SlimRestApi
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, Methods::getSingleLink($args->id));
+                    return self::response($request, $response, $args, Methods::getSingleLink((int)$args->id));
                 })
                     ->add(new NoCache)
                     ->add(new QueryParameters(['{http_referer:\url},null']));
