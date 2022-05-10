@@ -52,7 +52,7 @@ namespace Zaplog\Library {
         static public function createMemberSession(string $email, int $channelid): array
         {
             $session = self::createSession($email);
-            Db::execute("INSERT INTO members(channelid,memberid) VALUES (:channelid,:memberid)",
+            Db::execute("INSERT INTO channelmembers(channelid,memberid) VALUES (:channelid,:memberid)",
                 [":channelid" => $channelid, ":memberid" => $session['channel']->id]);
             return $session;
         }
@@ -579,7 +579,7 @@ namespace Zaplog\Library {
                 ":language" => $link->language,
                 ":orig_language" => $link->orig_language,
                 ":copyright" => $link->copyright,
-                ":membersonly" => $link->membersonly,
+                ":membersonly" => false,
             ];
 
             if (empty($link->id)) {
@@ -600,16 +600,16 @@ namespace Zaplog\Library {
                 // save new version
                 (new UserException("Unchanged"))(Db::execute(
                         "UPDATE links SET
-                        title=:title,
-                        markdown=:markdown, 
-                        xtext=:xtext,
-                        description=:description,
-                        image=:image, 
-                        language=:language, 
-                        orig_language=IFNULL(orig_language,:orig_language), 
-                        copyright=:copyright,
-                        membersonly=:membersonly
-                    WHERE id=:id AND channelid=:channelid", $sqlparams)->rowCount() >= 0);
+                            title=:title,
+                            markdown=:markdown, 
+                            xtext=:xtext,
+                            description=:description,
+                            image=:image, 
+                            language=:language, 
+                            orig_language=IFNULL(orig_language,:orig_language), 
+                            copyright=:copyright,
+                            membersonly=:membersonly
+                        WHERE id=:id AND channelid=:channelid", $sqlparams)->rowCount() >= 0);
             }
 
             // insert tags
@@ -743,7 +743,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function getSingleLink(int $id, ?int $userid = null, ?int $userchannelid = null): array
+        static public function getSingleLink(int $id, ?int $channelid = null): array
         {
             $channel = function (int $id): stdClass {
                 return Db::fetchAll("SELECT * FROM channels WHERE id=:id", [":id" => $id], 60)[0];
@@ -771,7 +771,7 @@ namespace Zaplog\Library {
             };
 
             // update view counter and get complete article in a single Db call
-            $link = Db::fetch("CALL select_link(:id,:userid,:userchannelid)", [":id" => $id, ":userid" => $userid, ":userchannelid" => $userchannelid]);
+            $link = Db::fetch("CALL select_link(:id,:channelid)", [":id" => $id, ":channelid" => $channelid]);
             (new ResourceNotFoundException("Invalid id"))(!empty($link->id));
 
             // parse tags from result
