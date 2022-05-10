@@ -421,8 +421,8 @@ class Api extends SlimRestApi
                     stdClass $args): Response {
                     assert($args->count < 100);
                     return self::response($request, $response, $args,
-                        Db::fetchAll("SELECT name FROM channels JOIN channelmembers ON channelmembers.channelid=channels.id WHERE channelid=:id",
-                            [":id" => Authentication::getSession()->channelid]));
+                        Db::fetchAll("SELECT name,avatar,channelmembers.createdatetime,reputation FROM channels JOIN channelmembers ON channelmembers.channelid=channels.id WHERE channelid=:id",
+                            [":id" => Authentication::getSession()->id]));
                 })
                     ->add(new NoStore)
                     ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20',]))
@@ -461,7 +461,7 @@ class Api extends SlimRestApi
                     Response $response,
                     stdClass $args): Response {
                     return self::response($request, $response, $args, (new UserException("Membership not found: " . $args->channelid))(
-                            Db::execute("DELETE FROM members WHERE channelid=(SELECT id FROM channels WHERE name=:channelid) AND memberid=:memberid",
+                            Db::execute("DELETE FROM channelmembers WHERE channelid=(SELECT id FROM channels WHERE name=:channelid) AND memberid=:memberid",
                                 [":memberid" => Authentication::getSession()->id, ":channelid" => $args->channelid]))->rowCount() > 0);
                 })
                     ->add(new NoStore)
@@ -478,7 +478,7 @@ class Api extends SlimRestApi
                     stdClass $args): Response {
                     return self::response($request, $response, $args, (new UserException("Membership not found: " . $args->channelid))(
                             Db::execute("DELETE FROM members WHERE channelid=:channelid AND memberid=(SELECT id FROM channels WHERE name=:memberid1 OR userid=MD5(:memberid2))",
-                                [":channelid" => Authentication::getSession()->channelid, ":memberid1" => $args->memberid, ":memberid2" => $args->memberid]))->rowCount() > 0);
+                                [":channelid" => Authentication::getSession()->id, ":memberid1" => $args->memberid, ":memberid2" => $args->memberid]))->rowCount() > 0);
                 })
                     ->add(new NoStore)
                     ->add(new QueryParameters([]))
