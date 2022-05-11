@@ -30,6 +30,7 @@ use SlimRestApi\Middleware\NoCache;
 use SlimRestApi\Middleware\NoStore;
 use SlimRestApi\SlimRestApi;
 use stdClass;
+use Zaplog\Exception\ResourceNotFoundException;
 use Zaplog\Exception\UserException;
 use Zaplog\Library\DoublePostProtection;
 use Zaplog\Library\Methods;
@@ -461,7 +462,7 @@ class Api extends SlimRestApi
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, (new UserException("Membership not found: " . $args->channelid, 404))(
+                    return self::response($request, $response, $args, (new ResourceNotFoundException("Membership not found: " . $args->channelid))(
                             Db::execute("DELETE FROM channelmembers WHERE channelid=(SELECT id FROM channels WHERE name=:channelid) AND memberid=:memberid",
                                 [":memberid" => Authentication::getSession()->id, ":channelid" => $args->channelid]))->rowCount() > 0);
                 })
@@ -477,7 +478,7 @@ class Api extends SlimRestApi
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, (new UserException("Membership not found: " . $args->memberid, 404))(
+                    return self::response($request, $response, $args, (new ResourceNotFoundException("Membership not found: " . $args->memberid))(
                             Db::execute("DELETE FROM channelmembers WHERE channelid=:channelid AND memberid=(SELECT id FROM channels WHERE name=:memberid1 OR userid=MD5(:memberid2))",
                                 [":channelid" => Authentication::getSession()->id, ":memberid1" => $args->memberid, ":memberid2" => $args->memberid]))->rowCount() > 0);
                 })

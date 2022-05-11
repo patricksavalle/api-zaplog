@@ -771,8 +771,16 @@ namespace Zaplog\Library {
             };
 
             // update view counter and get complete article in a single Db call
-            $link = Db::fetch("CALL select_link(:id,:channelid)", [":id" => $id, ":channelid" => $channelid]);
-            (new ResourceNotFoundException("Invalid id"))(!empty($link->id));
+            $link = Db::fetch("CALL select_link(:id,:channelid)", [":id" => $id, ":channelid" => $channelid]);;
+            if (empty($link->id)) {
+                throw new ResourceNotFoundException("Invalid id");
+            }
+            if (($link->membersonly or !$link->published) and empty($channelid)) {
+                throw new UserException("Requires login", 401);
+            }
+            if ($link->membersonly and !($channelid === 1 or $link->is_owner or $link->is_member)) {
+                throw new UserException("Requires membership", 403);
+            }
 
             // parse tags from result
             foreach (explode(",", $link->tags ?? "") as $tag) $tags[] = ["tag" => $tag];
