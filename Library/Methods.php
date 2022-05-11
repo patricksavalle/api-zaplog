@@ -775,11 +775,14 @@ namespace Zaplog\Library {
             if (empty($link->id)) {
                 throw new ResourceNotFoundException("Invalid id");
             }
-            if (($link->membersonly or !$link->published) and empty($channelid)) {
-                throw new UserException("Requires login", 401);
+            if (!$link->published and empty($channelid)) {
+                throw new UserException("Unpublished article requires login", 401);
             }
-            if ($link->membersonly and !($channelid === 1 or $link->is_owner or $link->is_member)) {
-                throw new UserException("Requires membership", 403);
+            if ($link->membersonly and empty($channelid)) {
+                throw new UserException("Membersonly article requires login", 401);
+            }
+            if ($link->membersonly and !$link->member_authorization) {
+                throw new UserException("Membersonly article requires membership", 403);
             }
 
             // parse tags from result
