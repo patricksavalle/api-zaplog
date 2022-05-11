@@ -743,7 +743,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function getSingleLink(int $id, ?int $channelid = null): array
+        static public function getSingleLink(int $id, ?int $channelid): array
         {
             $channel = function (int $id): stdClass {
                 return Db::fetchAll("SELECT * FROM channels WHERE id=:id", [":id" => $id], 60)[0];
