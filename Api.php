@@ -460,7 +460,7 @@ class Api extends SlimRestApi
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, (new UserException("Membership not found: " . $args->channelid))(
+                    return self::response($request, $response, $args, (new UserException("Membership not found: " . $args->channelid, 404))(
                             Db::execute("DELETE FROM channelmembers WHERE channelid=(SELECT id FROM channels WHERE name=:channelid) AND memberid=:memberid",
                                 [":memberid" => Authentication::getSession()->id, ":channelid" => $args->channelid]))->rowCount() > 0);
                 })
@@ -476,8 +476,8 @@ class Api extends SlimRestApi
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, (new UserException("Membership not found: " . $args->memberid))(
-                            Db::execute("DELETE FROM members WHERE channelid=:channelid AND memberid=(SELECT id FROM channels WHERE name=:memberid1 OR userid=MD5(:memberid2))",
+                    return self::response($request, $response, $args, (new UserException("Membership not found: " . $args->memberid, 404))(
+                            Db::execute("DELETE FROM channelmembers WHERE channelid=:channelid AND memberid=(SELECT id FROM channels WHERE name=:memberid1 OR userid=MD5(:memberid2))",
                                 [":channelid" => Authentication::getSession()->id, ":memberid1" => $args->memberid, ":memberid2" => $args->memberid]))->rowCount() > 0);
                 })
                     ->add(new NoStore)
