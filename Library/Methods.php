@@ -579,7 +579,7 @@ namespace Zaplog\Library {
                 ":language" => $link->language,
                 ":orig_language" => $link->orig_language,
                 ":copyright" => $link->copyright,
-                ":membersonly" => false,
+                ":membersonly" => $link->membersonly,
             ];
 
             if (empty($link->id)) {
