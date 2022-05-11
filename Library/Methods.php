@@ -52,7 +52,7 @@ namespace Zaplog\Library {
         static public function createMemberSession(string $email, int $channelid): array
         {
             $session = self::createSession($email);
-            Db::execute("INSERT INTO channelmembers(channelid,memberid) VALUES (:channelid,:memberid)",
+            Db::execute("INSERT IGNORE INTO channelmembers(channelid,memberid) VALUES (:channelid,:memberid)",
                 [":channelid" => $channelid, ":memberid" => $session['channel']->id]);
             return $session;
         }
