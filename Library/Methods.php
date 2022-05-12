@@ -771,9 +771,9 @@ namespace Zaplog\Library {
             };
 
             // update view counter and get complete article in a single Db call
-            $link = Db::fetch("CALL select_link(:id,:channelid)", [":id" => $id, ":channelid" => $channelid]);;
+            $link = Db::fetch("CALL select_link(:id,:channelid)", [":id" => $id, ":channelid" => $channelid]);
             if (empty($link->id)) {
-                throw new ResourceNotFoundException("Invalid id");
+                throw new UserException("Article not found", 404);
             }
             if (!$link->published and empty($channelid)) {
                 throw new UserException("Unpublished article requires login", 401);

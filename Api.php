@@ -534,10 +534,10 @@ class Api extends SlimRestApi
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, Methods::getSingleLink((int)$args->id, $args->XChannelName));
+                    return self::response($request, $response, $args, Methods::getSingleLink((int)$args->id, $args->xchannelname));
                 })
                     ->add(new NoCache)
-                    ->add(new RequestHeaders(['{XChannelName:[\w-]{3,55}},null'])) // TODO: hack, replace by JWT
+                    ->add(new RequestHeaders(['{xchannelname:[\w-]{3,55}},null'])) // TODO: hack, replace by JWT
                     ->add(new QueryParameters(['{http_referer:\url},null']));
 
                 // --------------------------------------------------
