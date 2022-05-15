@@ -773,16 +773,16 @@ namespace Zaplog\Library {
             // update view counter and get complete article in a single Db call
             $link = Db::fetch("CALL select_link(:id,:channelid)", [":id" => $id, ":channelid" => $channelid]);
             if (empty($link->id)) {
-                throw new UserException("Article not found", 404);
+                throw new UserException("Article not found", 404 /*not found*/);
             }
             if (!$link->published and empty($channelid)) {
-                throw new UserException("Unpublished article requires login", 401);
+                throw new UserException("Unpublished article requires login", 401 /*unauthorized*/);
             }
             if ($link->membersonly and empty($channelid)) {
-                throw new UserException("Membersonly article requires login", 401);
+                throw new UserException("Membersonly article requires login", 401 /*unauthorized*/);
             }
             if ($link->membersonly and !$link->member_authorization) {
-                throw new UserException("Membersonly article requires membership", 403);
+                throw new UserException("Membersonly article requires membership", 403 /*forbidden*/);
             }
 
             // parse tags from result
