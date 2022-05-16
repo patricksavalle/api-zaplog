@@ -743,7 +743,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function getSingleLink(int $id, ?int $channelid): array
+        static public function getSingleLink(int $id, ?string $channelid): array
         {
             $channel = function (int $id): stdClass {
                 return Db::fetchAll("SELECT * FROM channels WHERE id=:id", [":id" => $id], 60)[0];
@@ -771,7 +771,7 @@ namespace Zaplog\Library {
             };
 
             // update view counter and get complete article in a single Db call
-            $link = Db::fetch("CALL select_link(:id,:channelid)", [":id" => $id, ":channelid" => $channelid]);
+            $link = Db::fetch("CALL select_link(:id,:channelid)", [":id" => $id, ":channelid" => (int)$channelid]);
             if (empty($link->id)) {
                 throw new UserException("Article not found", 404 /*not found*/);
             }

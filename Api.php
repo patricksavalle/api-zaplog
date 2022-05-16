@@ -534,7 +534,7 @@ class Api extends SlimRestApi
                     Request  $request,
                     Response $response,
                     stdClass $args): Response {
-                    return self::response($request, $response, $args, Methods::getSingleLink((int)$args->id, (int)$args->HTTP_XCHANNELID ?? null));
+                    return self::response($request, $response, $args, Methods::getSingleLink((int)$args->id, $args->HTTP_XCHANNELID ?? null));
                 })
                     ->add(new NoCache)
                     ->add(new RequestHeaders) // TODO: hack, replace by JWT
