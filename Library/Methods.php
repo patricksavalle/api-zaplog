@@ -27,7 +27,7 @@ namespace Zaplog\Library {
     class Methods
     {
         // fields to select when returning a list of links
-        static $blurbfields = "id,channelid,createdatetime,updatedatetime,published,language,title,copyright,description,image";
+        static $blurbfields = "id,channelid,createdatetime,updatedatetime,published,language,title,copyright,description,image,membersonly";
         static $empty_title = "**Markdown needs a #title element**";
 
         // ----------------------------------------------------------
