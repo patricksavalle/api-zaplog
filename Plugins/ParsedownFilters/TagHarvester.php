@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Zaplog\Plugins\ParsedownFilters {
 
+    use ContentSyndication\Text;
     use Zaplog\Plugins\AbstractParsedownFilter;
 
     class TagHarvester extends AbstractParsedownFilter
@@ -34,7 +35,8 @@ namespace Zaplog\Plugins\ParsedownFilters {
                 case "em":
                 case "i":
                     // associative array to avoid duplicates
-                    if (preg_match("/^[\w-]{4,20}$/", $element["text"]) === 1) self::$tags[$element["text"]] = null;
+                    $candidate = (string)(new Text($element["text"]))->convertToAscii()->hyphenize();
+                    if (preg_match("/^[\w-]{4,20}(?: [\w-]{4,20})?$/", $candidate) === 1) self::$tags[$candidate] = null;
                     break;
 
                 case "img":
