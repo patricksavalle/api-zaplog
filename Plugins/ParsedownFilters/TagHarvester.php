@@ -35,7 +35,7 @@ namespace Zaplog\Plugins\ParsedownFilters {
                 case "em":
                 case "i":
                     // associative array to avoid duplicates
-                    $candidate = (string)(new Text($element["text"]))->convertToAscii()->hyphenize();
+                    $candidate = (string)(new Text($element["text"]))->convertToAscii();
                     if (preg_match("/^[\w-]{4,20}(?: [\w-]{4,20})?$/", $candidate) === 1) self::$tags[$candidate] = null;
                     break;
 

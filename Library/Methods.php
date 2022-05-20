@@ -512,7 +512,7 @@ namespace Zaplog\Library {
             ];
 
             $diff = function (string $old, string $new) use ($diffOptions, $rendererOptions) {
-                return html_entity_decode(DiffHelper::calculate($old, $new, 'Combined', $diffOptions, $rendererOptions));
+                return DiffHelper::calculate($old, $new, 'Combined', $diffOptions, $rendererOptions);
             };
 
             $xtext = "";
