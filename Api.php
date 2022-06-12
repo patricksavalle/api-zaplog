@@ -66,10 +66,10 @@ class Api extends SlimRestApi
 
             $this->get("", function ($rq, $rp, $args): Response {
 
-                // Initialization of session table
-                Authentication::createSession("dummy@dummy.dummy");
                 // Reset admin email from ini
                 Db::execute("UPDATE channels SET userid=IF(LENGTH(userid)=0,MD5(:email),userid) WHERE id=1", [":email" => Ini::get("email_admin")]);
+                // Initialization of session table
+                Authentication::createSession(Ini::get("email_admin"));
 
                 echo "<p>Repository: https://gitlab.com/zaplog/api-zaplog</p>";
                 echo "<p>Manual: https://gitlab.com/zaplog/api-zaplog/-/wikis/Zaplog-manual</p>";
@@ -86,19 +86,6 @@ class Api extends SlimRestApi
                 echo "<h2>APCu cache status</h2><pre>";
                 print_r(apcu_cache_info(true));
                 echo "</pre>";
-
-                return $rp;
-            });
-
-            $this->get("/convert", function ($rq, $rp, $args): Response {
-
-                $links = Db::fetchAll("SELECT title,id FROM links");
-                foreach ($links as $link) {
-                    $new_title = html_entity_decode($link->title, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML401, 'UTF-8');
-                    if ($link->title !== $new_title) {
-                        Db::execute("UPDATE links SET title=:title WHERE id=:id", [":title" => $new_title, ":id" => $link->id]);
-                    }
-                }
 
                 return $rp;
             });
