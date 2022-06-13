@@ -67,9 +67,15 @@ class Api extends SlimRestApi
             $this->get("", function ($rq, $rp, $args): Response {
 
                 // Reset admin email from ini
-                Db::execute("UPDATE channels SET userid=IF(LENGTH(userid)=0,MD5(:email),userid) WHERE id=1", [":email" => Ini::get("email_admin")]);
-                // Initialization of session table
-                Authentication::createSession(Ini::get("email_admin"));
+                if (Db::execute("UPDATE channels SET userid=IF(LENGTH(userid)=0,MD5(:email),userid) WHERE id=1", [":email" => Ini::get("email_admin")])->rowCount() > 0) {
+
+                    // ---------------------------------------------
+                    // this section will only run once after install
+                    // ---------------------------------------------
+
+                    // Initialization of session table
+                    Authentication::createSession(Ini::get("email_admin"));
+                }
 
                 echo "<p>Repository: https://gitlab.com/zaplog/api-zaplog</p>";
                 echo "<p>Manual: https://gitlab.com/zaplog/api-zaplog/-/wikis/Zaplog-manual</p>";
