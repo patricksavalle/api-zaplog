@@ -168,7 +168,6 @@ class Api extends SlimRestApi
                         '{email:\email}',
                         '{subject:.{10,100}},Hier is jouw Zaplog login!',
                         '{template:\url},Content/nl.login.html',
-                        '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))},Some Rights Reserved (CC BY-SA 4.0)',
                         '{article_markdown:\raw},null',
                         '{*}' /* all {{variables}} used in template */,
                     ]))->add(new NoStore);

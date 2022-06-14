@@ -41,6 +41,7 @@ namespace Zaplog\Library {
                 $link = new stdClass;
                 $link->markdown = $markdown;
                 $link->membersonly = false;
+                $link->copyright = 'Some Rights Reserved (CC BY-SA 4.0)';
                 self::postLink($link, $session['channel']);
             }
             return $session;
