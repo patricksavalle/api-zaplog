@@ -40,7 +40,7 @@ namespace Zaplog\Library {
             if (!empty($markdown) and strlen(trim($markdown)) > 0) {
                 $link = new stdClass;
                 $link->markdown = $markdown;
-                $link->membersonly = false;
+                $link->membersonly = 0;
                 $link->copyright = 'Some Rights Reserved (CC BY-SA 4.0)';
                 self::postLink($link, $session['channel']);
             }
