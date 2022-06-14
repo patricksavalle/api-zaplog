@@ -40,6 +40,7 @@ namespace Zaplog\Library {
             if (!empty($markdown) and strlen(trim($markdown)) > 0) {
                 $link = new stdClass;
                 $link->markdown = $markdown;
+                $link->membersonly = false;
                 self::postLink($link, $session['channel']);
             }
             return $session;
@@ -412,11 +413,18 @@ namespace Zaplog\Library {
 
         static private function checkCopyright(stdClass $link)
         {
+            assert(!empty($link->copyright));
             if (strlen($link->markdown) < 500) {
                 $link->copyright = "No Rights Apply";
             } elseif (strcmp($link->copyright, "No Rights Apply") === 0) {
                 $link->copyright = "Some Rights Reserved (CC BY-SA 4.0)";
             }
+            assert(in_array($link->copyright, [
+                'No Rights Apply',
+                'All Rights Reserved',
+                'No Rights Reserved (CC0 1.0)',
+                'Some Rights Reserved (CC BY-SA 4.0)',
+            ]));
         }
 
         // ----------------------------------------------------------
