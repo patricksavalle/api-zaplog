@@ -15,7 +15,7 @@ namespace Zaplog\Middleware {
     {
         static public function getSessionTtl(): int
         {
-            return 30;
+            return 48;
         }
 
         // ---------------------------------------------------------------------------------------
