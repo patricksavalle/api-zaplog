@@ -35,6 +35,7 @@ use Zaplog\Exception\UserException;
 use Zaplog\Library\DoublePostProtection;
 use Zaplog\Library\Methods;
 use Zaplog\Library\TwoFactorAction;
+use Zaplog\Middleware\ApiKey;
 use Zaplog\Middleware\Authentication;
 use Zaplog\Plugins\ResponseFilter;
 
@@ -163,6 +164,7 @@ class Api extends SlimRestApi
                         ->sendToken($args->email, $args->subject, $args->template, $args);
                     return self::response($request, $response, $args, true);
                 })
+                    ->add(new ApiKey)
                     ->add(new QueryParameters([]))
                     ->add(new BodyParameters([
                         '{email:\email}',
@@ -186,6 +188,7 @@ class Api extends SlimRestApi
                         ->sendToken($args->email, $args->subject, $args->template, $args);
                     return self::response($request, $response, $args, true);
                 })
+                    ->add(new ApiKey)
                     ->add(new NoStore)
                     ->add(new QueryParameters([]))
                     ->add(new BodyParameters([
@@ -438,12 +441,13 @@ class Api extends SlimRestApi
                         ->sendToken($args->email, $args->subject, $args->template, $args);
                     return self::response($request, $response, $args, true);
                 })
+                    ->add(new ApiKey)
                     ->add(new NoStore)
                     ->add(new QueryParameters([]))
                     ->add(new BodyParameters([
                         '{email:\email}',
                         '{subject:.{10,100}},Bevestig jouw channel lidmaatschap!',
-                        '{template:\url},Content/nl.login.html',
+                        '{template:.*},Content/nl.login.html',
                         '{*}' /* all {{variables}} used in template */]))
                     ->add(new Authentication);
 
