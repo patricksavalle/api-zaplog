@@ -169,7 +169,7 @@ class Api extends SlimRestApi
                     ->add(new BodyParameters([
                         '{email:\email}',
                         '{subject:.{10,100}},Hier is jouw Zaplog login!',
-                        '{template:\url},Content/nl.login.html',
+                        '{template:\raw},Content/nl.login.html',
                         '{article_markdown:\raw},null',
                         '{*}' /* all {{variables}} used in template */,
                     ]))->add(new NoStore);
@@ -194,7 +194,7 @@ class Api extends SlimRestApi
                     ->add(new BodyParameters([
                         '{email:\email}',
                         '{subject:.{10,100}},Bevestig dit nieuwe email adres!',
-                        '{template:\url},null',
+                        '{template:\raw},null',
                         '{*}' /* all {{variables}} used in template */,]))
                     ->add(new Authentication);
 
@@ -447,7 +447,7 @@ class Api extends SlimRestApi
                     ->add(new BodyParameters([
                         '{email:\email}',
                         '{subject:.{10,100}},Bevestig jouw channel lidmaatschap!',
-                        '{template:.*},Content/nl.login.html',
+                        '{template:\raw},Content/nl.login.html',
                         '{*}' /* all {{variables}} used in template */]))
                     ->add(new Authentication);
 
