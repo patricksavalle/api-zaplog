@@ -2,11 +2,12 @@
 
 [general]
 email_admin=                ${API_EMAIL_ADMIN}
+api_client_key=             ${API_CLIENT_KEY}
 
 [content]
 broken_link_redirector=     ${API_GOTO_URL}
-max_markdown_length=        100000
-generate_diffs=             1
+max_markdown_length=        ${API_MAX_MARKDOWN_LENGTH}
+generate_diffs=             ${API_GENERATE_DIFFS}
 
 [translation]
 auto_translate=             ${API_AUTO_TRANSLATE}
@@ -29,7 +30,7 @@ database_name=              ${API_DB_NAME}
 database_user=              ${API_DB_USER}
 database_password=          ${API_DB_PASSWORD}
 database_charset=           utf8
-database_query_logging=     0
+database_query_logging=     ${API_DATABASE_QUERY_LOGGING}
 
 [smtp]
 smtp_host=                  ${API_MAIL_HOST}
