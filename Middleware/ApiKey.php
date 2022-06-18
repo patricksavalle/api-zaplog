@@ -16,7 +16,7 @@ namespace Zaplog\Middleware {
     {
         public function __invoke(ServerRequestInterface $request, ResponseInterface $response, callable $next): ResponseInterface
         {
-            if ($request->getHeader('X-Api-Key')[0] === Ini::get("api_client_key")) {
+            if (isset($request->getHeader('X-Api-Key')[0]) and $request->getHeader('X-Api-Key')[0] === Ini::get("api_client_key")) {
                 return $next($request, $response);
             }
             // deny authorization
