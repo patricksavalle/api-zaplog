@@ -11,20 +11,16 @@ namespace Zaplog\Middleware {
     use SlimRestApi\Infra\Db;
     use SlimRestApi\Infra\Ini;
     use stdClass;
+    use Zaplog\Exception\UserException;
 
     class ApiKey
     {
         public function __invoke(ServerRequestInterface $request, ResponseInterface $response, callable $next): ResponseInterface
         {
-            if (isset($request->getHeader('X-Api-Key')[0]) and $request->getHeader('X-Api-Key')[0] === Ini::get("api_client_key")) {
-                return $next($request, $response);
+            if (empty($request->getHeader('X-Api-Key')[0]) or $request->getHeader('X-Api-Key')[0] !== Ini::get("api_client_key")) {
+                throw new UserException("Invalid token in X-Api-Key header", 401);
             }
-            // deny authorization
-            return $response
-                ->withJson("Invalid token in X-Api-Key header")
-                ->withStatus(401)
-                // we must return XBasic (not Basic) to prevent clients from opening the AUTH dialog
-                ->withHeader('WWW-Authenticate', 'XBasic realm=api');
+            return $next($request, $response);
         }
     }
 }

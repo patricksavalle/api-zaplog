@@ -36,12 +36,12 @@ namespace Zaplog\Middleware {
             // for now only accept email id's
             $newuserid = filter_var(filter_var(strtolower($newuserid), FILTER_SANITIZE_EMAIL), FILTER_VALIDATE_EMAIL);
             assert($newuserid !== false);
-            $newuserid = md5($newuserid);
+            $hasheduserid = md5($newuserid);
             Db::execute("UPDATE channels SET userid=:newuserid WHERE userid=:userid",
-                [":newuserid" => $newuserid, ":userid" => parent::getSession()->userid]);
+                [":newuserid" => $hasheduserid, ":userid" => parent::getSession()->userid]);
             return [
                 "token" => parent::createSession($newuserid),
-                "channel" => Db::fetch("SELECT * FROM channels WHERE userid=:userid", [":userid" => $newuserid]),
+                "channel" => Db::fetch("SELECT * FROM channels WHERE userid=:userid", [":userid" => $hasheduserid]),
             ];
         }
 
@@ -55,19 +55,19 @@ namespace Zaplog\Middleware {
             // for now only accept email id's
             $userid = filter_var(filter_var(strtolower($userid), FILTER_SANITIZE_EMAIL), FILTER_VALIDATE_EMAIL);
             assert($userid !== false);
-            $userid = md5($userid);
+            $hasheduserid = md5($userid);
             // if we see a new user, we create a new channel for him/her
             $channelname = Haikunator::haikunate();
             $avatar = "data:image/svg+xml;base64," . base64_encode((new Multiavatar)($channelname, null, null));
             Db::execute("INSERT IGNORE channels(userid,name,avatar) VALUES (:userid,:name,:avatar)",
                 [
-                    ':userid' => $userid,
+                    ':userid' => $hasheduserid,
                     ':name' => $channelname,
                     ':avatar' => $avatar,
                 ]);
             return [
                 "token" => parent::createSession($userid),
-                "channel" => Db::fetch("SELECT * FROM channels WHERE userid=:userid", [":userid" => $userid]),
+                "channel" => Db::fetch("SELECT * FROM channels WHERE userid=:userid", [":userid" => $hasheduserid]),
             ];
         }
 
