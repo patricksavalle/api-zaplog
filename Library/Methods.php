@@ -655,7 +655,7 @@ namespace Zaplog\Library {
                 throw new UserException("Article must have tags");
             }
             if ($check->channel_reputation < 500.0 and $check->article_count > 4) {
-                throw new UserException("Max 4 articles can be published per 6h");
+                //throw new UserException("Max 4 articles can be published per 6h");
             }
             // publish
             if (Db::execute("UPDATE links SET published=TRUE, reactionsallowed=:reactionsallowed WHERE id=:id and channelid=:channelid",
