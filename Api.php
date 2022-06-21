@@ -160,7 +160,7 @@ class Api extends SlimRestApi
                     (new DoublePostProtection)($args, 20);
                     (new TwoFactorAction)
                         ->addAction('Library/Methods.php', ['\Zaplog\Library\Methods', 'createSession'], [$args->email, $args->article_markdown])
-                        ->createToken()
+                        ->createToken(24*60*60)
                         ->sendToken($args->email, $args->subject, $args->template, $args);
                     return self::response($request, $response, $args, true);
                 })
@@ -184,7 +184,7 @@ class Api extends SlimRestApi
                     stdClass $args): Response {
                     (new TwoFactorAction)
                         ->addAction('Middleware/Authentication.php', ['\Zaplog\Middleware\Authentication', 'updateIdentity'], [$args->email])
-                        ->createToken()
+                        ->createToken(24*60*60)
                         ->sendToken($args->email, $args->subject, $args->template, $args);
                     return self::response($request, $response, $args, true);
                 })
@@ -437,7 +437,7 @@ class Api extends SlimRestApi
                     (new DoublePostProtection)($args, 20);
                     (new TwoFactorAction)
                         ->addAction('Library/Methods.php', ['\Zaplog\Library\Methods', 'createMemberSession'], [$args->email, Authentication::getSession()->id])
-                        ->createToken()
+                        ->createToken(24*60*60)
                         ->sendToken($args->email, $args->subject, $args->template, $args);
                     return self::response($request, $response, $args, true);
                 })

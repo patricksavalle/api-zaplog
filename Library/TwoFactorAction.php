@@ -6,8 +6,6 @@ namespace Zaplog\Library {
 
     require_once BASE_PATH . '/Library/Mail.php';
 
-    use ContentSyndication\HttpFireAndForgetRequest;
-    use SlimRestApi\Infra\Ini;
     use Zaplog\Exception\EmailException;
 
     class TwoFactorAction extends \SlimRestApi\Infra\TwoFactorAction
@@ -21,7 +19,7 @@ namespace Zaplog\Library {
             Mail::setFrom($sender, $sendername);
             Mail::isHTML(true);
             Mail::setBody($body);
-            if (Mail::send() != true) {
+            if (!Mail::send()) {
                 throw new EmailException(Mail::getErrorInfo());
             }
         }
