@@ -27,8 +27,8 @@ namespace Zaplog\Library {
     class Methods
     {
         // fields to select when returning a list of links
-        static $blurbfields = "id,channelid,createdatetime,updatedatetime,published,language,title,copyright,description,image,membersonly";
-        static $empty_title = "**Markdown needs a #title element**";
+        static string $blurbfields = "id,channelid,createdatetime,updatedatetime,published,language,title,copyright,description,image,membersonly";
+        static string $empty_title = "**Markdown needs a #title element**";
 
         // ----------------------------------------------------------
         //
@@ -360,7 +360,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static private function postTags(int $linkid, array $tags)
+        static private function postTags(int $linkid, array $tags): void
         {
             // remove the existing tags
             Db::execute("DELETE FROM tags WHERE linkid=:id", [":id" => $linkid]);
@@ -375,7 +375,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static private function checkImage(stdClass $link)
+        static private function checkImage(stdClass $link): void
         {
             $link->image = TagHarvester::getFirstImage();
             (new UserException("Unusable image"))(empty($link->image) or (strlen($link->image) < 256));
@@ -385,7 +385,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static private function checkMarkdown(stdClass $link)
+        static private function checkMarkdown(stdClass $link): void
         {
             (new UserException("Empty markdown"))(!empty($link->markdown));
             (new UserException("Markdown exceeds 100k chars"))(strlen($link->markdown) < 100000);
@@ -396,7 +396,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static private function checkTitle(stdClass $link)
+        static private function checkTitle(stdClass $link): void
         {
             $title = TagHarvester::getTitle();
             if (empty($title)) {
@@ -412,7 +412,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static private function checkCopyright(stdClass $link)
+        static private function checkCopyright(stdClass $link): void
         {
             assert(!empty($link->copyright));
             if (strlen($link->markdown) < 500) {
@@ -432,7 +432,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static private function translateMarkdown(stdClass $link, stdClass $channel)
+        static private function translateMarkdown(stdClass $link, stdClass $channel): void
         {
             $link->orig_language = null;
             $link->language = (string)(new LanguageDetector)->evaluate($link->markdown);
@@ -480,7 +480,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static private function parseMarkdown(stdClass $link)
+        static private function parseMarkdown(stdClass $link): void
         {
             // render article text
             $link->xtext = (string)(new Text($link->markdown))->parseDown(new ParsedownFilter);
@@ -491,7 +491,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static private function generateDiff(stdClass $new)
+        static private function generateDiff(stdClass $new): void
         {
             // do we need to generate diffs?
             if (!Ini::get("generate_diffs")) {
@@ -548,7 +548,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static private function checkTags(stdClass $link)
+        static private function checkTags(stdClass $link): void
         {
             $tags = [];
             foreach (array_merge(TagHarvester::getTags(), $link->tags ?? []) as $tag) {
@@ -677,6 +677,7 @@ namespace Zaplog\Library {
             try {
                 if (!is_null($channel->avatar)) {
                     $content = file_get_contents($channel->avatar);
+                    /** @noinspection PhpStrFunctionsInspection */
                     if (strpos($content, "<svg") === 0) {
                         $xml = XMLReader::XML($content);
                         $xml->setParserProperty(XMLReader::VALIDATE, true);
@@ -687,7 +688,7 @@ namespace Zaplog\Library {
                         $channel->avatar = 'data://application/octet-stream;base64,' . base64_encode($avatar);
                     }
                 }
-            } catch (Exception $e) {
+            } catch (Exception) {
                 throw new UserException("Invalid file or filetype for avatar (use PNG, GIF, JPG, SVG)");
             }
             (new UserException("Name already in use"))(Db::fetch("SELECT * FROM channels WHERE name=:name AND id<>:id",
