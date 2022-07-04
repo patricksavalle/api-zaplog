@@ -553,7 +553,7 @@ namespace Zaplog\Library {
             $tags = [];
             foreach (array_merge(TagHarvester::getTags(), $link->tags ?? []) as $tag) {
                 // sanitize tags
-                $tag = (string)(new Text($tag))->convertToAscii()->hyphenize();
+                $tag = (string)(new Text((string)$tag))->convertToAscii()->hyphenize();
                 // only accept reasonable tags
                 if (strlen($tag) > 2 and strlen($tag) < 41 and substr_count($tag, "-") < 5) {
                     // remove duplicates this way
