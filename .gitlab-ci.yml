@@ -54,6 +54,7 @@ deploy-to-mindmeld-prod:
     - ssh $SSH_USER@$SSH_HOST "cd $APP_FOLDER && docker-compose pull && docker-compose up -d"
   only:
     - master
+  when: manual
 
 deploy-to-zaplog-prod:
   environment:
