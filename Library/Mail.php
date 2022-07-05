@@ -19,22 +19,22 @@ final class Mail extends Singleton
 
     static public function setSubject($subject)
     {
-        static::setProperty('Subject', $subject);
+        Mail::setProperty('Subject', $subject);
     }
 
     static public function setBody(string $body)
     {
-        static::setProperty('Body', $body);
+        Mail::setProperty('Body', $body);
     }
 
     static public function setAltBody(string $body)
     {
-        static::setProperty('AltBody', $body);
+        Mail::setProperty('AltBody', $body);
     }
 
     static public function getErrorInfo()
     {
-        return static::getProperty('ErrorInfo');
+        return Mail::getProperty('ErrorInfo');
     }
 
     static protected function instance()

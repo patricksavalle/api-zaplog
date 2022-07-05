@@ -8,7 +8,7 @@ namespace Zaplog\Library {
 
     class DoublePostProtection
     {
-        public function __invoke($data, int $lock_ttl = 60)
+        public function __invoke($data, int $lock_ttl = 60): void
         {
             // throw exception if we already locked this content
             (new UserException("Already submitted", 409))(apcu_add(md5(__METHOD__ . serialize($data)), __METHOD__, $lock_ttl));

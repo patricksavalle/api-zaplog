@@ -4,13 +4,9 @@ declare(strict_types=1);
 
 namespace Zaplog\Middleware {
 
-    use Atrox\Haikunator;
-    use Multiavatar;
     use Psr\Http\Message\ResponseInterface;
     use Psr\Http\Message\ServerRequestInterface;
-    use SlimRestApi\Infra\Db;
     use SlimRestApi\Infra\Ini;
-    use stdClass;
     use Zaplog\Exception\UserException;
 
     class ApiKey

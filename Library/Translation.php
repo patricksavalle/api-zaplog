@@ -12,6 +12,7 @@ namespace Zaplog\Library {
     {
         public function __invoke(string $text, string $target_lang, string $source_lang = ""): array
         {
+            $curl = curl_init();
             try {
                 $postdata = http_build_query(
                     ['auth_key' => Ini::get("deepl_auth_key"),
@@ -19,7 +20,6 @@ namespace Zaplog\Library {
                         'source_lang' => $source_lang,
                         'text' => $text]
                 );
-                $curl = curl_init();
                 curl_setopt($curl, CURLOPT_URL, Ini::get("deepl_api_url"));
                 curl_setopt($curl, CURLOPT_TIMEOUT, 30);
                 curl_setopt($curl, CURLOPT_RETURNTRANSFER, true); // no echo, just return result
@@ -35,7 +35,7 @@ namespace Zaplog\Library {
                 error_log($e->getMessage() . " in " . __CLASS__);
                 throw new ServerException("Translation service unavailable or failing");
             } finally {
-                if (is_resource($curl)) curl_close($curl);
+                curl_close($curl);
             }
             $return = json_decode($content, true)["translations"][0] ?? null;
             if ($return === null) {
