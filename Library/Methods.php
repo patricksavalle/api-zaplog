@@ -622,10 +622,8 @@ namespace Zaplog\Library {
             }
 
             // insert tags
-            if (!empty($link->tags)) {
-                /** @noinspection PhpCastIsUnnecessaryInspection */
-                self::postTags((int)$link->id, $link->tags);
-            }
+            /** @noinspection PhpCastIsUnnecessaryInspection */
+            self::postTags((int)$link->id, $link->tags ?? []);
 
             return $link;
         }
