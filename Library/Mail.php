@@ -37,6 +37,7 @@ final class Mail extends Singleton
         return Mail::getProperty('ErrorInfo');
     }
 
+    /** @noinspection PhpMissingReturnTypeInspection */
     static protected function instance()
     {
         $mail = new PHPMailer();

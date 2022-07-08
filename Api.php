@@ -503,7 +503,7 @@ class Api extends SlimRestApi
                     ->add(new BodyParameters([
                         '{id:\d+},null',    // empty will create new post (id is returned)
                         '{markdown:\raw}',
-                        '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))},Some Rights Reserved (CC BY-SA 4.0)',
+                        '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))},null',
                         '{membersonly:\int},0',
                         '{tags[]:.{0,40}},null']))
                     ->add(new Authentication);
