@@ -787,10 +787,10 @@ namespace Zaplog\Library {
                 throw new UserException("Unpublished article requires login", 401 /*unauthorized*/);
             }
             if ($link->membersonly and empty($channelid)) {
-                throw new UserException("Membersonly article requires login", 401 /*unauthorized*/);
+                throw new UserException("Membersonly article requires login and channel membership", 401 /*unauthorized*/);
             }
             if ($link->membersonly and !$link->member_authorization) {
-                throw new UserException("Membersonly article requires membership", 403 /*forbidden*/);
+                throw new UserException("Membersonly article requires channel membership", 403 /*forbidden*/);
             }
 
             // parse tags from result
