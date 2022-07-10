@@ -653,12 +653,36 @@ namespace Zaplog\Library {
                 //throw new UserException("Max 4 articles can be published per 6h");
             }
             // publish
-            if (Db::execute("UPDATE links SET published=TRUE, reactionsallowed=:reactionsallowed WHERE id=:id and channelid=:channelid",
+            if (Db::execute("UPDATE links SET published=TRUE, reactionsallowed=:reactionsallowed WHERE id=:id AND channelid=:channelid",
                     [":id" => $id, ":channelid" => $channelid, ":reactionsallowed" => $reactionsallowed])->rowCount() !== 1) {
                 throw new ServerException("Can't publish this article");
             }
             // remove reactions on concept
             Db::execute("DELETE FROM reactions WHERE linkid=:id", [":id" => $id]);
+            return true;
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
+        static public function transferLink(int $linkid, int $channelid, int $newchannelid): bool
+        {
+            // transfer
+            if (Db::execute("UPDATE links SET channelid=:newchannelid1 
+                                WHERE id=:linkid AND channelid=:channelid AND published=FALSE
+                                AND :newchannelid2 IN (SELECT channelid FROM channelsmembers WHERE memberid=:memberid)",
+                    [
+                        ":linkid" => $linkid,
+                        ":channelid" => $channelid,
+                        ":memberid" => $channelid,
+                        ":newchannelid1" => $newchannelid,
+                        ":newchannelid2" => $newchannelid,
+                    ])->rowCount() !== 1) {
+                throw new ServerException("Can't transfer this article to new channel");
+            }
+            // remove reactions on concept
+            Db::execute("DELETE FROM reactions WHERE linkid=:id", [":id" => $linkid]);
             return true;
         }
 
