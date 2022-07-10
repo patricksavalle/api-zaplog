@@ -342,7 +342,7 @@ namespace Zaplog\Library {
             };
 
             $memberships = function (int $id): array {
-                return Db::fetchAll("SELECT name FROM channels JOIN channelmembers ON channelmembers.memberid=channels.id WHERE memberid=:id", [":id" => $id]);
+                return Db::fetchAll("SELECT name FROM channels JOIN channelmembers ON channelmembers.channelid=channels.id WHERE memberid=:id", [":id" => $id]);
             };
 
             $channel = (new ResourceNotFoundException("Channel $name not found"))(Db::fetch("SELECT * FROM channels WHERE name=:id", [":id" => $name]));
