@@ -671,7 +671,7 @@ namespace Zaplog\Library {
             // transfer
             if (Db::execute("UPDATE links SET channelid=:newchannelid1 
                                 WHERE id=:linkid AND channelid=:channelid AND published=FALSE
-                                AND :newchannelid2 IN (SELECT channelid FROM channelsmembers WHERE memberid=:memberid)",
+                                AND :newchannelid2 IN (SELECT channelid FROM channelmembers WHERE memberid=:memberid)",
                     [
                         ":linkid" => $linkid,
                         ":channelid" => $channelid,
