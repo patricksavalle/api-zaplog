@@ -616,6 +616,20 @@ class Api extends SlimRestApi
                     ->add(new CacheablePrivate)
                     ->add(new Authentication);
 
+                // ----------------------------------------------------------------
+                // Return posts van memberships
+                // ----------------------------------------------------------------
+
+                $this->get("/memberships", function (
+                    Request  $request,
+                    Response $response,
+                    stdClass $args): Response {
+                    $channelid = Authentication::getSession()->id;
+                    return self::response($request, $response, $args, Methods::getMembershAddedipLinks($channelid, $args->offset, $args->count));
+                })
+                    ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20']))
+                    ->add(new Authentication);
+
                 // -----------------------------------------------------
                 // Returns the top scoring links for a given tag
                 // -----------------------------------------------------
