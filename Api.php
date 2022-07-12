@@ -625,7 +625,7 @@ class Api extends SlimRestApi
                     Response $response,
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
-                    return self::response($request, $response, $args, Methods::getMembershAddedipLinks($channelid, $args->offset, $args->count));
+                    return self::response($request, $response, $args, Methods::getMembershipLinks($channelid, $args->offset, $args->count));
                 })
                     ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20']))
                     ->add(new Authentication);

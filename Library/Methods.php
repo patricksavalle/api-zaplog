@@ -138,12 +138,12 @@ namespace Zaplog\Library {
         // ----------------------------------------------------------
 
         /** @noinspection PhpUnusedLocalVariableInspection */
-        static public function getMembershipLinks(string $channelid, int $offset, int $count): array
+        static public function getMembershipLinks(string $memberid, int $offset, int $count): array
         {
             return Db::fetchAll("SELECT " . self::$blurbfields . " FROM links WHERE published=TRUE 
-                AND channelid IN (SELECT channelid FROM channelmembers WHERE memberid=:channelid) 
+                AND channelid IN (SELECT channelid FROM channelmembers WHERE memberid=:memberid) 
                 ORDER BY createdatetime DESC LIMIT :offset, :count",
-                [":channelid" => $channelid, ":offset" => $offset, ":count" => $count]);
+                [":memberid" => $memberid, ":offset" => $offset, ":count" => $count]);
         }
 
         // ----------------------------------------------------------
