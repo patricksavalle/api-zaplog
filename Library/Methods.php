@@ -688,7 +688,7 @@ namespace Zaplog\Library {
                                 AND :channelid2 IN (
                                     -- we must be member of new channel
                                     SELECT memberid FROM channelmembers  
-                                    WHERE channelid=(SELECT id FROM channels WHERE name=:newchannelid2))",
+                                    WHERE channelid=(SELECT id FROM channels WHERE name=:newchannelname2))",
                     [
                         ":linkid" => $linkid,
                         ":channelid1" => $channelid,
