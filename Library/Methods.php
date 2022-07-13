@@ -679,15 +679,21 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function transferLink(int $linkid, int $channelid, int $newchannelname): bool
+        static public function transferLink(int $linkid, int $channelid, string $newchannelname): bool
         {
             // transfer
-            if (Db::execute("UPDATE links SET channelid=(SELECT id FROM channels WHERE name=:newchannelname)
-                                WHERE id=:linkid AND channelid=:channelid AND published=FALSE",
+            if (Db::execute("UPDATE links SET channelid=(SELECT id FROM channels WHERE name=:newchannelname1)
+                                WHERE id=:linkid AND channelid=:channelid1 AND published=FALSE 
+                                AND :channelid2 IN (
+                                    -- we must be member of new channel
+                                    SELECT memberid FROM channelmembers  
+                                    WHERE channelid=(SELECT id FROM channels WHERE name=:newchannelname2))",
                     [
                         ":linkid" => $linkid,
-                        ":channelid" => $channelid,
-                        ":newchannelname" => $newchannelname,
+                        ":channelid1" => $channelid,
+                        ":channelid2" => $channelid,
+                        ":newchannelname1" => $newchannelname,
+                        ":newchannelname2" => $newchannelname,
                     ])->rowCount() !== 1) {
                 throw new ServerException("Can't transfer this article to new channel");
             }

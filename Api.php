@@ -532,7 +532,7 @@ class Api extends SlimRestApi
                     Response $response,
                     stdClass $args): Response {
                     $channelid = Authentication::getSession()->id;
-                    return self::response($request, $response, $args, Methods::transferLink((int)$args->linkid, $channelid, (int)$args->newchannelid));
+                    return self::response($request, $response, $args, Methods::transferLink((int)$args->linkid, $channelid, $args->newchannelid));
                 })
                     ->add(new NoStore)
                     ->add(new QueryParameters)
