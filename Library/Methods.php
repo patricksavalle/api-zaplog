@@ -679,20 +679,22 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function transferLink(int $linkid, int $channelid, int $newchannelid): bool
+        static public function transferLink(int $linkid, int $channelid, int $newchannelname): bool
         {
             // transfer
-            if (Db::execute("UPDATE links SET channelid=(SELECT id FROM channels WHERE name=:newchannelid1) 
-                                WHERE id=:linkid AND channelid=:channelid AND published=FALSE 
-                                AND :newchannelid2 IN (
-                                    SELECT name FROM channelmembers JOIN channels ON channelmembers.memberid=channels.id 
-                                    WHERE memberid=(SELECT id FROM channels WHERE name=:newchannelid3))",
+            if (Db::execute("UPDATE links SET channelid=(SELECT id FROM channels WHERE name=:newchannelname1)
+                                -- we must be owner
+                                WHERE id=:linkid AND channelid=:channelid1 AND published=FALSE 
+                                AND :channelid2 IN (
+                                    -- we must be member of new channel
+                                    SELECT memberid FROM channelmembers  
+                                    WHERE channelid=(SELECT id FROM channels WHERE name=:newchannelid2))",
                     [
                         ":linkid" => $linkid,
-                        ":channelid" => $channelid,
-                        ":newchannelid1" => $newchannelid,
-                        ":newchannelid2" => $newchannelid,
-                        ":newchannelid3" => $newchannelid,
+                        ":channelid1" => $channelid,
+                        ":channelid2" => $channelid,
+                        ":newchannelname1" => $newchannelname,
+                        ":newchannelname2" => $newchannelname,
                     ])->rowCount() !== 1) {
                 throw new ServerException("Can't transfer this article to new channel");
             }
