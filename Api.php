@@ -609,7 +609,7 @@ class Api extends SlimRestApi
                     return self::response($request, $response, $args, Db::fetchAll("SELECT links.*, channels.name AS channelname, avatar AS channelavatar FROM links
                         JOIN channels ON channels.id=links.channelid
                         WHERE published=FALSE AND (channelid=:channelid OR 
-                            (membersonly=TRUE AND channelid IN (SELECT channelid FROM channelmembers WHERE memberid=:memberid))) 
+                            (channelid IN (SELECT channelid FROM channelmembers WHERE memberid=:memberid))) 
                         ORDER BY id DESC", [":channelid" => $channelid, ":memberid" => $channelid]));
                 })
                     ->add(new QueryParameters)
