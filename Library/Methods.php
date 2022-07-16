@@ -252,6 +252,10 @@ namespace Zaplog\Library {
             // we added #tag and @channel operators to the MATCHES AGAINST syntax of MySQL
             if ($search !== null) {
 
+                if (preg_match_all('/[(\"~+\-<>][@#]([\w-]+)/', $search, $matches)!==0) {
+                    throw new userException("". $matches[0][0][0] . " operator not allowed with @ or # operator: ". $matches[0][0]);
+                }
+
                 // extract channels
                 preg_match_all('/@([\w-]+)/', $search, $matches);
                 $search = preg_replace('/@[\w-]+/', "", $search);
@@ -286,8 +290,12 @@ namespace Zaplog\Library {
             $args[":count"] = $count;
             $args[":offset"] = $offset;
 
-            // run the query
-            $links = Db::fetchAll($sql, $args);
+            try {
+                // run the query
+                $links = Db::fetchAll($sql, $args);
+            } catch (Exception) {
+                throw new UserException("Syntax error in search");
+            }
 
             return [
                 "links" => $links,
