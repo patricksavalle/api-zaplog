@@ -14,12 +14,14 @@ RUN chmod +x /usr/local/bin/install-php-extensions && \
 
 WORKDIR /var/www/html/
 
-COPY php.ini /usr/local/etc/php/php.ini
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" && \
     echo "apc.shm_size=16M" >> "$PHP_INI_DIR/php.ini"
 
 COPY . /var/www/html/
 COPY slim-rest-api.ini.docker /var/www/html/slim-rest-api.ini
+
+RUN rm /var/log/apache2/access.log
+RUN ln -s /dev/null /var/log/apache2/access.log
 
 RUN chmod +x /var/www/html/composer.phar && \
     /var/www/html/composer.phar selfupdate && \
