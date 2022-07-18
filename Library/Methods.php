@@ -438,7 +438,7 @@ namespace Zaplog\Library {
             if (empty($link->copyright)) {
                 $link->copyright = Ini::get("default_copyright");
             }
-            assert(in_array($link->copyright, [
+            (new UserException("Invalid copyright"))(in_array($link->copyright, [
                 'No Rights Apply',
                 'All Rights Reserved',
                 'No Rights Reserved (CC0 1.0)',

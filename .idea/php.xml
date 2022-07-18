@@ -27,7 +27,6 @@
       <path value="$PROJECT_DIR$/vendor/jfcherng/php-mb-string" />
       <path value="$PROJECT_DIR$/vendor/landrok/language-detector" />
       <path value="$PROJECT_DIR$/vendor/jfcherng/php-diff" />
-      <path value="$PROJECT_DIR$/vendor/symfony/polyfill-ctype" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="8.0">
