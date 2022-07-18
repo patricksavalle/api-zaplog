@@ -739,12 +739,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/patricksavalle/php-content-syndication.git",
-                "reference": "3ebb6be187621d7f88d4b2ab1a981df3b2779756"
+                "reference": "d21563562a0a1bc4e2ddc47747c5480d92bbd614"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/patricksavalle/php-content-syndication/zipball/3ebb6be187621d7f88d4b2ab1a981df3b2779756",
-                "reference": "3ebb6be187621d7f88d4b2ab1a981df3b2779756",
+                "url": "https://api.github.com/repos/patricksavalle/php-content-syndication/zipball/d21563562a0a1bc4e2ddc47747c5480d92bbd614",
+                "reference": "d21563562a0a1bc4e2ddc47747c5480d92bbd614",
                 "shasum": ""
             },
             "require": {
@@ -790,7 +790,7 @@
                 "issues": "https://github.com/patricksavalle/php-content-syndication/issues",
                 "source": "https://github.com/patricksavalle/php-content-syndication/tree/master"
             },
-            "time": "2022-07-03T19:36:01+00:00"
+            "time": "2022-07-18T13:00:57+00:00"
         },
         {
             "name": "patricksavalle/slim-request-params",
@@ -852,12 +852,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/patricksavalle/slim-rest-api.git",
-                "reference": "f334671e87bd14e28777ee3c9aaaa9408dde2757"
+                "reference": "fab0ce541cde069d04f2eb1f82337dfcfcdd62be"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/patricksavalle/slim-rest-api/zipball/f334671e87bd14e28777ee3c9aaaa9408dde2757",
-                "reference": "f334671e87bd14e28777ee3c9aaaa9408dde2757",
+                "url": "https://api.github.com/repos/patricksavalle/slim-rest-api/zipball/fab0ce541cde069d04f2eb1f82337dfcfcdd62be",
+                "reference": "fab0ce541cde069d04f2eb1f82337dfcfcdd62be",
                 "shasum": ""
             },
             "require": {
@@ -905,7 +905,7 @@
                 "issues": "https://github.com/patricksavalle/slim-rest-api/issues",
                 "source": "https://github.com/patricksavalle/slim-rest-api/tree/master"
             },
-            "time": "2022-07-18T09:00:36+00:00"
+            "time": "2022-07-18T12:56:55+00:00"
         },
         {
             "name": "pavlakis/slim-cli",
