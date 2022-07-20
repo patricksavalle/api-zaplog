@@ -9,6 +9,7 @@ namespace Zaplog\Middleware {
     use Psr\Http\Message\ResponseInterface;
     use Psr\Http\Message\ServerRequestInterface;
     use SlimRestApi\Infra\Db;
+    use Zaplog\Exception\UserException;
 
     class Authentication extends \SlimRestApi\Middleware\Authentication
     {
@@ -35,7 +36,7 @@ namespace Zaplog\Middleware {
         {
             // for now only accept email id's
             $newuserid = filter_var(filter_var(strtolower($newuserid), FILTER_SANITIZE_EMAIL), FILTER_VALIDATE_EMAIL);
-            assert($newuserid !== false);
+            (new UserException("Invalid userid"))($newuserid !== false);
             $hasheduserid = md5($newuserid);
             Db::execute("UPDATE channels SET userid=:newuserid WHERE userid=:userid",
                 [":newuserid" => $hasheduserid, ":userid" => parent::getSession()->userid]);
@@ -54,7 +55,7 @@ namespace Zaplog\Middleware {
         {
             // for now only accept email id's
             $userid = filter_var(filter_var(strtolower($userid), FILTER_SANITIZE_EMAIL), FILTER_VALIDATE_EMAIL);
-            assert($userid !== false);
+            (new UserException("Invalid userid"))($userid !== false);
             $hasheduserid = md5($userid);
             // if we see a new user, we create a new channel for him/her
             $channelname = Haikunator::haikunate();

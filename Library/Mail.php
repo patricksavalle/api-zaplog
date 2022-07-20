@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpMissingFieldTypeInspection */
 
 declare(strict_types = 1);
 
@@ -17,7 +17,7 @@ final class Mail extends Singleton
 {
     static protected $instance = null;
 
-    static public function setSubject($subject)
+    static public function setSubject(string $subject)
     {
         Mail::setProperty('Subject', $subject);
     }
