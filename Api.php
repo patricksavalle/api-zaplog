@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Zaplog;
 
-define("VERSION", "v1.9");
+define("VERSION", "v1.10");
 
 define("BASE_PATH", __DIR__);
 
@@ -504,6 +504,7 @@ class Api extends SlimRestApi
                         '{markdown:\raw}',
                         '{copyright:(No Rights Apply|All Rights Reserved|No Rights Reserved \(CC0 1\.0\)|Some Rights Reserved \(CC BY-SA 4\.0\))},null',
                         '{membersonly:\int},0',
+                        '{reactionsallowed:\int},1',
                         '{tags[]:.{0,40}},null']))
                     ->add(new Authentication);
 

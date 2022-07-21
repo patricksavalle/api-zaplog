@@ -584,6 +584,15 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
+        static private function checkReactionsAllowed(stdClass $link): void
+        {
+            $link->reactionsallowed = $link->reactionsallowed ?? true;
+        }
+
+        // ----------------------------------------------------------
+        //
+        // ----------------------------------------------------------
+
         static public function postLink(stdClass $link, stdClass $channel): stdClass
         {
             $link->channelid = $channel->id;
@@ -594,6 +603,7 @@ namespace Zaplog\Library {
             self::checkImage($link);
             self::checkCopyright($link);
             self::checkTags($link);
+            self::checkReactionsAllowed($link);
 
             $sqlparams = [
                 ":channelid" => $link->channelid,
@@ -606,13 +616,14 @@ namespace Zaplog\Library {
                 ":orig_language" => $link->orig_language,
                 ":copyright" => $link->copyright,
                 ":membersonly" => $link->membersonly,
+                ":reactionsallowed" => $link->reactionsallowed
             ];
 
             if (empty($link->id)) {
 
                 (new ServerException)(Db::execute(
-                        "INSERT INTO links(channelid, title, markdown, xtext, description, image, language, orig_language, copyright, published, membersonly)
-                        VALUES (:channelid, :title, :markdown, :xtext, :description, :image, :language, :orig_language, :copyright, FALSE, :membersonly)",
+                        "INSERT INTO links(channelid, title, markdown, xtext, description, image, language, orig_language, copyright, published, membersonly, reactionsallowed)
+                        VALUES (:channelid, :title, :markdown, :xtext, :description, :image, :language, :orig_language, :copyright, FALSE, :membersonly, :reactionsallowed)",
                         $sqlparams)->rowCount() > 0);
                 $link->id = (int)Db::lastInsertId();
 
@@ -634,7 +645,8 @@ namespace Zaplog\Library {
                             language=:language, 
                             orig_language=IFNULL(orig_language,:orig_language), 
                             copyright=:copyright,
-                            membersonly=:membersonly
+                            membersonly=:membersonly,
+                            reactionsallowed=:reactionsallowed
                         WHERE id=:id AND channelid=:channelid", $sqlparams)->rowCount() >= 0);
             }
 
