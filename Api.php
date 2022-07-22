@@ -517,10 +517,10 @@ class Api extends SlimRestApi
                     Response $response,
                     stdClass $link): Response {
                     $channelid = Authentication::getSession()->id;
-                    return self::response($request, $response, $link, Methods::publishLink((int)$link->id, $channelid, (bool)$link->reactionsallowed));
+                    return self::response($request, $response, $link, Methods::publishLink((int)$link->id, $channelid));
                 })
                     ->add(new NoStore)
-                    ->add(new QueryParameters(['{reactionsallowed:\boolean},1']))
+                    ->add(new QueryParameters)
                     ->add(new BodyParameters)
                     ->add(new Authentication);
 

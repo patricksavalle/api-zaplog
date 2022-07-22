@@ -661,7 +661,7 @@ namespace Zaplog\Library {
         //
         // ----------------------------------------------------------
 
-        static public function publishLink(int $id, int $channelid, bool $reactionsallowed): bool
+        static public function publishLink(int $id, int $channelid): bool
         {
             // check conditions
             $check = Db::fetch("SELECT 
@@ -685,8 +685,8 @@ namespace Zaplog\Library {
                 //throw new UserException("Max 4 articles can be published per 6h");
             }
             // publish
-            if (Db::execute("UPDATE links SET published=TRUE, reactionsallowed=:reactionsallowed WHERE id=:id AND channelid=:channelid",
-                    [":id" => $id, ":channelid" => $channelid, ":reactionsallowed" => $reactionsallowed])->rowCount() !== 1) {
+            if (Db::execute("UPDATE links SET published=TRUE WHERE id=:id AND channelid=:channelid",
+                    [":id" => $id, ":channelid" => $channelid])->rowCount() !== 1) {
                 throw new ServerException("Can't publish this article");
             }
             // remove reactions on concept
