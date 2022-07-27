@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f806ffc86bcd605a48467533f66969e3",
+    "content-hash": "25719973557a197fd6621900e861b596",
     "packages": [
         {
             "name": "atrox/haikunator",
@@ -739,12 +739,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/patricksavalle/php-content-syndication.git",
-                "reference": "d21563562a0a1bc4e2ddc47747c5480d92bbd614"
+                "reference": "d92f9c549ff657e4d5606769320a8234d3d883e3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/patricksavalle/php-content-syndication/zipball/d21563562a0a1bc4e2ddc47747c5480d92bbd614",
-                "reference": "d21563562a0a1bc4e2ddc47747c5480d92bbd614",
+                "url": "https://api.github.com/repos/patricksavalle/php-content-syndication/zipball/d92f9c549ff657e4d5606769320a8234d3d883e3",
+                "reference": "d92f9c549ff657e4d5606769320a8234d3d883e3",
                 "shasum": ""
             },
             "require": {
@@ -790,7 +790,7 @@
                 "issues": "https://github.com/patricksavalle/php-content-syndication/issues",
                 "source": "https://github.com/patricksavalle/php-content-syndication/tree/master"
             },
-            "time": "2022-07-18T13:00:57+00:00"
+            "time": "2022-07-22T22:03:44+00:00"
         },
         {
             "name": "patricksavalle/slim-request-params",
@@ -798,12 +798,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/patricksavalle/slim-request-params.git",
-                "reference": "e03494dfa7542033d72da186eae07dfbde2a6329"
+                "reference": "44477db0aed0fda2079e3daae4251eca54779db5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/patricksavalle/slim-request-params/zipball/e03494dfa7542033d72da186eae07dfbde2a6329",
-                "reference": "e03494dfa7542033d72da186eae07dfbde2a6329",
+                "url": "https://api.github.com/repos/patricksavalle/slim-request-params/zipball/44477db0aed0fda2079e3daae4251eca54779db5",
+                "reference": "44477db0aed0fda2079e3daae4251eca54779db5",
                 "shasum": ""
             },
             "require": {
@@ -844,7 +844,7 @@
                 "issues": "https://github.com/patricksavalle/slim-request-params/issues",
                 "source": "https://github.com/patricksavalle/slim-request-params/tree/master"
             },
-            "time": "2021-12-16T22:40:35+00:00"
+            "time": "2022-07-27T14:39:07+00:00"
         },
         {
             "name": "patricksavalle/slim-rest-api",

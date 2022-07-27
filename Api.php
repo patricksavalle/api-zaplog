@@ -383,7 +383,7 @@ class Api extends SlimRestApi
                         '{name:[\w-]{3,55}}',
                         '{avatar:\url},null',
                         '{header:\url},null',
-                        '{bio:\xtext},null',
+                        '{bio:.{0,255}},null',
                         '{language:[a-z]{2}},nl',
                         '{algorithm:(channel|voted|mixed|popular|all)},channel',
                         '{bitcoinaddress:\bitcoinaddress},null']))
