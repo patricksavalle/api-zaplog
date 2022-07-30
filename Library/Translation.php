@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Zaplog\Library {
 
     use Exception;
-    use Slim\Http\Request;
     use SlimRestApi\Infra\Ini;
     use Zaplog\Exception\ServerException;
 
@@ -13,8 +12,8 @@ namespace Zaplog\Library {
     {
         public function __invoke(string $text, string $target_lang, string $source_lang = ""): array
         {
-            assert(preg_match($target_lang, "/^[a-z][a-z]$/"));
-            assert(preg_match($source_lang, "/^([a-z][a-z])?$/"));
+            assert(preg_match("/^[a-z][a-z]$/", $target_lang));
+            assert(preg_match("/^([a-z][a-z])?$/", $source_lang));
             $curl = curl_init();
             try {
                 $postdata = http_build_query(

@@ -28,6 +28,7 @@ use SlimRestApi\Middleware\CacheablePrivate;
 use SlimRestApi\Middleware\CliRequest;
 use SlimRestApi\Middleware\NoCache;
 use SlimRestApi\Middleware\NoStore;
+use SlimRestApi\Middleware\ReadWrite;
 use SlimRestApi\SlimRestApi;
 use stdClass;
 use Zaplog\Exception\ResourceNotFoundException;
@@ -95,7 +96,8 @@ class Api extends SlimRestApi
                 echo "</pre>";
 
                 return $rp;
-            });
+            })
+                ->add(new ReadWrite);
 
             // ------------------------------------------
             // redirect to original or else archived page
@@ -128,7 +130,9 @@ class Api extends SlimRestApi
             // Add the two factor handler to the server
             // -----------------------------------------
 
-            $this->get("/2factor/{utoken:[[:alnum:]]{32}}", new TwoFactorAction)->add(new QueryParameters);
+            $this->get("/2factor/{utoken:[[:alnum:]]{32}}", new TwoFactorAction)
+                ->add(new ReadWrite)    // TODO needed for garbage collection, should be in cronjob
+                ->add(new QueryParameters);
 
             // -----------------------------------------
             // Distribute payments
@@ -172,7 +176,9 @@ class Api extends SlimRestApi
                         '{template:\raw},Content/nl.login.html',
                         '{article_markdown:\raw},null',
                         '{*}' /* all {{variables}} used in template */,
-                    ]))->add(new NoStore);
+                    ]))
+                    ->add(new ReadWrite)
+                    ->add(new NoStore);
 
                 // -----------------------------------------------------
                 // change authenticated email, login again
@@ -196,7 +202,8 @@ class Api extends SlimRestApi
                         '{subject:.{10,100}},Bevestig dit nieuwe email adres!',
                         '{template:\raw},null',
                         '{*}' /* all {{variables}} used in template */,]))
-                    ->add(new Authentication);
+                    ->add(new Authentication)
+                    ->add(new ReadWrite);
 
                 // ----------------------------------------------------------------
                 // Return the active channels (sessions) 'who's online'
@@ -223,7 +230,8 @@ class Api extends SlimRestApi
                     return self::response($request, $response, $args, null);
                 })
                     ->add(new QueryParameters)
-                    ->add(new Authentication);
+                    ->add(new Authentication)
+                    ->add(new ReadWrite);
 
             });
 
@@ -315,7 +323,8 @@ class Api extends SlimRestApi
                 // authenticated AND cached (authentication is just to prevent abuse)
                 ->add(new Cacheable(60 * 60/*sec*/))
                 ->add(new QueryParameters(['{urlencoded:\urlencoded}']))
-                ->add(new Authentication);
+                ->add(new Authentication)
+                ->add(new ReadWrite);
 
             // ----------------------------------------------------------------
             // Channels show posts and activity for a specific user / email
@@ -387,7 +396,8 @@ class Api extends SlimRestApi
                         '{language:[a-z]{2}},nl',
                         '{algorithm:(channel|voted|mixed|popular|all)},channel',
                         '{bitcoinaddress:\bitcoinaddress},null']))
-                    ->add(new Authentication);
+                    ->add(new Authentication)
+                    ->add(new ReadWrite);
 
                 // ----------------------------------------------------------------
                 // Return channels top lists
@@ -424,7 +434,8 @@ class Api extends SlimRestApi
                 })
                     ->add(new NoStore)
                     ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20',]))
-                    ->add(new Authentication);
+                    ->add(new Authentication)
+                    ->add(new ReadWrite);
 
                 // ----------------------------------------------------------------
                 // Attach a member to a channel, through email 2FA
@@ -449,7 +460,8 @@ class Api extends SlimRestApi
                         '{subject:.{10,100}},Bevestig jouw channel lidmaatschap!',
                         '{template:\raw},Content/nl.login.html',
                         '{*}' /* all {{variables}} used in template */]))
-                    ->add(new Authentication);
+                    ->add(new Authentication)
+                    ->add(new ReadWrite);
 
                 // ----------------------------------------------------------------
                 // Revokes authenticated-channels' membership from a channel
@@ -465,7 +477,8 @@ class Api extends SlimRestApi
                 })
                     ->add(new NoStore)
                     ->add(new QueryParameters)
-                    ->add(new Authentication);
+                    ->add(new Authentication)
+                    ->add(new ReadWrite);
 
                 // ----------------------------------------------------------------
                 // Revokes authenticated-channels' membership from a channel
@@ -481,7 +494,8 @@ class Api extends SlimRestApi
                 })
                     ->add(new NoStore)
                     ->add(new QueryParameters)
-                    ->add(new Authentication);
+                    ->add(new Authentication)
+                    ->add(new ReadWrite);
             });
 
             $this->group('/links', function () {
@@ -506,7 +520,8 @@ class Api extends SlimRestApi
                         '{membersonly:\int},0',
                         '{reactionsallowed:\int},1',
                         '{tags[]:.{0,40}},null']))
-                    ->add(new Authentication);
+                    ->add(new Authentication)
+                    ->add(new ReadWrite);
 
                 // --------------------------------------------------
                 // publish a blog by it's id
@@ -522,7 +537,8 @@ class Api extends SlimRestApi
                     ->add(new NoStore)
                     ->add(new QueryParameters)
                     ->add(new BodyParameters)
-                    ->add(new Authentication);
+                    ->add(new Authentication)
+                    ->add(new ReadWrite);
 
                 // --------------------------------------------------
                 // transfer a blog by it's id to a new channel
@@ -538,7 +554,8 @@ class Api extends SlimRestApi
                     ->add(new NoStore)
                     ->add(new QueryParameters)
                     ->add(new BodyParameters)
-                    ->add(new Authentication);
+                    ->add(new Authentication)
+                    ->add(new ReadWrite);
 
                 // ----------------------------------------------------------------
                 // Return a link, including tags and related links
@@ -567,7 +584,8 @@ class Api extends SlimRestApi
                             [":id" => $args->id, ":channelid" => $channelid])->rowCount() > 0));
                 })
                     ->add(new QueryParameters)
-                    ->add(new Authentication);
+                    ->add(new Authentication)
+                    ->add(new ReadWrite);
 
                 // -----------------------------------------------------
                 // Returns links for all channel
@@ -615,7 +633,8 @@ class Api extends SlimRestApi
                 })
                     ->add(new QueryParameters)
                     ->add(new CacheablePrivate)
-                    ->add(new Authentication);
+                    ->add(new Authentication)
+                    ->add(new ReadWrite);
 
                 // ----------------------------------------------------------------
                 // Return posts van memberships
@@ -629,7 +648,8 @@ class Api extends SlimRestApi
                     return self::response($request, $response, $args, Methods::getMembershipLinks($channelid, $args->offset, $args->count));
                 })
                     ->add(new QueryParameters(['{offset:\int},0', '{count:\int},20']))
-                    ->add(new Authentication);
+                    ->add(new Authentication)
+                    ->add(new ReadWrite);
 
                 // -----------------------------------------------------
                 // Returns the top scoring links for a given tag
@@ -670,7 +690,8 @@ class Api extends SlimRestApi
                     ->add(new NoStore)
                     ->add(new QueryParameters(['{preview:\boolean},0']))
                     ->add(new BodyParameters(['{markdown:\raw}']))
-                    ->add(new Authentication);
+                    ->add(new Authentication)
+                    ->add(new ReadWrite);
 
                 // ------------------------------------------------+
                 // get reactions
@@ -716,7 +737,8 @@ class Api extends SlimRestApi
                             [":id" => $args->id, ":channelid" => $channelid]))->rowCount() > 0);
                 })
                     ->add(new QueryParameters)
-                    ->add(new Authentication);
+                    ->add(new Authentication)
+                    ->add(new ReadWrite);
 
             });
 
@@ -735,8 +757,9 @@ class Api extends SlimRestApi
                     return self::response($request, $response, $args, Db::lastInsertId());
                 })
                     ->add(new NoStore)
+                    ->add(new QueryParameters)
                     ->add(new Authentication)
-                    ->add(new QueryParameters);
+                    ->add(new ReadWrite);
 
             });
 
@@ -754,9 +777,10 @@ class Api extends SlimRestApi
                     Db::execute("CALL toggle_reactionvote(:channelid,:reactionid)", [":reactionid" => $args->id, ":channelid" => $channelid]);
                     return self::response($request, $response, $args, Db::lastInsertId());
                 })
+                    ->add(new QueryParameters)
                     ->add(new NoStore)
                     ->add(new Authentication)
-                    ->add(new QueryParameters);
+                    ->add(new ReadWrite);
 
             });
 
@@ -803,6 +827,7 @@ class Api extends SlimRestApi
                     stdClass $args): Response {
                     return $response;
                 })
+                    ->add(new ReadWrite)
                     ->add(new CliRequest(300));
 
                 $this->get("/hour", function (
@@ -811,6 +836,7 @@ class Api extends SlimRestApi
                     stdClass $args): Response {
                     return $response;
                 })
+                    ->add(new ReadWrite)
                     ->add(new CliRequest(300));
 
                 $this->get("/day", function (
@@ -819,6 +845,7 @@ class Api extends SlimRestApi
                     stdClass $args): Response {
                     return $response;
                 })
+                    ->add(new ReadWrite)
                     ->add(new CliRequest(300));
 
                 $this->get("/month", function (
@@ -827,6 +854,7 @@ class Api extends SlimRestApi
                     stdClass $args): Response {
                     return $response;
                 })
+                    ->add(new ReadWrite)
                     ->add(new CliRequest(300));
 
             });
